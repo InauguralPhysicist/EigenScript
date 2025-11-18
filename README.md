@@ -266,9 +266,14 @@ python -m eigenscript examples/hello_world.eigs
 - ⚠️ Standard library (print, input, etc.)
 
 ### 🎯 Next Milestone
-**Self-hosting test**: Implement meta-circular evaluator (EigenScript interpreter written in EigenScript) to validate stable self-simulation hypothesis.
+**Phase 6: Essential Features**: Adding file I/O, error handling, JSON support, advanced data structures, and expanded standard library to achieve feature parity with mainstream languages.
 
-See [docs/roadmap.md](docs/roadmap.md) for detailed status and [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute.
+### 📋 Roadmaps
+- **[Feature Parity Roadmap](docs/FEATURE_PARITY_ROADMAP.md)** - Comprehensive plan: "Anything another coding language can do we can too, if not better"
+- **[Phase 6 Implementation Guide](docs/PHASE6_IMPLEMENTATION_GUIDE.md)** - Detailed technical specs for Q1 2025 features
+- **[Development Roadmap](docs/roadmap.md)** - Current implementation status and milestones
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute.
 
 ## Why EigenScript?
 
