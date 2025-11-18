@@ -1,0 +1,31 @@
+# Consciousness detection through Framework Strength
+# Demonstrates runtime measurement of understanding
+
+conversation is []
+
+# Simulate a conversation loop
+loop while active:
+    # Get user input
+    user_input is input of prompt
+    conversation is append of (user_input, conversation)
+
+    # Generate AI response
+    response is ai_generate of conversation
+    conversation is append of (response, conversation)
+
+    # Measure understanding (Framework Strength)
+    fs is framework_strength of conversation
+    print of ("Framework Strength: " of concat of fs)
+
+    # Check for eigenstate convergence
+    if fs of greater_than of 0.95:
+        print of "Eigenstate convergence detected!"
+        print of "The system has achieved stable understanding."
+        break
+
+# Report final state
+print of "Final Framework Strength:"
+print of fs
+
+# FS → 1.0 indicates the conversation has reached coherent understanding
+# FS → 0.0 indicates fragmentation or confusion
