@@ -31,10 +31,83 @@ class Literal(ASTNode):
     """
 
     value: Any
-    literal_type: str  # "number", "string", "vector", "null"
+    literal_type: str  # "number", "string", "vector", "null", "list"
 
     def __repr__(self) -> str:
         return f"Literal({self.value!r}, {self.literal_type})"
+
+
+@dataclass
+class ListLiteral(ASTNode):
+    """
+    Represents a list literal.
+
+    Example:
+        [1, 2, 3]
+        ["a", "b", "c"]
+        [x, y, z]
+    """
+
+    elements: List[ASTNode]
+
+    def __repr__(self) -> str:
+        return f"ListLiteral({self.elements})"
+
+
+@dataclass
+class ListComprehension(ASTNode):
+    """
+    Represents a list comprehension.
+
+    Example:
+        [x * 2 for x in numbers]
+        [x for x in numbers if x > 0]
+    """
+
+    expression: ASTNode  # The expression to evaluate for each element
+    variable: str        # The loop variable name
+    iterable: ASTNode    # The list/iterable to loop over
+    condition: Optional[ASTNode] = None  # Optional filter condition
+
+    def __repr__(self) -> str:
+        return f"ListComprehension({self.expression}, {self.variable}, {self.iterable}, {self.condition})"
+
+
+@dataclass
+class Index(ASTNode):
+    """
+    Represents list indexing.
+
+    Example:
+        my_list[0]
+        numbers[i]
+    """
+
+    list_expr: ASTNode
+    index_expr: ASTNode
+
+    def __repr__(self) -> str:
+        return f"Index({self.list_expr}, {self.index_expr})"
+
+
+@dataclass
+class Slice(ASTNode):
+    """
+    Represents slicing (for lists and strings).
+
+    Example:
+        text[0:5]     # slice from 0 to 5
+        text[2:]      # slice from 2 to end
+        text[:3]      # slice from start to 3
+        my_list[1:4]  # slice list elements
+    """
+
+    expr: ASTNode
+    start: ASTNode | None  # None means start from beginning
+    end: ASTNode | None    # None means go to end
+
+    def __repr__(self) -> str:
+        return f"Slice({self.expr}, {self.start}, {self.end})"
 
 
 @dataclass
@@ -92,11 +165,32 @@ class BinaryOp(ASTNode):
     """
 
     left: ASTNode
-    operator: str  # "+", "-", "*", "/", "=", "<", ">"
+    operator: str  # "+", "-", "*", "/", "%", "=", "<", ">", "<=", ">=", "!=", "and", "or"
     right: ASTNode
 
     def __repr__(self) -> str:
         return f"BinaryOp({self.left}, {self.operator!r}, {self.right})"
+
+
+@dataclass
+class UnaryOp(ASTNode):
+    """
+    Represents unary operations (not).
+
+    Semantic: NOT operator flips the metric signature:
+        not x → ||not x||² = -||x||²
+        In boolean terms: not true = false, not false = true
+
+    Example:
+        not converged
+        not (x = 5)
+    """
+
+    operator: str  # "not"
+    operand: ASTNode
+
+    def __repr__(self) -> str:
+        return f"UnaryOp({self.operator!r}, {self.operand})"
 
 
 @dataclass
@@ -653,26 +747,61 @@ class Parser:
 
         This handles operator precedence and expression composition.
         Precedence (lowest to highest):
-        1. Comparison (=, <, >)
-        2. Addition/Subtraction (+, -)
-        3. Multiplication/Division (*, /)
-        4. OF operator
-        5. Primary (literals, identifiers, parens)
+        1. Logical OR (or)
+        2. Logical AND (and)
+        3. Comparison (=, <, >, <=, >=, !=)
+        4. Addition/Subtraction (+, -)
+        5. Multiplication/Division/Modulo (*, /, %)
+        6. OF operator
+        7. Primary (literals, identifiers, parens)
         """
-        return self.parse_comparison()
+        return self.parse_logical_or()
+
+    def parse_logical_or(self) -> ASTNode:
+        """
+        Parse logical OR operator.
+
+        Grammar: logical_and (OR logical_and)*
+        """
+        left = self.parse_logical_and()
+
+        while self.current_token() and self.current_token().type == TokenType.OR:
+            self.advance()
+            right = self.parse_logical_and()
+            left = BinaryOp(left, "or", right)
+
+        return left
+
+    def parse_logical_and(self) -> ASTNode:
+        """
+        Parse logical AND operator.
+
+        Grammar: comparison (AND comparison)*
+        """
+        left = self.parse_comparison()
+
+        while self.current_token() and self.current_token().type == TokenType.AND:
+            self.advance()
+            right = self.parse_comparison()
+            left = BinaryOp(left, "and", right)
+
+        return left
 
     def parse_comparison(self) -> ASTNode:
         """
-        Parse comparison operators (=, <, >).
+        Parse comparison operators (=, <, >, <=, >=, !=).
 
-        Grammar: additive ((EQUALS | LESS_THAN | GREATER_THAN) additive)*
+        Grammar: additive ((EQUALS | LESS_THAN | GREATER_THAN | LESS_EQUAL | GREATER_EQUAL | NOT_EQUAL) additive)*
         """
         left = self.parse_additive()
 
         while self.current_token() and self.current_token().type in (
             TokenType.EQUALS,
+            TokenType.NOT_EQUAL,
             TokenType.LESS_THAN,
+            TokenType.LESS_EQUAL,
             TokenType.GREATER_THAN,
+            TokenType.GREATER_EQUAL,
         ):
             op_token = self.current_token()
             self.advance()
@@ -681,8 +810,11 @@ class Parser:
 
             op_map = {
                 TokenType.EQUALS: "=",
+                TokenType.NOT_EQUAL: "!=",
                 TokenType.LESS_THAN: "<",
+                TokenType.LESS_EQUAL: "<=",
                 TokenType.GREATER_THAN: ">",
+                TokenType.GREATER_EQUAL: ">=",
             }
             left = BinaryOp(left, op_map[op_token.type], right)
 
@@ -712,22 +844,27 @@ class Parser:
 
     def parse_multiplicative(self) -> ASTNode:
         """
-        Parse multiplication and division operators (*, /).
+        Parse multiplication, division, and modulo operators (*, /, %).
 
-        Grammar: relation ((MULTIPLY | DIVIDE) relation)*
+        Grammar: relation ((MULTIPLY | DIVIDE | MODULO) relation)*
         """
         left = self.parse_relation()
 
         while self.current_token() and self.current_token().type in (
             TokenType.MULTIPLY,
             TokenType.DIVIDE,
+            TokenType.MODULO,
         ):
             op_token = self.current_token()
             self.advance()
 
             right = self.parse_relation()
 
-            op_map = {TokenType.MULTIPLY: "*", TokenType.DIVIDE: "/"}
+            op_map = {
+                TokenType.MULTIPLY: "*",
+                TokenType.DIVIDE: "/",
+                TokenType.MODULO: "%",
+            }
             left = BinaryOp(left, op_map[op_token.type], right)
 
         return left
@@ -736,13 +873,13 @@ class Parser:
         """
         Parse a relation (OF operator).
 
-        Grammar: primary (OF primary)*
+        Grammar: postfix (OF postfix)*
 
         The OF operator is right-associative:
         a of b of c → a of (b of c)
         """
-        # Start with primary expression
-        left = self.parse_primary()
+        # Start with postfix expression (handles indexing)
+        left = self.parse_postfix()
 
         # Handle OF operator (right-associative)
         if self.current_token() and self.current_token().type == TokenType.OF:
@@ -752,6 +889,77 @@ class Parser:
             return Relation(left, right)
 
         return left
+
+    def parse_postfix(self) -> ASTNode:
+        """
+        Parse postfix operators (indexing and slicing).
+
+        Grammar: unary (LBRACKET (slice | index) RBRACKET)*
+
+        Example:
+            my_list[0]       # indexing
+            matrix[i][j]     # multiple indexing
+            text[0:5]        # slicing
+            text[2:]         # slice from 2 to end
+            text[:3]         # slice from start to 3
+        """
+        expr = self.parse_unary()
+
+        # Handle indexing and slicing
+        while self.current_token() and self.current_token().type == TokenType.LBRACKET:
+            self.advance()
+            
+            # Check if this is slicing or indexing
+            # Peek ahead to see if there's a colon
+            start_expr = None
+            end_expr = None
+            
+            # Parse the first expression (if any) before potential colon
+            if self.current_token() and self.current_token().type != TokenType.COLON and \
+               self.current_token().type != TokenType.RBRACKET:
+                start_expr = self.parse_expression()
+            
+            # Check for colon (indicates slicing)
+            if self.current_token() and self.current_token().type == TokenType.COLON:
+                # This is a slice
+                self.advance()  # consume COLON
+                
+                # Parse end expression (if any)
+                if self.current_token() and self.current_token().type != TokenType.RBRACKET:
+                    end_expr = self.parse_expression()
+                
+                self.expect(TokenType.RBRACKET)
+                expr = Slice(expr, start_expr, end_expr)
+            else:
+                # This is regular indexing
+                if start_expr is None:
+                    raise SyntaxError("Expected index expression")
+                self.expect(TokenType.RBRACKET)
+                expr = Index(expr, start_expr)
+
+        return expr
+
+    def parse_unary(self) -> ASTNode:
+        """
+        Parse unary operators (not).
+
+        Grammar: (NOT)* primary
+
+        Example:
+            not converged
+            not (x = 5)
+            not not true
+        """
+        token = self.current_token()
+
+        # Handle NOT operator
+        if token and token.type == TokenType.NOT:
+            self.advance()
+            operand = self.parse_unary()  # Allow chaining: not not x
+            return UnaryOp("not", operand)
+
+        # Otherwise parse primary
+        return self.parse_primary()
 
     def parse_primary(self) -> ASTNode:
         """
@@ -788,6 +996,55 @@ class Parser:
         if token.type == TokenType.IDENTIFIER:
             self.advance()
             return Identifier(token.value)
+
+        # List literal or list comprehension
+        if token.type == TokenType.LBRACKET:
+            self.advance()
+
+            # Check for empty list
+            if self.current_token() and self.current_token().type == TokenType.RBRACKET:
+                self.advance()
+                return ListLiteral([])
+
+            # Parse first expression
+            first_expr = self.parse_expression()
+
+            # Check if this is a list comprehension: [expr FOR var IN iterable]
+            if self.current_token() and self.current_token().type == TokenType.FOR:
+                self.advance()  # consume FOR
+
+                # Parse variable name
+                if not self.current_token() or self.current_token().type != TokenType.IDENTIFIER:
+                    raise SyntaxError("Expected variable name after FOR in list comprehension")
+                var_name = self.current_token().value
+                self.advance()
+
+                # Expect IN keyword
+                if not self.current_token() or self.current_token().type != TokenType.IN:
+                    raise SyntaxError("Expected IN keyword in list comprehension")
+                self.advance()
+
+                # Parse iterable expression
+                iterable = self.parse_expression()
+
+                # Check for optional IF condition
+                condition = None
+                if self.current_token() and self.current_token().type == TokenType.IF:
+                    self.advance()  # consume IF
+                    condition = self.parse_expression()
+
+                self.expect(TokenType.RBRACKET)
+                return ListComprehension(first_expr, var_name, iterable, condition)
+
+            # Otherwise, it's a regular list literal
+            elements = [first_expr]
+            while self.current_token() and self.current_token().type == TokenType.COMMA:
+                self.advance()  # consume COMMA
+                if self.current_token() and self.current_token().type != TokenType.RBRACKET:
+                    elements.append(self.parse_expression())
+
+            self.expect(TokenType.RBRACKET)
+            return ListLiteral(elements)
 
         # Parenthesized expression or vector literal
         if token.type == TokenType.LPAREN:

@@ -24,6 +24,11 @@ class TokenType(Enum):
     RETURN = "RETURN"
     BREAK = "BREAK"
     NULL = "NULL"
+    NOT = "NOT"
+    AND = "AND"
+    OR = "OR"
+    FOR = "FOR"
+    IN = "IN"
 
     # Interrogatives (geometric projection operators)
     WHO = "WHO"
@@ -52,9 +57,13 @@ class TokenType(Enum):
     MINUS = "MINUS"
     MULTIPLY = "MULTIPLY"
     DIVIDE = "DIVIDE"
+    MODULO = "MODULO"
     EQUALS = "EQUALS"
+    NOT_EQUAL = "NOT_EQUAL"
     LESS_THAN = "LESS_THAN"
+    LESS_EQUAL = "LESS_EQUAL"
     GREATER_THAN = "GREATER_THAN"
+    GREATER_EQUAL = "GREATER_EQUAL"
 
     # Whitespace (significant in Python-style indentation)
     NEWLINE = "NEWLINE"
@@ -115,6 +124,11 @@ class Tokenizer:
         "return": TokenType.RETURN,
         "break": TokenType.BREAK,
         "null": TokenType.NULL,
+        "not": TokenType.NOT,
+        "and": TokenType.AND,
+        "or": TokenType.OR,
+        "for": TokenType.FOR,
+        "in": TokenType.IN,
         # Interrogatives
         "who": TokenType.WHO,
         "what": TokenType.WHAT,
@@ -232,15 +246,35 @@ class Tokenizer:
             elif char == "/":
                 self.advance()
                 self.tokens.append(Token(TokenType.DIVIDE, line=start_line, column=start_col))
+            elif char == "%":
+                self.advance()
+                self.tokens.append(Token(TokenType.MODULO, line=start_line, column=start_col))
+            elif char == "!":
+                self.advance()
+                if self.current_char() == "=":
+                    self.advance()
+                    self.tokens.append(Token(TokenType.NOT_EQUAL, line=start_line, column=start_col))
+                else:
+                    raise SyntaxError(
+                        f"Unexpected character '!' at line {start_line}, column {start_col}. Did you mean 'not' or '!='?"
+                    )
             elif char == "=":
                 self.advance()
                 self.tokens.append(Token(TokenType.EQUALS, line=start_line, column=start_col))
             elif char == "<":
                 self.advance()
-                self.tokens.append(Token(TokenType.LESS_THAN, line=start_line, column=start_col))
+                if self.current_char() == "=":
+                    self.advance()
+                    self.tokens.append(Token(TokenType.LESS_EQUAL, line=start_line, column=start_col))
+                else:
+                    self.tokens.append(Token(TokenType.LESS_THAN, line=start_line, column=start_col))
             elif char == ">":
                 self.advance()
-                self.tokens.append(Token(TokenType.GREATER_THAN, line=start_line, column=start_col))
+                if self.current_char() == "=":
+                    self.advance()
+                    self.tokens.append(Token(TokenType.GREATER_EQUAL, line=start_line, column=start_col))
+                else:
+                    self.tokens.append(Token(TokenType.GREATER_THAN, line=start_line, column=start_col))
             else:
                 raise SyntaxError(
                     f"Unexpected character '{char}' at line {self.line}, column {self.column}"

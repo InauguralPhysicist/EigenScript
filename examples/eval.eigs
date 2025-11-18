@@ -1,0 +1,36 @@
+# Meta-Circular Evaluator Demo
+
+define eval_add as:
+    left is n
+    right is m
+    result is left + right
+    return result
+
+define eval_mul as:
+    left is n  
+    right is m
+    result is left * right
+    return result
+
+n is 3
+m is 4
+sum_result is eval_add of n
+print of sum_result
+
+n is 5
+m is 6
+prod_result is eval_mul of n
+print of prod_result
+
+print of fs
+print of signature
+
+if converged:
+    print of 1
+else:
+    print of 0
+
+if stable:
+    print of 1
+else:
+    print of 0

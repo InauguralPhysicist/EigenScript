@@ -55,6 +55,37 @@ print of result  # 120
 | **DEFINE** | `define f as:` | Function definition | Timelike transformation |
 | **RETURN** | `return x` | Flow termination | Observer frame projection |
 
+## Higher-Order Functions
+
+EigenScript supports powerful functional programming patterns with geometric semantics:
+
+| Function | Syntax | Description | Use Case |
+|----------|--------|-------------|----------|
+| **map** | `map of [f, list]` | Transform each element | Apply function to all items |
+| **filter** | `filter of [p, list]` | Select matching elements | Keep only items satisfying condition |
+| **reduce** | `reduce of [f, list, init]` | Fold to single value | Sum, product, or custom aggregation |
+
+```eigenscript
+# Example: Filter, double, then sum
+define is_positive as:
+    return n > 0
+
+define double as:
+    return n * 2
+
+define add as:
+    a is n[0]
+    b is n[1]
+    return a + b
+
+numbers is [-2, -1, 0, 1, 2, 3]
+positives is filter of [is_positive, numbers]  # [1, 2, 3]
+doubled is map of [double, positives]           # [2, 4, 6]
+total is reduce of [add, doubled, 0]             # 12
+```
+
+See `docs/higher_order_functions.md` for complete documentation and `examples/higher_order_functions.eigs` for more examples.
+
 ## What Makes EigenScript Different?
 
 ### 1. Your Code Can Ask Questions
@@ -171,42 +202,6 @@ loop while counter < 100:
 - Self-documenting behavior
 
 **The bottom line:** Your programs understand themselves, so you don't have to micromanage every detail.
-
-### 5. Code More Vaguely (When You Want To)
-
-Because your code can interrogate itself, you can write at a higher level:
-
-```eigenscript
-# Traditional: You specify everything
-if (iterations > max_iterations) or (error < threshold) or (variance < epsilon):
-    return result
-
-# EigenScript: Let the code figure it out
-if converged:
-    return result
-```
-
-```eigenscript
-# Traditional: Explicit loop management
-counter is 0
-loop while counter < 100:
-    counter is counter + 1
-    if abs(value - target) < 0.001:
-        break
-
-# EigenScript: Just say when to stop
-loop while improving:
-    refine_value
-```
-
-**The freedom to be vague:**
-- Don't know the exact threshold? Use `if converged`
-- Don't know the exact condition? Use `if stable`
-- Don't know how many iterations? Use `while improving`
-
-The code fills in the details by interrogating its own state.
-
-*Analogy*: Traditional code is like giving step-by-step GPS directions ("turn right in 0.3 miles..."). EigenScript is like saying "head downtown" - the system figures out the specifics.
 
 ---
 
