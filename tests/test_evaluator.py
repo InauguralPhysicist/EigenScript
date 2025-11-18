@@ -9,6 +9,8 @@ import numpy as np
 from eigenscript.evaluator import Interpreter, Environment
 from eigenscript.parser.ast_builder import *
 from eigenscript.semantic.lrvm import LRVMVector
+from eigenscript.lexer import Tokenizer
+from eigenscript.parser import Parser
 
 
 class TestEnvironment:
@@ -111,7 +113,6 @@ class TestInterpreter:
         assert isinstance(result, LRVMVector)
         assert np.allclose(result.coords, np.zeros(10))
 
-    @pytest.mark.skip(reason="Full implementation pending")
     def test_eval_assignment(self):
         """Should evaluate assignment and bind variable."""
         interp = Interpreter(dimension=10)
@@ -127,7 +128,6 @@ class TestInterpreter:
         result = interp.environment.lookup("x")
         assert isinstance(result, LRVMVector)
 
-    @pytest.mark.skip(reason="Full implementation pending")
     def test_eval_identifier(self):
         """Should evaluate identifier to bound value."""
         interp = Interpreter(dimension=10)
@@ -142,7 +142,6 @@ class TestInterpreter:
 
         assert result == v
 
-    @pytest.mark.skip(reason="Full implementation pending")
     def test_eval_relation(self):
         """Should evaluate OF operator via metric contraction."""
         interp = Interpreter(dimension=5)
@@ -162,27 +161,26 @@ class TestInterpreter:
         # First coordinate should have contraction value
         assert np.isclose(result.coords[0], 2.0)
 
-    @pytest.mark.skip(reason="Full implementation pending")
-    def test_of_of_equals_of(self):
-        """Should verify OF of OF = OF property."""
-        # This is a key property of EigenScript
-        # The OF operator applied to itself should return itself
-        pass
+    def test_eval_program_multiple_statements(self):
+        """Should evaluate program with multiple statements."""
+        interp = Interpreter(dimension=10)
 
-    @pytest.mark.skip(reason="Full implementation pending")
-    def test_eval_conditional_true_branch(self):
-        """Should evaluate true branch when condition is spacelike."""
-        pass
+        # Create program: x is 5; y is 10
+        prog = Program(
+            statements=[
+                Assignment(identifier="x", expression=Literal(5.0, "number")),
+                Assignment(identifier="y", expression=Literal(10.0, "number")),
+            ]
+        )
 
-    @pytest.mark.skip(reason="Full implementation pending")
-    def test_eval_conditional_false_branch(self):
-        """Should evaluate false branch when condition is lightlike."""
-        pass
+        interp.evaluate(prog)
 
-    @pytest.mark.skip(reason="Full implementation pending")
-    def test_eval_loop_convergence(self):
-        """Should iterate until convergence."""
-        pass
+        # Both should be bound
+        x_val = interp.environment.lookup("x")
+        y_val = interp.environment.lookup("y")
+
+        assert isinstance(x_val, LRVMVector)
+        assert isinstance(y_val, LRVMVector)
 
     def test_framework_strength_tracking(self):
         """Should track Framework Strength during execution."""
@@ -211,20 +209,151 @@ class TestInterpreter:
 class TestEndToEnd:
     """End-to-end integration tests."""
 
-    @pytest.mark.skip(reason="Full implementation pending")
-    def test_simple_program(self):
+    def test_simple_assignment(self):
         """Should execute simple program: x is 5"""
-        # This would test the full pipeline:
-        # Source → Lexer → Parser → Evaluator
-        pass
+        # Full pipeline: Source → Lexer → Parser → Evaluator
+        source = "x is 5"
 
-    @pytest.mark.skip(reason="Full implementation pending")
+        # Tokenize
+        tokenizer = Tokenizer(source)
+        tokens = tokenizer.tokenize()
+
+        # Parse
+        parser = Parser(tokens)
+        ast = parser.parse()
+
+        # Evaluate
+        interp = Interpreter(dimension=10)
+        result = interp.evaluate(ast)
+
+        # x should be bound
+        x_val = interp.environment.lookup("x")
+        assert isinstance(x_val, LRVMVector)
+        # First coordinate should be 5
+        assert x_val.coords[0] == 5.0
+
     def test_relation_program(self):
         """Should execute: z is x of y"""
-        pass
+        source = """x is 3
+y is 4
+z is x of y"""
 
-    @pytest.mark.skip(reason="Full implementation pending")
-    def test_self_reference(self):
-        """Should handle self-reference safely."""
-        # observer of observer should converge, not explode
-        pass
+        # Full pipeline
+        tokenizer = Tokenizer(source)
+        tokens = tokenizer.tokenize()
+
+        parser = Parser(tokens)
+        ast = parser.parse()
+
+        interp = Interpreter(dimension=10)
+        interp.evaluate(ast)
+
+        # All should be bound
+        x_val = interp.environment.lookup("x")
+        y_val = interp.environment.lookup("y")
+        z_val = interp.environment.lookup("z")
+
+        assert isinstance(x_val, LRVMVector)
+        assert isinstance(y_val, LRVMVector)
+        assert isinstance(z_val, LRVMVector)
+
+        # z should be the metric contraction of x and y
+        # For our embedding: x of y should give a meaningful value
+        assert z_val.dimension == 10
+
+    def test_multiple_assignments(self):
+        """Should handle multiple variable assignments."""
+        source = """a is 10
+b is 20
+c is 30"""
+
+        tokenizer = Tokenizer(source)
+        tokens = tokenizer.tokenize()
+
+        parser = Parser(tokens)
+        ast = parser.parse()
+
+        interp = Interpreter(dimension=10)
+        interp.evaluate(ast)
+
+        # All variables should be bound
+        assert "a" in interp.environment.bindings
+        assert "b" in interp.environment.bindings
+        assert "c" in interp.environment.bindings
+
+    def test_string_assignment(self):
+        """Should handle string assignments."""
+        source = 'name is "Alice"'
+
+        tokenizer = Tokenizer(source)
+        tokens = tokenizer.tokenize()
+
+        parser = Parser(tokens)
+        ast = parser.parse()
+
+        interp = Interpreter(dimension=768)  # Larger for strings
+        interp.evaluate(ast)
+
+        name_val = interp.environment.lookup("name")
+        assert isinstance(name_val, LRVMVector)
+        assert name_val.dimension == 768
+
+    def test_chained_relations(self):
+        """Should handle chained OF operations."""
+        source = """a is 2
+b is 3
+c is 5
+result is a of b of c"""
+
+        tokenizer = Tokenizer(source)
+        tokens = tokenizer.tokenize()
+
+        parser = Parser(tokens)
+        ast = parser.parse()
+
+        interp = Interpreter(dimension=10)
+        interp.evaluate(ast)
+
+        # result should exist
+        result_val = interp.environment.lookup("result")
+        assert isinstance(result_val, LRVMVector)
+
+    def test_vector_literal(self):
+        """Should handle vector literals."""
+        source = "v is (1, 2, 3)"
+
+        tokenizer = Tokenizer(source)
+        tokens = tokenizer.tokenize()
+
+        parser = Parser(tokens)
+        ast = parser.parse()
+
+        interp = Interpreter(dimension=10)
+        interp.evaluate(ast)
+
+        v_val = interp.environment.lookup("v")
+        assert isinstance(v_val, LRVMVector)
+
+    def test_mvp_goal_achieved(self):
+        """MVP Success: Can execute 'x is 5' and 'z is x of y'"""
+        # This is the official MVP success criterion from the roadmap
+
+        # Test 1: x is 5
+        source1 = "x is 5"
+        tokenizer1 = Tokenizer(source1)
+        parser1 = Parser(tokenizer1.tokenize())
+        interp1 = Interpreter(dimension=10)
+        interp1.evaluate(parser1.parse())
+        assert "x" in interp1.environment.bindings
+
+        # Test 2: z is x of y
+        source2 = """x is 10
+y is 20
+z is x of y"""
+        tokenizer2 = Tokenizer(source2)
+        parser2 = Parser(tokenizer2.tokenize())
+        interp2 = Interpreter(dimension=10)
+        interp2.evaluate(parser2.parse())
+        assert "z" in interp2.environment.bindings
+
+        # MVP ACHIEVED! 🎉

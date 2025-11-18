@@ -5,6 +5,7 @@ Executes Abstract Syntax Trees using geometric transformations
 in LRVM space.
 """
 
+import numpy as np
 from typing import Dict, Optional, Any
 from eigenscript.parser.ast_builder import *
 from eigenscript.semantic.lrvm import LRVMVector, LRVMSpace
