@@ -53,7 +53,9 @@ class FrameworkStrengthTracker:
         Args:
             state: Current LRVM state vector
         """
-        self.trajectory.append(state)
+        # Only track LRVMVectors, not EigenLists
+        if isinstance(state, LRVMVector):
+            self.trajectory.append(state)
 
     def compute_fs(self) -> float:
         """

@@ -1359,8 +1359,11 @@ class Interpreter:
         recent_count = min(window, trajectory_len)
         recent_states = self.fs_tracker.trajectory[-recent_count:]
 
-        # Extract coordinate arrays
-        coords_array = np.array([state.coords for state in recent_states])
+        # Extract coordinate arrays (filter out any non-vectors)
+        valid_states = [state for state in recent_states if isinstance(state, LRVMVector)]
+        if len(valid_states) < 2:
+            return 0.0, "lightlike"
+        coords_array = np.array([state.coords for state in valid_states])
 
         # Compute per-dimension variance
         variances = np.var(coords_array, axis=0)
