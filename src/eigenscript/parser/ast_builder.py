@@ -238,9 +238,19 @@ class Parser:
         Raises:
             SyntaxError: If invalid syntax is encountered
         """
-        # TODO: Implement parsing logic
         statements = []
-        # For now, return empty program
+
+        while self.current_token() and self.current_token().type != TokenType.EOF:
+            # Skip newlines at the top level
+            if self.current_token().type == TokenType.NEWLINE:
+                self.advance()
+                continue
+
+            # Parse statement
+            stmt = self.parse_statement()
+            if stmt:
+                statements.append(stmt)
+
         return Program(statements)
 
     def current_token(self) -> Optional[Token]:
@@ -290,9 +300,55 @@ class Parser:
         Returns:
             AST node representing the statement
         """
-        # TODO: Implement statement parsing
-        # Dispatch to appropriate parse method based on token
-        pass
+        token = self.current_token()
+
+        if not token or token.type == TokenType.EOF:
+            return None
+
+        # Skip newlines
+        if token.type == TokenType.NEWLINE:
+            self.advance()
+            return None
+
+        # DEFINE - function definition
+        if token.type == TokenType.DEFINE:
+            return self.parse_definition()
+
+        # IF - conditional
+        if token.type == TokenType.IF:
+            return self.parse_conditional()
+
+        # LOOP - loop statement
+        if token.type == TokenType.LOOP:
+            return self.parse_loop()
+
+        # RETURN - return statement
+        if token.type == TokenType.RETURN:
+            return self.parse_return()
+
+        # BREAK - break statement
+        if token.type == TokenType.BREAK:
+            self.advance()
+            # Consume optional newline
+            if self.current_token() and self.current_token().type == TokenType.NEWLINE:
+                self.advance()
+            return Break()
+
+        # Assignment (identifier IS expression)
+        if token.type == TokenType.IDENTIFIER:
+            # Look ahead for IS token
+            next_token = self.peek_token()
+            if next_token and next_token.type == TokenType.IS:
+                return self.parse_assignment()
+
+        # Expression statement (e.g., function call)
+        expr = self.parse_expression()
+
+        # Consume optional newline after expression
+        if self.current_token() and self.current_token().type == TokenType.NEWLINE:
+            self.advance()
+
+        return expr
 
     def parse_assignment(self) -> Assignment:
         """
@@ -300,8 +356,21 @@ class Parser:
 
         Grammar: identifier IS expression
         """
-        # TODO: Implement assignment parsing
-        pass
+        # Get identifier
+        id_token = self.expect(TokenType.IDENTIFIER)
+        identifier = id_token.value
+
+        # Expect IS token
+        self.expect(TokenType.IS)
+
+        # Parse expression
+        expression = self.parse_expression()
+
+        # Consume optional newline
+        if self.current_token() and self.current_token().type == TokenType.NEWLINE:
+            self.advance()
+
+        return Assignment(identifier, expression)
 
     def parse_definition(self) -> FunctionDef:
         """
@@ -309,8 +378,32 @@ class Parser:
 
         Grammar: DEFINE identifier AS COLON block
         """
-        # TODO: Implement function definition parsing
-        pass
+        # Consume DEFINE
+        self.expect(TokenType.DEFINE)
+
+        # Get function name
+        name_token = self.expect(TokenType.IDENTIFIER)
+        name = name_token.value
+
+        # For now, we don't parse parameters (simplified)
+        # In full implementation: parse parameter list
+        parameters = []
+
+        # Expect AS (optional in some grammars, required here)
+        if self.current_token() and self.current_token().type == TokenType.AS:
+            self.advance()
+
+        # Expect colon
+        self.expect(TokenType.COLON)
+
+        # Consume newline
+        if self.current_token() and self.current_token().type == TokenType.NEWLINE:
+            self.advance()
+
+        # Parse block
+        body = self.parse_block()
+
+        return FunctionDef(name, parameters, body)
 
     def parse_conditional(self) -> Conditional:
         """
@@ -318,8 +411,38 @@ class Parser:
 
         Grammar: IF expression COLON block (ELSE COLON block)?
         """
-        # TODO: Implement conditional parsing
-        pass
+        # Consume IF
+        self.expect(TokenType.IF)
+
+        # Parse condition
+        condition = self.parse_expression()
+
+        # Expect colon
+        self.expect(TokenType.COLON)
+
+        # Consume newline
+        if self.current_token() and self.current_token().type == TokenType.NEWLINE:
+            self.advance()
+
+        # Parse if block
+        if_block = self.parse_block()
+
+        # Check for ELSE
+        else_block = None
+        if self.current_token() and self.current_token().type == TokenType.ELSE:
+            self.advance()
+
+            # Expect colon
+            self.expect(TokenType.COLON)
+
+            # Consume newline
+            if self.current_token() and self.current_token().type == TokenType.NEWLINE:
+                self.advance()
+
+            # Parse else block
+            else_block = self.parse_block()
+
+        return Conditional(condition, if_block, else_block)
 
     def parse_loop(self) -> Loop:
         """
@@ -327,8 +450,26 @@ class Parser:
 
         Grammar: LOOP WHILE expression COLON block
         """
-        # TODO: Implement loop parsing
-        pass
+        # Consume LOOP
+        self.expect(TokenType.LOOP)
+
+        # Expect WHILE
+        self.expect(TokenType.WHILE)
+
+        # Parse condition
+        condition = self.parse_expression()
+
+        # Expect colon
+        self.expect(TokenType.COLON)
+
+        # Consume newline
+        if self.current_token() and self.current_token().type == TokenType.NEWLINE:
+            self.advance()
+
+        # Parse loop body
+        body = self.parse_block()
+
+        return Loop(condition, body)
 
     def parse_return(self) -> Return:
         """
@@ -336,8 +477,45 @@ class Parser:
 
         Grammar: RETURN expression
         """
-        # TODO: Implement return parsing
-        pass
+        # Consume RETURN
+        self.expect(TokenType.RETURN)
+
+        # Parse expression
+        expression = self.parse_expression()
+
+        # Consume optional newline
+        if self.current_token() and self.current_token().type == TokenType.NEWLINE:
+            self.advance()
+
+        return Return(expression)
+
+    def parse_block(self) -> List[ASTNode]:
+        """
+        Parse an indented block of statements.
+
+        Returns:
+            List of AST nodes in the block
+        """
+        statements = []
+
+        # Expect INDENT
+        self.expect(TokenType.INDENT)
+
+        # Parse statements until DEDENT
+        while self.current_token() and self.current_token().type != TokenType.DEDENT:
+            # Skip newlines
+            if self.current_token().type == TokenType.NEWLINE:
+                self.advance()
+                continue
+
+            stmt = self.parse_statement()
+            if stmt:
+                statements.append(stmt)
+
+        # Expect DEDENT
+        self.expect(TokenType.DEDENT)
+
+        return statements
 
     def parse_expression(self) -> ASTNode:
         """
@@ -345,18 +523,28 @@ class Parser:
 
         This handles operator precedence and expression composition.
         """
-        # TODO: Implement expression parsing
-        # Handle OF operator, function calls, etc.
-        pass
+        return self.parse_relation()
 
     def parse_relation(self) -> ASTNode:
         """
         Parse a relation (OF operator).
 
-        Grammar: expression OF expression
+        Grammar: primary (OF primary)*
+
+        The OF operator is right-associative:
+        a of b of c → a of (b of c)
         """
-        # TODO: Implement relation parsing
-        pass
+        # Start with primary expression
+        left = self.parse_primary()
+
+        # Handle OF operator (right-associative)
+        if self.current_token() and self.current_token().type == TokenType.OF:
+            self.advance()
+            # Recursively parse right side to handle right-associativity
+            right = self.parse_relation()
+            return Relation(left, right)
+
+        return left
 
     def parse_primary(self) -> ASTNode:
         """
@@ -364,5 +552,90 @@ class Parser:
 
         Grammar: NUMBER | STRING | VECTOR | IDENTIFIER | LPAREN expression RPAREN
         """
-        # TODO: Implement primary expression parsing
-        pass
+        token = self.current_token()
+
+        if not token:
+            raise SyntaxError("Unexpected end of input")
+
+        # Number literal
+        if token.type == TokenType.NUMBER:
+            self.advance()
+            return Literal(token.value, "number")
+
+        # String literal
+        if token.type == TokenType.STRING:
+            self.advance()
+            return Literal(token.value, "string")
+
+        # Null literal
+        if token.type == TokenType.NULL:
+            self.advance()
+            return Literal(None, "null")
+
+        # Identifier
+        if token.type == TokenType.IDENTIFIER:
+            self.advance()
+            return Identifier(token.value)
+
+        # Parenthesized expression or vector literal
+        if token.type == TokenType.LPAREN:
+            self.advance()
+
+            # Check if it's a vector literal (1, 2, 3)
+            # or a parenthesized expression (x of y)
+            elements = []
+            while self.current_token() and self.current_token().type != TokenType.RPAREN:
+                elements.append(self.parse_expression())
+
+                # Check for comma (vector literal)
+                if self.current_token() and self.current_token().type == TokenType.COMMA:
+                    self.advance()
+                elif self.current_token() and self.current_token().type != TokenType.RPAREN:
+                    # Single expression in parens
+                    break
+
+            self.expect(TokenType.RPAREN)
+
+            # If we have multiple elements or saw a comma, it's a vector
+            if len(elements) > 1:
+                # Extract numeric values if all are literals
+                values = []
+                for elem in elements:
+                    if isinstance(elem, Literal) and elem.literal_type == "number":
+                        values.append(elem.value)
+                    else:
+                        # Mixed types - keep as list of AST nodes
+                        return Literal(elements, "vector")
+                return Literal(values, "vector")
+            elif len(elements) == 1:
+                # Single element in parentheses
+                return elements[0]
+            else:
+                # Empty parentheses - treat as empty vector
+                return Literal([], "vector")
+
+        # Bracket notation for vectors
+        if token.type == TokenType.LBRACKET:
+            self.advance()
+            elements = []
+
+            while self.current_token() and self.current_token().type != TokenType.RBRACKET:
+                elements.append(self.parse_expression())
+
+                if self.current_token() and self.current_token().type == TokenType.COMMA:
+                    self.advance()
+
+            self.expect(TokenType.RBRACKET)
+
+            # Extract values
+            values = []
+            for elem in elements:
+                if isinstance(elem, Literal) and elem.literal_type == "number":
+                    values.append(elem.value)
+                else:
+                    return Literal(elements, "vector")
+            return Literal(values, "vector")
+
+        raise SyntaxError(
+            f"Unexpected token {token.type.name} at line {token.line}, column {token.column}"
+        )
