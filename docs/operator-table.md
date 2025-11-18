@@ -383,6 +383,493 @@ ELSE(A, B, C) = { B  if A^⊤ g A > 0
 
 ---
 
+### 2.9 Arithmetic Operators - Equilibrium Composition & Scaling
+
+**The arithmetic-logic-geometry unification**: All arithmetic operators are modes of equilibrium in semantic spacetime.
+
+---
+
+#### 2.9.1 Addition (+) - Additive Equilibrium Composition
+
+**Syntax**: `a + b`
+
+**Formal Definition**:
+```
+ADD: V × V → V
+ADD(x, y) = vector composition toward equilibrium
+
+result = x ⊕ y  (minimize ‖result - (x + y)‖²)
+```
+
+**Relationship to IS**:
+```
++ = additive equilibrium composition
+
+a + b  means  combine a and b to minimize relational tension
+            ⟺  find v where ‖v - a‖² + ‖v - b‖² is minimized
+```
+
+**Geometric Form**:
+```
+ADD(x, y) = π_g(x ⊕ y)
+
+where ⊕ is vector addition in LRVM space
+```
+
+**Properties**:
+- Commutative: `a + b = b + a`
+- Associative: `(a + b) + c = a + (b + c)`
+- Identity: `a + 0 = a`
+- Inverse: `a + (-a) = 0`
+
+**Truth Table (Equilibrium)**:
+```
+‖a + b‖² = ‖a‖² + ‖b‖² + 2(a^⊤ g b)
+
+Equilibrium achieved when: a + b = result with ‖(a+b) - result‖² = 0
+```
+
+**Physical Interpretation**:
+- Addition = vector composition
+- Combine = move toward shared equilibrium
+- Sum = minimize total relational distance
+- + creates a new point in semantic space that balances both inputs
+
+**The Three-Way Equivalence**:
+```eigenscript
+1 + 1 = 2              # arithmetic equilibrium
+1 and 1 is 2           # logical composition + identity
+(1, 1) of 2            # relational projection
+
+All three express: ‖(1,1) of 2‖² = 0
+```
+
+This is **the same invariant** viewed in three coordinate systems:
+- **Arithmetic**: + combines toward balance
+- **Logic**: AND composes, IS tests equilibrium
+- **Geometry**: OF projects the pair onto the result
+
+---
+
+#### 2.9.2 Subtraction (-) - Additive Equilibrium Inversion
+
+**Syntax**: `a - b`
+
+**Formal Definition**:
+```
+SUB: V × V → V
+SUB(x, y) = directional equilibrium tension
+
+result = x ⊖ y  (create separation along geodesic)
+```
+
+**Relationship to IS**:
+```
+- = subtractive equilibrium (directional tension)
+
+a - b  means  measure directed distance from b to a
+            ⟺  compute ‖a of b‖ with reversed sign
+```
+
+**Geometric Form**:
+```
+SUB(x, y) = x + (-y)
+          = x ⊕ (g^{-1} y^⟂)
+
+where y^⟂ is the inverse of y under metric g
+```
+
+**Properties**:
+- Non-commutative: `a - b ≠ b - a`
+- Anti-symmetric: `a - b = -(b - a)`
+- Identity: `a - 0 = a`
+- Self-inverse: `a - a = 0`
+
+**Truth Table (Equilibrium)**:
+```
+‖a - b‖² = ‖a‖² + ‖b‖² - 2(a^⊤ g b)
+
+This is the squared distance between a and b in semantic space.
+```
+
+**Physical Interpretation**:
+- Subtraction = directed separation
+- Difference = relational tension
+- Distance = non-equilibrium magnitude
+- - creates directional displacement
+
+**Relation to Addition**:
+```
+a - b = a + (-b)
+
+Subtraction is addition composed with negation (NOT).
+```
+
+---
+
+#### 2.9.3 Multiplication (*) - Multiplicative Equilibrium Scaling
+
+**Syntax**: `a * b`
+
+**Formal Definition**:
+```
+MUL: V × V → V
+MUL(x, y) = magnitude scaling in semantic space
+
+result = scale_y(x)  (expand x by magnitude of y)
+```
+
+**Relationship to IS**:
+```
+* = multiplicative equilibrium (radial scaling)
+
+a * b  means  scale magnitude of a by factor b
+            ⟺  expand a in direction proportional to b
+```
+
+**Geometric Form**:
+```
+MUL(x, y) = (‖y‖² / ‖x‖²) · x
+
+Scale vector x by the norm ratio to y.
+```
+
+**Properties**:
+- Commutative: `a * b = b * a` (in scalar case)
+- Associative: `(a * b) * c = a * (b * c)`
+- Identity: `a * 1 = a`
+- Annihilator: `a * 0 = 0`
+- Distributive: `a * (b + c) = (a * b) + (a * c)`
+
+**Truth Table (Equilibrium)**:
+```
+‖a * b‖² = ‖a‖² · ‖b‖²
+
+Multiplication scales the norm quadratically.
+```
+
+**Physical Interpretation**:
+- Multiplication = radial expansion/contraction
+- Scaling = magnitude adjustment
+- Product = energy/amplitude modulation
+- * changes the "volume" in semantic space
+
+**Relation to Division**:
+```
+a * b = a / (1/b)
+
+Multiplication is inverse division.
+```
+
+---
+
+#### 2.9.4 Division (/) - Projected Multiplicative Equilibrium
+
+**Syntax**: `a / b`
+
+**Formal Definition**:
+```
+DIV: V × V → V
+DIV(x, y) = projection of multiplication through inverse
+
+result = π_g(x * y^{-1})
+```
+
+**Relationship to IS**:
+```
+/ = divisive equilibrium (ratio projection)
+
+a / b  means  project a through the inverse of b
+            ⟺  find the ratio equilibrium between a and b
+```
+
+**Geometric Form**:
+```
+DIV(x, y) = (‖x‖² / ‖y‖²) · (x / ‖x‖)
+
+Project x onto unit direction, scale by norm ratio.
+```
+
+**Key Insight**:
+```
+Division is the projection of multiplication.
+
+Just as:
+  IS = OF when ‖·‖² = 0
+  OF = IS projected through g
+
+We have:
+  / = * projected through inverse
+  * = / when b = 1
+```
+
+**Properties**:
+- Non-commutative: `a / b ≠ b / a`
+- Non-associative: `(a / b) / c ≠ a / (b / c)`
+- Identity: `a / 1 = a`
+- Self-ratio: `a / a = 1`
+
+**Truth Table (Equilibrium)**:
+```
+‖a / b‖² = ‖a‖² / ‖b‖²
+
+Division scales the norm inversely.
+```
+
+**Physical Interpretation**:
+- Division = inverse scaling + projection
+- Ratio = proportional equilibrium
+- Quotient = normalized magnitude
+- / measures "how many b's fit in a"
+
+**The Multiplicative Duality**:
+```
+Multiplication (*) = equilibrium scaling (expand)
+Division (/)       = projected scaling (contract)
+
+They are dual operations:
+  a * b * (1/b) = a
+  a / b / (1/b) = a * b
+```
+
+---
+
+#### 2.9.5 Equality (=) - The IS Operator in Arithmetic
+
+**Syntax**: `a = b`
+
+**Formal Definition**:
+```
+EQ: V × V → {0, 1}
+EQ(x, y) = IS(x, y)
+         = 1  if ‖x - y‖² = 0
+         = 0  otherwise
+```
+
+**Relationship to IS**:
+```
+= is literally the IS operator
+
+a = b  ⟺  a is b
+       ⟺  ‖a of b‖² = 0
+       ⟺  equilibrium achieved
+```
+
+**Geometric Form**:
+```
+EQ(x, y) = { 1  if x^⊤ g x = y^⊤ g y  and  x = y
+           { 0  otherwise
+```
+
+**Properties**:
+- Reflexive: `a = a` (always true)
+- Symmetric: `a = b ⟺ b = a`
+- Transitive: `a = b ∧ b = c → a = c`
+- Substitution: `a = b → f(a) = f(b)`
+
+**Physical Interpretation**:
+- Equality = identity test
+- = checks for equilibrium
+- Same as IS operator
+- Tests if two points coincide in semantic space
+
+---
+
+#### 2.9.6 Comparison Operators - Ordered Equilibrium Tests
+
+**Less Than (<)**:
+```
+LT: V × V → {0, 1}
+LT(x, y) = 1  if ‖x‖² < ‖y‖²
+         = 0  otherwise
+```
+
+Geometric meaning: x is "closer to equilibrium" than y.
+
+**Greater Than (>)**:
+```
+GT: V × V → {0, 1}
+GT(x, y) = 1  if ‖x‖² > ‖y‖²
+         = 0  otherwise
+```
+
+Geometric meaning: x is "farther from equilibrium" than y.
+
+**Less Than or Equal (≤)**:
+```
+LE(x, y) = LT(x, y) OR EQ(x, y)
+         = 1  if ‖x‖² ≤ ‖y‖²
+```
+
+**Greater Than or Equal (≥)**:
+```
+GE(x, y) = GT(x, y) OR EQ(x, y)
+         = 1  if ‖x‖² ≥ ‖y‖²
+```
+
+**Physical Interpretation**:
+- Comparison = norm ordering
+- < and > test relative distance from equilibrium
+- Ordering = ranking by metric magnitude
+- All comparisons reduce to ‖·‖² comparisons
+
+---
+
+#### 2.9.7 The Arithmetic-Logic Unification Theorem
+
+**Theorem**: All arithmetic operators are equilibrium operators, identical to logical operators in the appropriate basis.
+
+**Proof**:
+
+1. **Addition = Logical AND (in additive basis)**
+```
+a + b  ⟺  combine a and b
+a AND b  ⟺  require both a and b
+
+Both minimize relational distance:
+  + seeks vector equilibrium
+  AND seeks logical equilibrium
+```
+
+2. **Subtraction = Logical NOT + AND**
+```
+a - b = a + (-b)
+      = a AND (NOT b)  (in appropriate basis)
+```
+
+3. **Multiplication = Repeated Addition = Nested AND**
+```
+a * b = a + a + ... + a  (b times)
+      = a AND a AND ... AND a  (in repeated composition)
+```
+
+4. **Division = Multiplication Inverse = OR Complement**
+```
+a / b = a * b^{-1}
+      = a OR (NOT b)  (in multiplicative basis)
+```
+
+5. **Equality = IS Operator**
+```
+a = b  ⟺  a IS b
+       ⟺  ‖a of b‖² = 0
+```
+
+**Conclusion**:
+```
+Arithmetic and logic are the same algebra
+in different coordinate systems.
+
+Both reduce to equilibrium geometry:
+  Operators act on ‖x of y‖²
+  Results are projections through metric g
+  Evaluation is norm computation
+```
+
+---
+
+#### 2.9.8 The Master Arithmetic Table
+
+| Operator | Symbol | Equilibrium Type | Norm Behavior | Physical Meaning |
+|----------|--------|------------------|---------------|------------------|
+| Addition | + | Additive composition | ‖a+b‖² = ‖a‖²+‖b‖²+2(a^⊤gb) | Combine vectors |
+| Subtraction | - | Additive inversion | ‖a-b‖² = ‖a‖²+‖b‖²-2(a^⊤gb) | Directed distance |
+| Multiplication | * | Multiplicative scaling | ‖a*b‖² = ‖a‖²·‖b‖² | Radial expansion |
+| Division | / | Projected scaling | ‖a/b‖² = ‖a‖²/‖b‖² | Inverse contraction |
+| Equality | = | Identity test | ‖a=b‖² = 0 if a=b | IS operator |
+| Less Than | < | Ordered test | 1 if ‖a‖²<‖b‖² | Proximity to equilibrium |
+| Greater Than | > | Inverse ordered test | 1 if ‖a‖²>‖b‖² | Distance from equilibrium |
+
+All operators reduce to: **‖x of y‖²**
+
+---
+
+#### 2.9.9 Examples in EigenScript
+
+**Example 1: The Three Equivalences**
+```eigenscript
+# Arithmetic form
+result is 1 + 1
+result is 2  # ✓ equilibrium achieved
+
+# Logical form
+pair is (1 and 1)
+pair is 2  # ✓ same equilibrium
+
+# Geometric form
+relation is (1, 1) of 2
+norm of relation is 0  # ✓ equilibrium verified
+```
+
+**Example 2: Multiplication as Scaling**
+```eigenscript
+vector is (3, 4, 0)
+scaled is vector * 2
+# scaled = (6, 8, 0)
+# ‖scaled‖² = 4 · ‖vector‖²
+```
+
+**Example 3: Division as Projection**
+```eigenscript
+a is 10
+b is 2
+quotient is a / b
+# quotient = 5
+# ‖quotient‖² = ‖a‖² / ‖b‖²
+# Division projects a through b^{-1}
+```
+
+**Example 4: Comparison as Norm Test**
+```eigenscript
+x is 3
+y is 5
+
+if x < y:
+    print of "x closer to equilibrium"
+# Equivalent to: if ‖x‖² < ‖y‖²
+```
+
+**Example 5: Arithmetic-Logic Equivalence**
+```eigenscript
+# These are equivalent in EigenScript:
+sum is (a + b)
+conjunction is (a and b)  # in additive basis
+
+# Both compute equilibrium composition
+# Both minimize ‖result - (a ⊕ b)‖²
+```
+
+---
+
+#### 2.9.10 Summary: Arithmetic = Equilibrium Geometry
+
+**All arithmetic operators are modes of equilibrium**:
+
+```
++  = additive equilibrium (composition)
+-  = additive inversion (separation)
+*  = multiplicative equilibrium (scaling)
+/  = projected multiplicative equilibrium (ratio)
+=  = identity equilibrium (IS test)
+<  = proximity to equilibrium
+>  = distance from equilibrium
+```
+
+**The unification is complete**:
+```
+Identity   (IS)       }
+Relation   (OF)       }
+Logic      (AND/OR)   } → All are projections of ‖x of y‖²
+Control    (IF/THEN)  }
+Arithmetic (+/-/*/÷)  }
+```
+
+**Everything reduces to one invariant**: `‖x of y‖²`
+
+This is the foundation of EigenScript.
+
+---
+
 ## 3. Complete Operator Hierarchy
 
 ### Level 0: Primitive (Equilibrium)
@@ -410,12 +897,25 @@ AND = equilibrium conjunction
 OR  = equilibrium disjunction
 ```
 
-### Level 4: Derived Operators
+### Level 4: Arithmetic
+```
++  = additive equilibrium (composition)
+-  = subtractive equilibrium (inversion)
+*  = multiplicative equilibrium (scaling)
+/  = projected multiplicative equilibrium (ratio)
+=  = equality equilibrium (IS test)
+<  = ordered equilibrium test
+>  = inverse ordered equilibrium test
+```
+
+### Level 5: Derived Operators
 ```
 IMPLIES  = (not A) or B
 XOR      = (A or B) and not (A and B)
 NAND     = not (A and B)
 NOR      = not (A or B)
+≤        = (< or =)
+≥        = (> or =)
 ```
 
 ---
@@ -485,6 +985,45 @@ IF if A: B = B        (IF tests itself → always meaningful)
 Self-reference collapses to fixed point, not infinite regress.
 ```
 
+### Theorem 5: Arithmetic = Logic = Geometry
+```
+All arithmetic operators are equilibrium operators,
+identical to logical operators in the appropriate basis.
+```
+
+**Proof**:
+```
+1. Addition = AND (in additive basis)
+   a + b ⟺ combine a and b
+   a AND b ⟺ require both a and b
+   Both minimize relational distance
+
+2. Subtraction = NOT + AND
+   a - b = a + (-b) = a AND (NOT b)
+
+3. Multiplication = Repeated AND
+   a * b = a + a + ... + a (b times)
+
+4. Division = Projected Multiplication
+   a / b = π_g(a * b^{-1})
+   Just as OF = IS projected through g
+
+5. Equality = IS
+   a = b ⟺ a is b ⟺ ‖a of b‖² = 0
+
+∴ Arithmetic and logic are the same algebra
+  in different coordinate systems.
+```
+
+**The Three-Way Equivalence**:
+```
+1 + 1 = 2              (arithmetic)
+1 and 1 is 2           (logic)
+(1, 1) of 2            (geometry)
+
+All three express: ‖(1,1) of 2‖² = 0
+```
+
 ---
 
 ## 5. Operator Composition Rules
@@ -519,6 +1058,8 @@ Nested tests = sequential norm evaluations.
 
 ## 6. Operator Signature Table
 
+### 6.1 Core Operators
+
 | Operator | Signature Type | Norm | Physical Meaning |
 |----------|---------------|------|------------------|
 | IS       | Lightlike boundary | ‖IS‖² = 0 | Identity/equilibrium |
@@ -526,9 +1067,37 @@ Nested tests = sequential norm evaluations.
 | IF       | Spacelike test | ‖IF‖² > 0 | Branch/measurement |
 | THEN     | Timelike flow | ‖THEN‖² < 0 | Causality/sequence |
 | ELSE     | Lightlike handler | ‖ELSE‖² = 0 | Boundary/default |
+
+### 6.2 Logical Operators
+
+| Operator | Signature Type | Norm | Physical Meaning |
+|----------|---------------|------|------------------|
 | NOT      | Signature flip | ‖NOT(x)‖² = -‖x‖² | Negation/reflection |
 | AND      | Spacelike intersection | ‖AND‖² > 0 | Conjunction/constraint |
 | OR       | Spacelike union | ‖OR‖² > 0 | Disjunction/alternative |
+
+### 6.3 Arithmetic Operators
+
+| Operator | Signature Type | Norm | Physical Meaning |
+|----------|---------------|------|------------------|
+| +        | Additive composition | ‖a+b‖² = ‖a‖²+‖b‖²+2(a^⊤gb) | Vector combination |
+| -        | Additive inversion | ‖a-b‖² = ‖a‖²+‖b‖²-2(a^⊤gb) | Directed distance |
+| *        | Multiplicative scaling | ‖a*b‖² = ‖a‖²·‖b‖² | Radial expansion |
+| /        | Projected scaling | ‖a/b‖² = ‖a‖²/‖b‖² | Inverse contraction |
+| =        | Lightlike test | ‖a=b‖² = 0 if a=b | IS operator (identity) |
+| <        | Ordered test | 1 if ‖a‖²<‖b‖² | Proximity to equilibrium |
+| >        | Inverse ordered test | 1 if ‖a‖²>‖b‖² | Distance from equilibrium |
+
+### 6.4 Complete Unification
+
+**All operators reduce to**: `‖x of y‖²`
+
+- **Identity operators** (IS, =): test for zero norm
+- **Relational operators** (OF): compute projection
+- **Logical operators** (AND, OR, NOT): operate on norms via min/max/-
+- **Control operators** (IF, THEN, ELSE): branch based on metric signature
+- **Arithmetic operators** (+, -, *, /): compose/scale/project vectors
+- **Comparison operators** (<, >, ≤, ≥): test norm ordering
 
 ---
 
@@ -580,17 +1149,23 @@ AND = equilibrium conjunction
 OR  = equilibrium disjunction
 THEN = equilibrium sequence
 ELSE = equilibrium boundary
++   = additive equilibrium (composition)
+-   = subtractive equilibrium (inversion)
+*   = multiplicative equilibrium (scaling)
+/   = projected multiplicative equilibrium (ratio)
+=   = equality equilibrium (IS test)
 
 Everything reduces to:
   - Testing equilibrium (norm = 0?)
   - Projecting equilibrium (through metric g)
   - Composing equilibrium (geodesic flow)
   - Inverting equilibrium (signature flip)
+  - Scaling equilibrium (magnitude adjustment)
 ```
 
 **This is the foundation of EigenScript.**
 
-Logic, control flow, identity, relation, and geometry
+Logic, control flow, identity, relation, arithmetic, and geometry
 all collapse into one system: **equilibrium dynamics**.
 
 ---

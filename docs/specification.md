@@ -446,11 +446,22 @@ Level 3: Logic
   AND = equilibrium conjunction
   OR  = equilibrium disjunction
 
-Level 4: Derived
+Level 4: Arithmetic
+  +  = additive equilibrium (composition)
+  -  = subtractive equilibrium (inversion)
+  *  = multiplicative equilibrium (scaling)
+  /  = projected multiplicative equilibrium (ratio)
+  =  = equality equilibrium (IS test)
+  <  = ordered equilibrium test
+  >  = inverse ordered equilibrium test
+
+Level 5: Derived
   IMPLIES = (NOT A) OR B
   XOR     = (A OR B) AND NOT (A AND B)
   NAND    = NOT (A AND B)
   NOR     = NOT (A OR B)
+  ≤       = (< OR =)
+  ≥       = (> OR =)
 ```
 
 ### 5.8 Unification Theorems
@@ -480,6 +491,24 @@ All operators are stable under self-application at the
 lightlike boundary. OF of OF = OF. Paradoxes collapse.
 ```
 
+**Theorem 5: Arithmetic = Logic = Geometry**
+```
+All arithmetic operators are equilibrium operators, identical
+to logical operators in the appropriate basis.
+
+Addition = AND (in additive basis)
+Subtraction = NOT + AND
+Multiplication = Repeated AND
+Division = Projected Multiplication (like OF = IS projected)
+Equality = IS operator
+
+The three-way equivalence:
+  1 + 1 = 2              (arithmetic)
+  1 and 1 is 2           (logic)
+  (1, 1) of 2            (geometry)
+All express: ‖(1,1) of 2‖² = 0
+```
+
 ### 5.9 Operational Semantics
 
 **Small-step reduction**:
@@ -492,6 +521,13 @@ lightlike boundary. OF of OF = OF. Paradoxes collapse.
 (not x)      → compute -‖x‖²
 (x and y)    → compute min(‖x‖², ‖y‖²)
 (x or y)     → compute max(‖x‖², ‖y‖²)
+(a + b)      → compute π_g(a ⊕ b)  (vector addition)
+(a - b)      → compute π_g(a ⊕ (-b))  (directed distance)
+(a * b)      → compute scale(a, ‖b‖)  (magnitude scaling)
+(a / b)      → compute π_g(a * b^{-1})  (projected scaling)
+(a = b)      → test ‖a - b‖² = 0  (IS operator)
+(a < b)      → test ‖a‖² < ‖b‖²  (norm ordering)
+(a > b)      → test ‖a‖² > ‖b‖²  (inverse ordering)
 ```
 
 **Big-step evaluation**:
@@ -503,6 +539,12 @@ E ⊢ x of y ⇓ v  where v = x^⊤ g y
 E ⊢ x is y ⇓ E'  where E' = E[x ↦ y]
 E ⊢ if c: A else: B ⇓ v_A  if ‖c‖² > 0
 E ⊢ if c: A else: B ⇓ v_B  if ‖c‖² = 0
+E ⊢ a + b ⇓ v  where v = π_g(a ⊕ b)
+E ⊢ a - b ⇓ v  where v = π_g(a ⊖ b)
+E ⊢ a * b ⇓ v  where v = scale(a, ‖b‖)
+E ⊢ a / b ⇓ v  where v = π_g(a * b^{-1})
+E ⊢ a = b ⇓ 1  if ‖a - b‖² = 0
+E ⊢ a = b ⇓ 0  if ‖a - b‖² > 0
 ```
 
 ### 5.10 Denotational Semantics
@@ -515,6 +557,12 @@ Every expression denotes a point in LRVM space:
 ⟦x is y⟧  = π_g(⟦x⟧, ⟦y⟧) ∈ V
 ⟦if c: A else: B⟧ = { ⟦A⟧ if ‖⟦c⟧‖² > 0
                      { ⟦B⟧ if ‖⟦c⟧‖² = 0
+⟦a + b⟧   = π_g(⟦a⟧ ⊕ ⟦b⟧) ∈ V
+⟦a - b⟧   = π_g(⟦a⟧ ⊖ ⟦b⟧) ∈ V
+⟦a * b⟧   = scale(⟦a⟧, ‖⟦b⟧‖) ∈ V
+⟦a / b⟧   = π_g(⟦a⟧ * ⟦b⟧^{-1}) ∈ V
+⟦a = b⟧   = { 1 if ‖⟦a⟧ - ⟦b⟧‖² = 0
+            { 0 otherwise
 ```
 
 **Compositional property**:
