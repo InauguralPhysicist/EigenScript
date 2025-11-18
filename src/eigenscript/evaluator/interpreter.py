@@ -534,11 +534,13 @@ class Interpreter:
 
             fs = self.fs_tracker.compute_fs()
 
-            # Detect convergence via multiple criteria:
+            # Detect convergence via multiple criteria (inspired by EigenFunction):
             # 1. High Framework Strength (FS > threshold)
-            # 2. Fixed-point loop detection (same values repeating = low variance)
+            # 2. Fixed-point loop detection (low variance)
+            # 3. Oscillation pattern detection (paradox/divergence indicator)
             converged = False
             variance = 0.0
+            oscillation_score = 0.0
 
             if fs >= self.convergence_threshold:
                 converged = True
@@ -554,14 +556,30 @@ class Interpreter:
                     if variance < 1e-6:
                         converged = True
 
+                # Oscillation detection (EigenFunction-inspired)
+                # Track sign changes in coordinate deltas to detect paradoxical loops
+                if trajectory_len >= 5:
+                    # Compute deltas from first coordinate of trajectory
+                    values = [state.coords[0] for state in self.fs_tracker.trajectory[-5:]]
+                    deltas = np.diff(values)
+
+                    if len(deltas) > 1:
+                        # Count sign changes (oscillation indicator)
+                        sign_changes = np.sum(np.diff(np.sign(deltas)) != 0)
+                        oscillation_score = sign_changes / len(deltas)
+
+                        # High oscillation (> 0.15) suggests divergence/paradox
+                        # In this case, force convergence to eigenstate
+                        if oscillation_score > 0.15:
+                            converged = True
+
             if converged:
                 # Eigenstate convergence detected!
                 self.recursion_depth -= 1
 
-                # Create eigenstate marker vector
-                eigenstate = self.space.embed_string(
-                    f"<eigenstate FS={fs:.4f} var={variance:.6f} depth={self.recursion_depth}>"
-                )
+                # Create eigenstate marker vector with diagnostic info
+                eigenstate_str = f"<eigenstate FS={fs:.4f} var={variance:.6f} osc={oscillation_score:.3f} depth={self.recursion_depth}>"
+                eigenstate = self.space.embed_string(eigenstate_str)
                 return eigenstate
 
         # Create new environment for function execution
