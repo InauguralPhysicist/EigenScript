@@ -178,3 +178,127 @@ class TestLRVMSpace:
         v2 = space.embed_string("world")
         # Should be different (with high probability)
         assert not np.allclose(v1.coords, v2.coords)
+
+    def test_embed_dispatcher_scalar(self):
+        """embed() should dispatch to embed_scalar for numbers."""
+        space = LRVMSpace(dimension=100)
+        v1 = space.embed(42)
+        v2 = space.embed_scalar(42.0)
+        assert np.allclose(v1.coords, v2.coords)
+
+    def test_embed_dispatcher_string(self):
+        """embed() should dispatch to embed_string for strings."""
+        space = LRVMSpace(dimension=768)
+        v1 = space.embed("test")
+        v2 = space.embed_string("test")
+        assert np.allclose(v1.coords, v2.coords)
+
+    def test_embed_dispatcher_list(self):
+        """embed() should handle lists as vectors."""
+        space = LRVMSpace(dimension=10)
+        v = space.embed([1.0, 2.0, 3.0])
+        assert v.dimension == 10
+        assert v.coords[0] == 1.0
+        assert v.coords[1] == 2.0
+        assert v.coords[2] == 3.0
+
+    def test_embed_dispatcher_none(self):
+        """embed() should return zero vector for None."""
+        space = LRVMSpace(dimension=5)
+        v = space.embed(None)
+        assert np.allclose(v.coords, np.zeros(5))
+
+    def test_embed_dispatcher_lrvm_vector(self):
+        """embed() should return LRVM vectors unchanged."""
+        space = LRVMSpace(dimension=5)
+        original = LRVMVector([1.0, 2.0, 3.0, 4.0, 5.0])
+        result = space.embed(original)
+        assert result == original
+
+    def test_embed_vector_small(self):
+        """embed_vector() should handle small vectors."""
+        space = LRVMSpace(dimension=10)
+        v = space.embed_vector([1.0, 2.0, 3.0])
+        assert v.dimension == 10
+        assert v.coords[0] == 1.0
+        assert v.coords[1] == 2.0
+        assert v.coords[2] == 3.0
+        # Rest should be zero
+        assert all(v.coords[3:] == 0.0)
+
+    def test_of_operator_scalar_multiplication(self):
+        """OF operator should compute metric contraction."""
+        space = LRVMSpace(dimension=3)
+        x = space.embed(2.0)
+        y = space.embed(3.0)
+        g = np.eye(3)
+
+        result = space.of_operator(x, y, g)
+
+        # Verify result is an LRVM vector
+        assert isinstance(result, LRVMVector)
+        assert result.dimension == 3
+
+    def test_of_operator_orthogonal(self):
+        """OF operator should give 0 for orthogonal vectors."""
+        space = LRVMSpace(dimension=3)
+        x = LRVMVector([1.0, 0.0, 0.0])
+        y = LRVMVector([0.0, 1.0, 0.0])
+        g = np.eye(3)
+
+        result = space.of_operator(x, y, g)
+
+        # Orthogonal vectors should have near-zero contraction
+        assert abs(result.coords[0]) < 1e-10
+
+    def test_is_operator_equal_values(self):
+        """IS operator should return True for equal values."""
+        space = LRVMSpace(dimension=10)
+        x = space.embed(5)
+        y = space.embed(5)
+        g = np.eye(10)
+
+        result = space.is_operator(x, y, g)
+
+        assert result is True
+
+    def test_is_operator_different_values(self):
+        """IS operator should return False for different values."""
+        space = LRVMSpace(dimension=10)
+        x = space.embed(5)
+        y = space.embed(7)
+        g = np.eye(10)
+
+        result = space.is_operator(x, y, g)
+
+        assert result is False
+
+    def test_is_operator_equilibrium(self):
+        """IS operator tests for equilibrium (lightlike condition)."""
+        space = LRVMSpace(dimension=10)
+        g = np.eye(10)
+
+        # Same vector should be in equilibrium with itself
+        v = space.embed(42.0)
+        assert space.is_operator(v, v, g) is True
+
+        # Very close vectors should be in equilibrium
+        v1 = LRVMVector([1.0, 0.0, 0.0] + [0.0] * 7)
+        v2 = LRVMVector([1.0 + 1e-7, 0.0, 0.0] + [0.0] * 7)
+        assert space.is_operator(v1, v2, g, epsilon=1e-12) is True
+
+    def test_of_and_is_integration(self):
+        """Integration test: OF and IS operators work together."""
+        space = LRVMSpace(dimension=10)
+        g = np.eye(10)
+
+        # Test basic EigenScript semantics: x is y ⟺ ‖x - y‖² ≈ 0
+        x = space.embed(3.14)
+        y = space.embed(3.14)
+
+        # IS operator should detect equilibrium
+        assert space.is_operator(x, y, g) is True
+
+        # OF operator should compute metric contraction
+        contraction = space.of_operator(x, y, g)
+        assert isinstance(contraction, LRVMVector)
