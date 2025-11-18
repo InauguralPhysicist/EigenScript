@@ -1,0 +1,18 @@
+# Safe self-reference in EigenScript
+# Demonstrates that self-reference converges instead of exploding
+
+# This doesn't cause infinite regress!
+define observer as:
+    # Observer observing itself
+    # In traditional languages, this would infinite loop
+    # In EigenScript, it converges to a stable eigenstate
+    meta is observer of observer
+    return meta
+
+# Execute self-referential function
+result is observer of null
+print of result  # Returns stable eigenstate
+
+# Check that it's lightlike (null norm)
+type_result is signature_type of result
+print of type_result  # Should output: "lightlike"
