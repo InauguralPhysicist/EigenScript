@@ -269,8 +269,10 @@ python -m eigenscript examples/hello_world.eigs
 **Self-hosting test**: Implement meta-circular evaluator (EigenScript interpreter written in EigenScript) to validate stable self-simulation hypothesis.
 
 ### 📋 Roadmaps & Planning
-- **[Technical Roadmap](docs/roadmap.md)** - Detailed implementation status and technical milestones
+- **[Roadmap Summary](ROADMAP_SUMMARY.md)** ⭐ **Start here** - Quick overview of current status and future plans
+- **[Technical Roadmap](docs/roadmap.md)** - Detailed implementation phases and current development status
 - **[Strategic Roadmap](ROADMAP_FUTURE.md)** - Long-term vision, research directions, and future enhancements
+- **[Vision Document](VISION.md)** - Mission, principles, and what makes EigenScript unique
 - **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
 
 ## Why EigenScript?
