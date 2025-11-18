@@ -240,7 +240,8 @@ class LRVMSpace:
         """
         Embed a scalar number into LRVM space.
 
-        This is a simple embedding strategy - can be made more sophisticated.
+        Uses a distributed representation across multiple dimensions
+        to encode both magnitude and sign information.
 
         Args:
             value: Scalar number to embed
@@ -252,18 +253,37 @@ class LRVMSpace:
             >>> space = LRVMSpace(dimension=3)
             >>> v = space.embed_scalar(5.0)
         """
-        # TODO: Implement proper scalar embedding
-        # For now, simple strategy: put value in first coordinate
         coords = np.zeros(self.dimension)
+
+        # Use first coordinate for the actual value
         coords[0] = value
+
+        # Use additional coordinates for encoding properties
+        # This creates a richer representation that captures numeric relationships
+        if self.dimension > 1:
+            # Magnitude in second coordinate
+            coords[1] = abs(value)
+
+        if self.dimension > 2:
+            # Sign in third coordinate
+            coords[2] = 1.0 if value >= 0 else -1.0
+
+        if self.dimension > 3:
+            # Log scale (for large numbers)
+            coords[3] = np.log1p(abs(value)) * np.sign(value)
+
+        if self.dimension > 4:
+            # Fractional part (for decimals)
+            coords[4] = value - int(value)
+
         return LRVMVector(coords)
 
     def embed_string(self, text: str) -> LRVMVector:
         """
-        Embed a string into LRVM space using semantic embedding.
+        Embed a string into LRVM space using character-based features.
 
-        This should use a pretrained model (like BERT, GPT embeddings, etc.)
-        but for now we'll use a simple hash-based approach.
+        For production, this should use pretrained embeddings (BERT, GPT, etc.)
+        but for the MVP, we use a character-based distributed representation.
 
         Args:
             text: String to embed
@@ -275,14 +295,191 @@ class LRVMSpace:
             >>> space = LRVMSpace(dimension=768)
             >>> v = space.embed_string("hello")
         """
-        # TODO: Implement proper string embedding
-        # Should use transformer-based embeddings
-        # For now, simple hash-based placeholder
         coords = np.zeros(self.dimension)
-        hash_val = hash(text)
 
-        # Distribute hash across dimensions
-        for i in range(min(10, self.dimension)):
-            coords[i] = ((hash_val >> (i * 6)) & 0x3F) / 64.0
+        if not text:
+            return LRVMVector(coords)
+
+        # Use multiple encoding strategies for robust representation
+
+        # 1. Character frequency distribution (first 256 dims for ASCII)
+        char_freq = np.zeros(min(256, self.dimension))
+        for char in text:
+            idx = min(ord(char), 255)
+            if idx < len(char_freq):
+                char_freq[idx] += 1.0
+
+        # Normalize by length
+        if len(text) > 0:
+            char_freq /= len(text)
+
+        coords[: len(char_freq)] = char_freq
+
+        # 2. Length encoding (if space available)
+        if self.dimension > 256:
+            coords[256] = len(text) / 100.0  # Normalized length
+
+        # 3. Hash-based features for semantic similarity
+        if self.dimension > 257:
+            hash_val = hash(text)
+            hash_dim_count = min(20, self.dimension - 257)
+
+            for i in range(hash_dim_count):
+                coords[257 + i] = ((hash_val >> (i * 6)) & 0x3F) / 64.0
+
+        # 4. Character n-grams (bigrams)
+        if self.dimension > 277 and len(text) > 1:
+            bigram_dims = min(50, self.dimension - 277)
+            for i in range(len(text) - 1):
+                bigram = text[i : i + 2]
+                bigram_hash = hash(bigram) % bigram_dims
+                coords[277 + bigram_hash] += 1.0 / (len(text) - 1)
 
         return LRVMVector(coords)
+
+    def embed(self, value) -> LRVMVector:
+        """
+        General-purpose embedding method that dispatches to appropriate embedder.
+
+        Args:
+            value: Value to embed (int, float, str, list, or LRVMVector)
+
+        Returns:
+            LRVM vector representation
+
+        Example:
+            >>> space = LRVMSpace(dimension=768)
+            >>> space.embed(5)        # Embeds scalar
+            >>> space.embed("hello")  # Embeds string
+            >>> space.embed([1,2,3])  # Embeds vector
+        """
+        # Already an LRVM vector
+        if isinstance(value, LRVMVector):
+            return value
+
+        # Numeric scalar
+        elif isinstance(value, (int, float)):
+            return self.embed_scalar(float(value))
+
+        # String
+        elif isinstance(value, str):
+            return self.embed_string(value)
+
+        # List/tuple (treat as vector)
+        elif isinstance(value, (list, tuple)):
+            return self.embed_vector(value)
+
+        # NumPy array
+        elif isinstance(value, np.ndarray):
+            if value.ndim == 1:
+                # Directly wrap if dimension matches
+                if len(value) == self.dimension:
+                    return LRVMVector(value)
+                else:
+                    # Embed as list
+                    return self.embed_vector(value.tolist())
+            else:
+                raise ValueError(f"Cannot embed multi-dimensional array: shape {value.shape}")
+
+        # None/null
+        elif value is None:
+            return self.zero_vector()
+
+        else:
+            raise TypeError(f"Cannot embed value of type {type(value)}")
+
+    def embed_vector(self, values: list) -> LRVMVector:
+        """
+        Embed a vector/list into LRVM space.
+
+        Args:
+            values: List of values
+
+        Returns:
+            LRVM vector representation
+        """
+        # For small vectors, directly use coordinates
+        if len(values) <= self.dimension:
+            coords = np.zeros(self.dimension)
+            for i, val in enumerate(values):
+                if isinstance(val, (int, float)):
+                    coords[i] = float(val)
+                else:
+                    # Embed non-numeric elements and take first coordinate
+                    embedded = self.embed(val)
+                    coords[i] = embedded.coords[0]
+            return LRVMVector(coords)
+        else:
+            # For larger vectors, use hash-based dimensionality reduction
+            coords = np.zeros(self.dimension)
+            for i, val in enumerate(values):
+                idx = hash((i, val)) % self.dimension
+                if isinstance(val, (int, float)):
+                    coords[idx] += float(val)
+                else:
+                    coords[idx] += 1.0
+            return LRVMVector(coords)
+
+    def of_operator(
+        self, x: LRVMVector, y: LRVMVector, metric: np.ndarray
+    ) -> LRVMVector:
+        """
+        Compute the OF operator: x of y = x^T g y (metric contraction).
+
+        This is the fundamental relational operator in EigenScript.
+        Returns the result as an embedded scalar vector.
+
+        Args:
+            x: Left operand (LRVM vector)
+            y: Right operand (LRVM vector)
+            metric: Metric tensor g
+
+        Returns:
+            LRVM vector containing the contraction result
+
+        Example:
+            >>> space = LRVMSpace(dimension=3)
+            >>> x = space.embed(5)
+            >>> y = space.embed(3)
+            >>> g = np.eye(3)
+            >>> result = space.of_operator(x, y, g)
+        """
+        # Compute metric contraction: x^T g y
+        contraction = float(x.coords.T @ metric @ y.coords)
+
+        # Embed result as scalar
+        return self.embed_scalar(contraction)
+
+    def is_operator(
+        self, x: LRVMVector, y: LRVMVector, metric: np.ndarray, epsilon: float = 1e-6
+    ) -> bool:
+        """
+        Compute the IS operator: test if x is y (equilibrium condition).
+
+        In EigenScript, x is y ⟺ ‖x - y‖² ≈ 0 (lightlike equilibrium).
+
+        Args:
+            x: Left operand (LRVM vector)
+            y: Right operand (LRVM vector)
+            metric: Metric tensor g
+            epsilon: Threshold for equilibrium (default: 1e-6)
+
+        Returns:
+            True if x and y are in equilibrium (equal within epsilon)
+
+        Example:
+            >>> space = LRVMSpace(dimension=3)
+            >>> x = space.embed(5)
+            >>> y = space.embed(5)
+            >>> g = np.eye(3)
+            >>> space.is_operator(x, y, g)
+            True
+        """
+        # Compute difference vector
+        diff = x.subtract(y)
+
+        # Compute norm squared: ‖x - y‖²
+        norm_sq = diff.norm(metric)
+
+        # Test for equilibrium (lightlike: ‖·‖² ≈ 0)
+        return abs(norm_sq) < epsilon

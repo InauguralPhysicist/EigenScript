@@ -13,8 +13,10 @@ from eigenscript.parser.ast_builder import (
     Loop,
     FunctionDef,
     Return,
+    Break,
     Literal,
     Identifier,
+    Program,
 )
 
 __all__ = [
@@ -26,6 +28,8 @@ __all__ = [
     "Loop",
     "FunctionDef",
     "Return",
+    "Break",
     "Literal",
     "Identifier",
+    "Program",
 ]
