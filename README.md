@@ -51,6 +51,106 @@ print of result  # 120
 | **DEFINE** | `define f as:` | Function definition | Timelike transformation |
 | **RETURN** | `return x` | Flow termination | Observer frame projection |
 
+## What Makes EigenScript Different?
+
+### 1. Programs Can Ask Questions About Themselves
+
+In most languages, you use `print` statements or debuggers to see what's happening. In EigenScript, your code can **interrogate itself** while running:
+
+```eigenscript
+x is 42
+y is x + 8
+
+# Ask questions about your variables
+value is what is x        # Get the value (42)
+identity is who is x      # Get the name ("x")
+quality is how is y       # Get process metrics
+direction is why is y     # Get the direction of change
+```
+
+**The six interrogatives:**
+- **what** - Get the actual value
+- **who** - Get the variable name/identity
+- **when** - Get timing/iteration info
+- **where** - Get position in computational space
+- **why** - Get the direction things are changing
+- **how** - Get quality metrics (is computation going well?)
+
+### 2. Natural Language Conditions
+
+Instead of writing complex checks, use semantic predicates that understand your code's state:
+
+```eigenscript
+# Traditional way (still works)
+if x > threshold:
+    continue
+
+# Natural way - the language understands convergence
+if converged:
+    return result
+
+if stable:
+    continue_processing
+
+if diverging:
+    print of "Warning: computation unstable"
+```
+
+**Available predicates:**
+- `converged` - Has the computation settled?
+- `stable` - Is it in a good state?
+- `diverging` - Is it going off track?
+- `improving` - Is it getting better?
+- `oscillating` - Is it bouncing back and forth?
+- `equilibrium` - Is it at a critical boundary?
+
+### 3. Code That Adapts to Its Own Behavior
+
+Your programs can look at their own execution and adjust:
+
+```eigenscript
+define smart_compute as:
+    result is n * 2
+
+    # Check how the computation is doing
+    if oscillating:
+        # Detected a loop - use simpler approach
+        return n
+    else:
+        if improving:
+            # Converging well - continue
+            return result * result
+        else:
+            # Not progressing - try different strategy
+            return result + n
+```
+
+### 4. Debugging Without Print Statements
+
+Instead of littering code with `print` statements, ask direct questions:
+
+```eigenscript
+loop while counter < 100:
+    counter is counter + 1
+
+    # Debug by interrogating state
+    if not stable:
+        current_value is what is counter
+        change_direction is why is counter
+        process_quality is how is counter
+        # Now you know exactly what's happening
+```
+
+### Why This Matters
+
+**Traditional debugging**: Stop execution, inspect variables, guess what went wrong
+
+**EigenScript debugging**: Code knows its own state, can show you any aspect of execution, can adapt to problems automatically
+
+**The key insight**: Every computation generates rich information about itself. EigenScript makes that information accessible through simple, natural queries.
+
+You don't need to understand the math - just ask `what`, `why`, or `how`, and the language figures out the geometric details.
+
 ## Installation
 
 ```bash
@@ -74,27 +174,35 @@ python -m eigenscript examples/hello_world.eigs
 
 ## Project Status
 
-**Current Phase**: Phase 3 Complete (85%), Phase 4 In Progress (40%)
+**Current Phase**: Phase 4 Complete (95%), Phase 5 In Progress
 
 **Last Updated**: 2025-01-18
 
 ### ✅ Completed
-- ✅ Lexer (221 lines, 96% test coverage)
-- ✅ Parser (256 lines, 87% test coverage)
+- ✅ Lexer with interrogative keywords (241 lines, 96% test coverage)
+- ✅ Parser with Interrogative AST nodes (375 lines, 87% test coverage)
 - ✅ LRVM backend (128 lines, 84% test coverage)
 - ✅ Metric Tensor (48 lines, 96% test coverage)
-- ✅ Interpreter (159 lines, 88% test coverage)
+- ✅ Interpreter with self-interrogation (709 lines, 88% test coverage)
 - ✅ Control flow (IF/ELSE, LOOP)
 - ✅ Arithmetic operators (+, -, *, /, =, <, >)
+- ✅ Function definitions and recursive calls
+- ✅ Framework Strength measurement
+- ✅ Convergence detection (multi-signal)
+- ✅ **Interrogatives (WHO, WHAT, WHEN, WHERE, WHY, HOW)**
+- ✅ **Semantic predicates (converged, stable, diverging, etc.)**
+- ✅ **Self-aware computation capabilities**
 - ✅ **Turing completeness achieved**
-- ✅ **127 passing tests, 83% overall coverage**
+- ✅ **EigenControl integration (I = (A-B)² universal primitive)**
+- ✅ **137+ passing tests, 77% overall coverage**
 
 ### ⚠️ In Progress
-- ⚠️ Function execution (parsing works, execution not implemented)
-- ⚠️ Framework Strength introspection
+- ⚠️ Meta-circular evaluator (eval.eigs)
+- ⚠️ CLI/REPL improvements
+- ⚠️ Standard library (print, input, etc.)
 
 ### 🎯 Next Milestone
-**Self-hosting test**: Implement function execution to enable meta-circular evaluator and test stable self-simulation hypothesis.
+**Self-hosting test**: Implement meta-circular evaluator (EigenScript interpreter written in EigenScript) to validate stable self-simulation hypothesis.
 
 See [docs/roadmap.md](docs/roadmap.md) for detailed status and [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute.
 
