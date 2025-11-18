@@ -648,3 +648,62 @@ class Interpreter:
             True if FS >= threshold
         """
         return self.fs_tracker.has_converged(threshold)
+
+    def get_spacetime_signature(self, window: int = 10, epsilon: float = 1e-6) -> tuple[float, str]:
+        """
+        Compute spacetime signature S² - C² inspired by Eigen-Geometric-Control.
+
+        This provides richer convergence diagnostics than FS alone by analyzing
+        the dimensional structure of the trajectory:
+        - S = number of stable (low-variance) dimensions
+        - C = number of changing (high-variance) dimensions
+
+        The signature S² - C² classifies the system state:
+        - Timelike (S² - C² > 0): System has converged, stable
+        - Lightlike (S² - C² = 0): System at equilibrium boundary
+        - Spacelike (S² - C² < 0): System exploring, unstable
+
+        Args:
+            window: Number of recent trajectory points to analyze
+            epsilon: Variance threshold for considering dimension stable
+
+        Returns:
+            Tuple of (signature_value, classification)
+            where classification is "timelike", "lightlike", or "spacelike"
+
+        Example:
+            >>> signature, classification = interp.get_spacetime_signature()
+            >>> print(f"System is {classification} with signature {signature:.2f}")
+        """
+        trajectory_len = self.fs_tracker.get_trajectory_length()
+
+        if trajectory_len < 2:
+            # Not enough data to compute variance
+            return 0.0, "lightlike"
+
+        # Get recent trajectory window
+        recent_count = min(window, trajectory_len)
+        recent_states = self.fs_tracker.trajectory[-recent_count:]
+
+        # Extract coordinate arrays
+        coords_array = np.array([state.coords for state in recent_states])
+
+        # Compute per-dimension variance
+        variances = np.var(coords_array, axis=0)
+
+        # Count stable vs changing dimensions
+        S = int(np.sum(variances < epsilon))      # Stable count
+        C = int(np.sum(variances >= epsilon))     # Changing count
+
+        # Compute spacetime signature
+        signature = S**2 - C**2
+
+        # Classify
+        if signature > 0:
+            classification = "timelike"     # Converged, stable
+        elif signature == 0:
+            classification = "lightlike"    # Boundary state
+        else:  # signature < 0
+            classification = "spacelike"    # Exploring, unstable
+
+        return float(signature), classification
