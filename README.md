@@ -86,6 +86,36 @@ total is reduce of [add, doubled, 0]             # 12
 
 See `docs/higher_order_functions.md` for complete documentation and `examples/higher_order_functions.eigs` for more examples.
 
+## Mathematical Functions
+
+EigenScript includes a comprehensive math library for scientific and engineering computations:
+
+| Category | Functions | Description |
+|----------|-----------|-------------|
+| **Basic Math** | `sqrt`, `abs`, `pow` | Square root, absolute value, power |
+| **Exponential/Log** | `log`, `exp` | Natural logarithm and exponential |
+| **Trigonometric** | `sin`, `cos`, `tan` | Standard trig functions (radians) |
+| **Rounding** | `floor`, `ceil`, `round` | Round down, up, or nearest |
+
+```eigenscript
+# Basic operations
+x is sqrt of 16          # 4.0
+y is abs of -5           # 5
+z is pow of [2, 10]      # 1024
+
+# Scientific computing
+angle is 1.5708          # π/2 in radians
+sine is sin of angle     # ≈ 1.0
+logarithm is log of 2.718281828  # ≈ 1.0
+
+# Practical example: Pythagorean theorem
+a is 3
+b is 4
+c is sqrt of (pow of [a, 2] + pow of [b, 2])  # 5.0
+```
+
+See `examples/math_showcase.eigs` for more examples.
+
 ## What Makes EigenScript Different?
 
 ### 1. Your Code Can Ask Questions
@@ -259,11 +289,13 @@ python -m eigenscript examples/hello_world.eigs
 - ✅ **Turing completeness achieved**
 - ✅ **EigenControl integration (I = (A-B)² universal primitive)**
 - ✅ **Meta-circular evaluator (self-hosting achieved!)**
-- ✅ **294 passing tests, 67% overall coverage**
+- ✅ **Comprehensive math library** (sqrt, abs, pow, log, exp, sin, cos, tan, floor, ceil, round)
+- ✅ **Enhanced error messages** with line and column tracking
+- ✅ **315 passing tests, 67% overall coverage**
 
 ### ⚠️ In Progress
 - ⚠️ CLI/REPL improvements
-- ⚠️ Standard library expansion (print, input, etc.)
+- ⚠️ Documentation website
 
 ### 🎯 Milestone Achieved! ✨
 **Self-hosting complete**: Meta-circular evaluator implemented! EigenScript can now interpret EigenScript code, validating the stable self-simulation hypothesis. The language proves geometric semantics enable convergent self-reference.

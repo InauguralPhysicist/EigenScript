@@ -5,6 +5,7 @@ Provides standard library functions like print, input, len, etc.
 """
 
 import sys
+import math
 import numpy as np
 from typing import Callable, Any, Union
 from dataclasses import dataclass
@@ -236,13 +237,23 @@ def decode_vector(vector: Value, space: LRVMSpace, metric: Any = None) -> Any:
         if abs(third_coord) < 1.5:  # Zero has coords[2] ≈ 1
             return 0
     
-    # Check for scalar embedding: coords[0] = value, coords[1] = abs(value)
-    if abs(first_coord) > 1e-9 and abs(abs(first_coord) - second_coord) < 1e-6:
-        # Likely a scalar (positive or negative) - return as int if close to integer
-        if abs(first_coord - round(first_coord)) < 1e-6:
-            return int(round(first_coord))
-        else:
-            return first_coord
+    # Check for scalar embedding: coords[0] = value, coords[1] = value (or abs(value) in some cases)
+    # Handle both cases: coords[1] = value (same as coords[0]) or coords[1] = abs(value)
+    if abs(first_coord) > 1e-9:
+        # Case 1: coords[0] and coords[1] are the same (including negative numbers)
+        if abs(first_coord - second_coord) < 1e-6:
+            # Likely a scalar - return as int if close to integer
+            if abs(first_coord - round(first_coord)) < 1e-6:
+                return int(round(first_coord))
+            else:
+                return first_coord
+        # Case 2: coords[0] = value, coords[1] = abs(value)
+        elif abs(abs(first_coord) - second_coord) < 1e-6:
+            # Likely a scalar (positive or negative) - return as int if close to integer
+            if abs(first_coord - round(first_coord)) < 1e-6:
+                return int(round(first_coord))
+            else:
+                return first_coord
     
     # Check if only first coordinate is non-zero (alternative scalar encoding)
     rest_norm = np.linalg.norm(vector.coords[1:])
@@ -699,6 +710,283 @@ def builtin_reduce(args, space: LRVMSpace, metric: Any = None) -> LRVMVector:
     return accumulator
 
 
+def builtin_sqrt(arg: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Calculate the square root of a number.
+    
+    Example:
+        sqrt of 16  -> 4.0
+        sqrt of 2   -> 1.414...
+    
+    Args:
+        arg: Number as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Square root as LRVM vector
+    """
+    decoded = decode_vector(arg, space, metric)
+    
+    if isinstance(decoded, (int, float)):
+        if decoded < 0:
+            raise ValueError("sqrt requires a non-negative number")
+        return space.embed(math.sqrt(decoded))
+    else:
+        raise TypeError("sqrt requires a number argument")
+
+
+def builtin_abs(arg: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Calculate the absolute value of a number.
+    
+    Example:
+        abs of -5   -> 5
+        abs of 3.14 -> 3.14
+    
+    Args:
+        arg: Number as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Absolute value as LRVM vector
+    """
+    decoded = decode_vector(arg, space, metric)
+    
+    if isinstance(decoded, (int, float)):
+        return space.embed(abs(decoded))
+    else:
+        raise TypeError("abs requires a number argument")
+
+
+def builtin_pow(args, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Raise a number to a power.
+    
+    Example:
+        pow of [2, 3]   -> 8 (2^3)
+        pow of [10, 2]  -> 100 (10^2)
+    
+    Args:
+        args: Two-element list [base, exponent]
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Result of base^exponent as LRVM vector
+    """
+    from eigenscript.evaluator.interpreter import EigenList
+    
+    if not isinstance(args, EigenList):
+        raise TypeError("pow requires a list of [base, exponent]")
+    
+    if len(args.elements) != 2:
+        raise TypeError("pow requires exactly 2 arguments: base and exponent")
+    
+    base = decode_vector(args.elements[0], space, metric)
+    exponent = decode_vector(args.elements[1], space, metric)
+    
+    if isinstance(base, (int, float)) and isinstance(exponent, (int, float)):
+        return space.embed(math.pow(base, exponent))
+    else:
+        raise TypeError("pow requires numeric arguments")
+
+
+def builtin_log(arg: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Calculate the natural logarithm (base e) of a number.
+    
+    Example:
+        log of 2.718281828  -> 1.0
+        log of 1            -> 0.0
+    
+    Args:
+        arg: Number as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Natural logarithm as LRVM vector
+    """
+    decoded = decode_vector(arg, space, metric)
+    
+    if isinstance(decoded, (int, float)):
+        if decoded <= 0:
+            raise ValueError("log requires a positive number")
+        return space.embed(math.log(decoded))
+    else:
+        raise TypeError("log requires a number argument")
+
+
+def builtin_exp(arg: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Calculate e raised to the power of a number.
+    
+    Example:
+        exp of 0  -> 1.0
+        exp of 1  -> 2.718...
+    
+    Args:
+        arg: Number as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        e^x as LRVM vector
+    """
+    decoded = decode_vector(arg, space, metric)
+    
+    if isinstance(decoded, (int, float)):
+        return space.embed(math.exp(decoded))
+    else:
+        raise TypeError("exp requires a number argument")
+
+
+def builtin_sin(arg: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Calculate the sine of an angle in radians.
+    
+    Example:
+        sin of 0     -> 0.0
+        sin of 1.570 -> 1.0 (approximately π/2)
+    
+    Args:
+        arg: Angle in radians as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Sine as LRVM vector
+    """
+    decoded = decode_vector(arg, space, metric)
+    
+    if isinstance(decoded, (int, float)):
+        return space.embed(math.sin(decoded))
+    else:
+        raise TypeError("sin requires a number argument")
+
+
+def builtin_cos(arg: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Calculate the cosine of an angle in radians.
+    
+    Example:
+        cos of 0     -> 1.0
+        cos of 3.141 -> -1.0 (approximately π)
+    
+    Args:
+        arg: Angle in radians as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Cosine as LRVM vector
+    """
+    decoded = decode_vector(arg, space, metric)
+    
+    if isinstance(decoded, (int, float)):
+        return space.embed(math.cos(decoded))
+    else:
+        raise TypeError("cos requires a number argument")
+
+
+def builtin_tan(arg: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Calculate the tangent of an angle in radians.
+    
+    Example:
+        tan of 0     -> 0.0
+        tan of 0.785 -> 1.0 (approximately π/4)
+    
+    Args:
+        arg: Angle in radians as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Tangent as LRVM vector
+    """
+    decoded = decode_vector(arg, space, metric)
+    
+    if isinstance(decoded, (int, float)):
+        return space.embed(math.tan(decoded))
+    else:
+        raise TypeError("tan requires a number argument")
+
+
+def builtin_floor(arg: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Round a number down to the nearest integer.
+    
+    Example:
+        floor of 3.7  -> 3
+        floor of -2.3 -> -3
+    
+    Args:
+        arg: Number as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Floor as LRVM vector
+    """
+    decoded = decode_vector(arg, space, metric)
+    
+    if isinstance(decoded, (int, float)):
+        return space.embed(float(math.floor(decoded)))
+    else:
+        raise TypeError("floor requires a number argument")
+
+
+def builtin_ceil(arg: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Round a number up to the nearest integer.
+    
+    Example:
+        ceil of 3.2  -> 4
+        ceil of -2.7 -> -2
+    
+    Args:
+        arg: Number as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Ceiling as LRVM vector
+    """
+    decoded = decode_vector(arg, space, metric)
+    
+    if isinstance(decoded, (int, float)):
+        return space.embed(float(math.ceil(decoded)))
+    else:
+        raise TypeError("ceil requires a number argument")
+
+
+def builtin_round(arg: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Round a number to the nearest integer.
+    
+    Example:
+        round of 3.5  -> 4
+        round of 3.4  -> 3
+    
+    Args:
+        arg: Number as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Rounded value as LRVM vector
+    """
+    decoded = decode_vector(arg, space, metric)
+    
+    if isinstance(decoded, (int, float)):
+        return space.embed(float(round(decoded)))
+    else:
+        raise TypeError("round requires a number argument")
+
+
 def get_builtins(space: LRVMSpace) -> dict:
     """
     Get all built-in functions for the EigenScript environment.
@@ -799,6 +1087,61 @@ def get_builtins(space: LRVMSpace) -> dict:
             name="reduce",
             func=builtin_reduce,
             description="Fold/accumulate values with a function"
+        ),
+        "sqrt": BuiltinFunction(
+            name="sqrt",
+            func=builtin_sqrt,
+            description="Calculate the square root of a number"
+        ),
+        "abs": BuiltinFunction(
+            name="abs",
+            func=builtin_abs,
+            description="Calculate the absolute value of a number"
+        ),
+        "pow": BuiltinFunction(
+            name="pow",
+            func=builtin_pow,
+            description="Raise a number to a power"
+        ),
+        "log": BuiltinFunction(
+            name="log",
+            func=builtin_log,
+            description="Calculate the natural logarithm"
+        ),
+        "exp": BuiltinFunction(
+            name="exp",
+            func=builtin_exp,
+            description="Calculate e raised to a power"
+        ),
+        "sin": BuiltinFunction(
+            name="sin",
+            func=builtin_sin,
+            description="Calculate the sine of an angle in radians"
+        ),
+        "cos": BuiltinFunction(
+            name="cos",
+            func=builtin_cos,
+            description="Calculate the cosine of an angle in radians"
+        ),
+        "tan": BuiltinFunction(
+            name="tan",
+            func=builtin_tan,
+            description="Calculate the tangent of an angle in radians"
+        ),
+        "floor": BuiltinFunction(
+            name="floor",
+            func=builtin_floor,
+            description="Round a number down to the nearest integer"
+        ),
+        "ceil": BuiltinFunction(
+            name="ceil",
+            func=builtin_ceil,
+            description="Round a number up to the nearest integer"
+        ),
+        "round": BuiltinFunction(
+            name="round",
+            func=builtin_round,
+            description="Round a number to the nearest integer"
         ),
     }
     

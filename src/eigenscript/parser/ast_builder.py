@@ -436,9 +436,15 @@ class Parser:
         """
         token = self.current_token()
         if not token or token.type != token_type:
-            raise SyntaxError(
-                f"Expected {token_type.name}, got {token.type.name if token else 'EOF'}"
-            )
+            if token:
+                raise SyntaxError(
+                    f"Line {token.line}, Column {token.column}: "
+                    f"Expected {token_type.name}, got {token.type.name}"
+                )
+            else:
+                raise SyntaxError(
+                    f"Expected {token_type.name}, got EOF"
+                )
         return self.advance()
 
     def parse_statement(self) -> Optional[ASTNode]:
@@ -680,7 +686,12 @@ class Parser:
         token = self.current_token()
 
         if not token:
-            raise SyntaxError("Unexpected end of input")
+            # Get the position from the last token we saw
+            last_pos = self.tokens[self.position - 1] if self.position > 0 else None
+            if last_pos:
+                raise SyntaxError(f"Line {last_pos.line}, Column {last_pos.column}: Unexpected end of input")
+            else:
+                raise SyntaxError("Unexpected end of input")
 
         # Number literal
         if token.type == TokenType.NUMBER:
@@ -933,7 +944,11 @@ class Parser:
             else:
                 # This is regular indexing
                 if start_expr is None:
-                    raise SyntaxError("Expected index expression")
+                    token = self.current_token()
+                    if token:
+                        raise SyntaxError(f"Line {token.line}, Column {token.column}: Expected index expression")
+                    else:
+                        raise SyntaxError("Expected index expression")
                 self.expect(TokenType.RBRACKET)
                 expr = Index(expr, start_expr)
 
@@ -970,7 +985,12 @@ class Parser:
         token = self.current_token()
 
         if not token:
-            raise SyntaxError("Unexpected end of input")
+            # Get the position from the last token we saw
+            last_pos = self.tokens[self.position - 1] if self.position > 0 else None
+            if last_pos:
+                raise SyntaxError(f"Line {last_pos.line}, Column {last_pos.column}: Unexpected end of input")
+            else:
+                raise SyntaxError("Unexpected end of input")
 
         # Interrogative operators
         if token.type in (TokenType.WHO, TokenType.WHAT, TokenType.WHEN,
@@ -1015,13 +1035,21 @@ class Parser:
 
                 # Parse variable name
                 if not self.current_token() or self.current_token().type != TokenType.IDENTIFIER:
-                    raise SyntaxError("Expected variable name after FOR in list comprehension")
+                    token = self.current_token()
+                    if token:
+                        raise SyntaxError(f"Line {token.line}, Column {token.column}: Expected variable name after FOR in list comprehension")
+                    else:
+                        raise SyntaxError("Expected variable name after FOR in list comprehension")
                 var_name = self.current_token().value
                 self.advance()
 
                 # Expect IN keyword
                 if not self.current_token() or self.current_token().type != TokenType.IN:
-                    raise SyntaxError("Expected IN keyword in list comprehension")
+                    token = self.current_token()
+                    if token:
+                        raise SyntaxError(f"Line {token.line}, Column {token.column}: Expected IN keyword in list comprehension")
+                    else:
+                        raise SyntaxError("Expected IN keyword in list comprehension")
                 self.advance()
 
                 # Parse iterable expression
