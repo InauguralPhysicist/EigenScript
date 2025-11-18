@@ -232,6 +232,25 @@ class Interpreter:
 
         return LRVMVector(coords)
 
+    def run(self, source: str) -> Union[LRVMVector, EigenList]:
+        """
+        Convenience method to parse and evaluate source code.
+        
+        Args:
+            source: EigenScript source code string
+            
+        Returns:
+            Result of evaluating the program
+        """
+        from eigenscript.lexer import Tokenizer
+        from eigenscript.parser import Parser
+        
+        tokenizer = Tokenizer(source)
+        tokens = tokenizer.tokenize()
+        parser = Parser(tokens)
+        ast = parser.parse()
+        return self.evaluate(ast)
+
     def evaluate(self, node: ASTNode) -> Union[LRVMVector, EigenList]:
         """
         Evaluate an AST node to an LRVM vector.
