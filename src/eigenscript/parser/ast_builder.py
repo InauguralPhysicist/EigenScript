@@ -72,6 +72,34 @@ class Relation(ASTNode):
 
 
 @dataclass
+class BinaryOp(ASTNode):
+    """
+    Represents binary arithmetic operations (+, -, *, /, =, <, >).
+
+    Semantic: Arithmetic operators as equilibrium operations:
+        + = additive equilibrium (composition)
+        - = subtractive equilibrium (inversion)
+        * = multiplicative equilibrium (scaling)
+        / = projected multiplicative equilibrium (ratio)
+        = = equality equilibrium (IS test)
+        < = proximity to equilibrium test
+        > = distance from equilibrium test
+
+    Example:
+        a + b
+        x * 2
+        count < 10
+    """
+
+    left: ASTNode
+    operator: str  # "+", "-", "*", "/", "=", "<", ">"
+    right: ASTNode
+
+    def __repr__(self) -> str:
+        return f"BinaryOp({self.left}, {self.operator!r}, {self.right})"
+
+
+@dataclass
 class Assignment(ASTNode):
     """
     Represents the IS operator (identity/binding).
@@ -522,8 +550,85 @@ class Parser:
         Parse an expression.
 
         This handles operator precedence and expression composition.
+        Precedence (lowest to highest):
+        1. Comparison (=, <, >)
+        2. Addition/Subtraction (+, -)
+        3. Multiplication/Division (*, /)
+        4. OF operator
+        5. Primary (literals, identifiers, parens)
         """
-        return self.parse_relation()
+        return self.parse_comparison()
+
+    def parse_comparison(self) -> ASTNode:
+        """
+        Parse comparison operators (=, <, >).
+
+        Grammar: additive ((EQUALS | LESS_THAN | GREATER_THAN) additive)*
+        """
+        left = self.parse_additive()
+
+        while self.current_token() and self.current_token().type in (
+            TokenType.EQUALS,
+            TokenType.LESS_THAN,
+            TokenType.GREATER_THAN,
+        ):
+            op_token = self.current_token()
+            self.advance()
+
+            right = self.parse_additive()
+
+            op_map = {
+                TokenType.EQUALS: "=",
+                TokenType.LESS_THAN: "<",
+                TokenType.GREATER_THAN: ">",
+            }
+            left = BinaryOp(left, op_map[op_token.type], right)
+
+        return left
+
+    def parse_additive(self) -> ASTNode:
+        """
+        Parse addition and subtraction operators (+, -).
+
+        Grammar: multiplicative ((PLUS | MINUS) multiplicative)*
+        """
+        left = self.parse_multiplicative()
+
+        while self.current_token() and self.current_token().type in (
+            TokenType.PLUS,
+            TokenType.MINUS,
+        ):
+            op_token = self.current_token()
+            self.advance()
+
+            right = self.parse_multiplicative()
+
+            op_map = {TokenType.PLUS: "+", TokenType.MINUS: "-"}
+            left = BinaryOp(left, op_map[op_token.type], right)
+
+        return left
+
+    def parse_multiplicative(self) -> ASTNode:
+        """
+        Parse multiplication and division operators (*, /).
+
+        Grammar: relation ((MULTIPLY | DIVIDE) relation)*
+        """
+        left = self.parse_relation()
+
+        while self.current_token() and self.current_token().type in (
+            TokenType.MULTIPLY,
+            TokenType.DIVIDE,
+        ):
+            op_token = self.current_token()
+            self.advance()
+
+            right = self.parse_relation()
+
+            op_map = {TokenType.MULTIPLY: "*", TokenType.DIVIDE: "/"}
+            left = BinaryOp(left, op_map[op_token.type], right)
+
+        return left
 
     def parse_relation(self) -> ASTNode:
         """

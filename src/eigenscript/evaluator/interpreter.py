@@ -93,13 +93,19 @@ class Interpreter:
         >>> result = interpreter.evaluate(ast)
     """
 
-    def __init__(self, dimension: int = 768, metric_type: str = "euclidean"):
+    def __init__(
+        self,
+        dimension: int = 768,
+        metric_type: str = "euclidean",
+        max_iterations: Optional[int] = None,
+    ):
         """
         Initialize the interpreter.
 
         Args:
             dimension: LRVM space dimensionality
             metric_type: Type of metric tensor to use
+            max_iterations: Maximum loop iterations (None = unbounded for Turing completeness)
         """
         # Geometric components
         self.space = LRVMSpace(dimension=dimension)
@@ -108,6 +114,7 @@ class Interpreter:
         # Runtime state
         self.environment = Environment()
         self.fs_tracker = FrameworkStrengthTracker()
+        self.max_iterations = max_iterations
 
         # Special lightlike OF vector
         self._of_vector = self._create_of_vector()
@@ -157,6 +164,8 @@ class Interpreter:
             return self._eval_assignment(node)
         elif isinstance(node, Relation):
             return self._eval_relation(node)
+        elif isinstance(node, BinaryOp):
+            return self._eval_binary_op(node)
         elif isinstance(node, Conditional):
             return self._eval_conditional(node)
         elif isinstance(node, Loop):
@@ -214,6 +223,72 @@ class Interpreter:
         # Perform metric contraction and return as vector
         return self.metric.contract_to_vector(left, right)
 
+    def _eval_binary_op(self, node: "BinaryOp") -> LRVMVector:
+        """
+        Evaluate binary arithmetic operators (+, -, *, /, =, <, >).
+
+        Semantic: Arithmetic operators as equilibrium operations:
+            + = additive equilibrium (vector composition)
+            - = subtractive equilibrium (directed distance)
+            * = multiplicative equilibrium (radial scaling)
+            / = projected multiplicative equilibrium (ratio)
+            = = equality equilibrium (IS test)
+            < = proximity to equilibrium test
+            > = distance from equilibrium test
+        """
+        # Evaluate both operands
+        left = self.evaluate(node.left)
+        right = self.evaluate(node.right)
+
+        if node.operator == "+":
+            # Addition: additive equilibrium composition
+            # ‖a+b‖² = ‖a‖² + ‖b‖² + 2(a^T g b)
+            return left.add(right)
+
+        elif node.operator == "-":
+            # Subtraction: additive equilibrium inversion
+            # ‖a-b‖² = ‖a‖² + ‖b‖² - 2(a^T g b)
+            return left.subtract(right)
+
+        elif node.operator == "*":
+            # Multiplication: multiplicative equilibrium scaling
+            # Extract scalar from first coordinate and scale
+            scalar = right.coords[0]
+            return left.scale(scalar)
+
+        elif node.operator == "/":
+            # Division: projected multiplicative equilibrium
+            # Project through inverse scaling
+            scalar = right.coords[0]
+            if abs(scalar) < 1e-10:
+                raise RuntimeError("Division by zero (equilibrium singularity)")
+            return left.scale(1.0 / scalar)
+
+        elif node.operator == "=":
+            # Equality: IS operator (equilibrium test)
+            # Returns 1 if equal, 0 otherwise (as embedded scalar)
+            is_equal = self.space.is_operator(left, right, self.metric.g)
+            return self.space.embed_scalar(1.0 if is_equal else 0.0)
+
+        elif node.operator == "<":
+            # Less than: ordered equilibrium test
+            # For scalars, compare first coordinate directly
+            left_val = left.coords[0]
+            right_val = right.coords[0]
+            result = 1.0 if left_val < right_val else 0.0
+            return self.space.embed_scalar(result)
+
+        elif node.operator == ">":
+            # Greater than: inverse ordered equilibrium test
+            # For scalars, compare first coordinate directly
+            left_val = left.coords[0]
+            right_val = right.coords[0]
+            result = 1.0 if left_val > right_val else 0.0
+            return self.space.embed_scalar(result)
+
+        else:
+            raise RuntimeError(f"Unknown binary operator: {node.operator}")
+
     def _eval_conditional(self, node: Conditional) -> LRVMVector:
         """
         Evaluate IF statement.
@@ -241,21 +316,28 @@ class Interpreter:
         """
         Evaluate LOOP statement.
 
-        Semantic: Iterate until convergence in LRVM space
+        Semantic: Iterate until convergence in LRVM space.
+
+        When max_iterations is None, loops can execute unbounded computation,
+        achieving Turing completeness.
         """
         result = self.space.zero_vector()
         previous = None
         convergence_threshold = 1e-6
-        max_iterations = 10000
         iterations = 0
 
-        while iterations < max_iterations:
+        while True:
+            # Check iteration limit (if set)
+            if self.max_iterations is not None and iterations >= self.max_iterations:
+                break
+
             # Evaluate condition
             condition = self.evaluate(node.condition)
-            norm = self.metric.norm(condition)
 
-            # Exit if condition is lightlike (boundary)
-            if abs(norm) < convergence_threshold:
+            # Exit if condition is "false" (first coordinate ≈ 0)
+            # This handles both comparison operators and norm-based conditions
+            condition_value = condition.coords[0]
+            if abs(condition_value) < convergence_threshold:
                 break
 
             # Execute loop body
