@@ -6,9 +6,7 @@ in the global environment.
 """
 
 from eigenscript.semantic.lrvm import LRVMVector, LRVMSpace
-from eigenscript.semantic.metric import MetricTensor
-from typing import Any, Callable
-import sys
+from typing import Callable
 
 
 class BuiltinFunction:
@@ -90,6 +88,9 @@ def builtin_type(arg: LRVMVector, space: LRVMSpace) -> LRVMVector:
     # Analyze the vector to determine type
     # This is a simplified heuristic
 
+    if len(arg.coords) == 0:
+        return space.embed_string("null")
+
     value = arg.coords[0]
 
     # Check norm to determine type
@@ -97,7 +98,7 @@ def builtin_type(arg: LRVMVector, space: LRVMSpace) -> LRVMVector:
 
     if abs(norm_sq) < 1e-10:
         return space.embed_string("null")
-    elif abs(value) < 1e10 and len(set(arg.coords[1:10])) < 3:
+    elif abs(value) < 1e10 and len(arg.coords) >= 2 and len(set(arg.coords[1:min(10, len(arg.coords))])) < 3:
         # Scalar-like pattern
         return space.embed_string("number")
     else:
@@ -154,9 +155,11 @@ def builtin_first(arg: LRVMVector, space: LRVMSpace) -> LRVMVector:
         space: LRVM space
 
     Returns:
-        First element as scalar
+        First element as scalar, or "null" if empty
     """
-    # Return first coordinate as embedded scalar
+    # Return first coordinate as embedded scalar, or "null" if empty
+    if len(arg.coords) == 0:
+        return space.embed_string("null")
     return space.embed_scalar(arg.coords[0])
 
 
@@ -173,8 +176,11 @@ def builtin_rest(arg: LRVMVector, space: LRVMSpace) -> LRVMVector:
     Returns:
         Remaining elements as vector
     """
-    # Shift coordinates left, zero-padding at end
+    # Handle empty vector
     coords = arg.coords.copy()
+    if len(coords) == 0:
+        return LRVMVector(coords)
+    # Shift coordinates left, zero-padding at end
     coords[:-1] = coords[1:]
     coords[-1] = 0.0
     return LRVMVector(coords)
@@ -206,8 +212,9 @@ def builtin_fs(arg: LRVMVector, space: LRVMSpace) -> LRVMVector:
     Syntax: fs of null
 
     Note: This needs access to the interpreter's FS tracker.
-    For now, returns a placeholder. Will be properly implemented
-    by the interpreter.
+    For now, returns a placeholder. The interpreter overrides this
+    by replacing the BuiltinFunction.func attribute with a closure
+    that captures the current FS value from the interpreter's state.
 
     Args:
         arg: Ignored (use null)
@@ -218,19 +225,6 @@ def builtin_fs(arg: LRVMVector, space: LRVMSpace) -> LRVMVector:
     """
     # Placeholder - interpreter will override this
     return space.embed_scalar(0.0)
-
-
-# Registry of built-in functions
-BUILTIN_NAMES = [
-    "print",
-    "type",
-    "norm",
-    "len",
-    "first",
-    "rest",
-    "empty",
-    "fs"
-]
 
 
 def create_builtins(space: LRVMSpace) -> dict[str, BuiltinFunction]:

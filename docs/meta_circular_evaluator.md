@@ -253,16 +253,16 @@ EigenScript adds a **geometric layer** that enables these capabilities naturally
 
 ## Files Created
 
-1. **`src/eigenscript/runtime/builtins.py`** (280 lines)
+1. **`src/eigenscript/runtime/builtins.py`** (249 lines)
    - 8 essential built-in functions
    - BuiltinFunction wrapper class
    - Integration with LRVM space
 
-2. **`examples/eval.eigs`** (85 lines)
+2. **`examples/eval.eigs`** (84 lines)
    - Simplified meta-circular evaluator
    - 5 test cases demonstrating self-simulation
 
-3. **`examples/self_simulation.eigs`** (92 lines)
+3. **`examples/self_simulation.eigs`** (91 lines)
    - Comprehensive self-simulation test suite
    - Includes unbounded recursion and liar paradox tests
 
