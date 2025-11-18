@@ -6,6 +6,9 @@
 
 **Major Breakthrough**: Universal geometric algorithm (EigenControl) integrated. All three repositories (Geometric-Control, EigenFunction, EigenScript) now unified under single primitive: **I = (A - B)²**
 
+> **Note**: This document focuses on technical implementation details and current development phases.  
+> For strategic vision, long-term goals, and future enhancements, see **[ROADMAP_FUTURE.md](../ROADMAP_FUTURE.md)**.
+
 ---
 
 ## Overview

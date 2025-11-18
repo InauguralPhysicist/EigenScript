@@ -268,7 +268,10 @@ python -m eigenscript examples/hello_world.eigs
 ### 🎯 Next Milestone
 **Self-hosting test**: Implement meta-circular evaluator (EigenScript interpreter written in EigenScript) to validate stable self-simulation hypothesis.
 
-See [docs/roadmap.md](docs/roadmap.md) for detailed status and [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute.
+### 📋 Roadmaps & Planning
+- **[Technical Roadmap](docs/roadmap.md)** - Detailed implementation status and technical milestones
+- **[Strategic Roadmap](ROADMAP_FUTURE.md)** - Long-term vision, research directions, and future enhancements
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
 
 ## Why EigenScript?
 
