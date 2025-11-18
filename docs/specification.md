@@ -151,6 +151,163 @@ define function_name as:
 
 **Semantics**: Project onto observer frame (collapse to output hyperplane)
 
+### 2.7 Interrogatives - Geometric Projection Operators
+
+**Purpose**: Extract specific geometric information from expressions for debugging and introspection.
+
+All interrogatives are projections of the fundamental invariant **I = (A-B)²**:
+
+#### WHO - Identity Extraction
+
+**Syntax**: `who is <identifier>` or `who <identifier>`
+
+**Semantics**: Extract entity identity (variable name or type)
+
+**Returns**: String embedding of identifier name
+
+```eigenscript
+x is 42
+identity is who is x    # Returns "x"
+```
+
+#### WHAT - Magnitude Extraction
+
+**Syntax**: `what is <expression>` or `what <expression>`
+
+**Semantics**: Extract scalar magnitude r = √I (first coordinate)
+
+**Returns**: Scalar value
+
+```eigenscript
+x is 42
+value is what is x      # Returns 42.0
+```
+
+#### WHEN - Temporal Coordinate
+
+**Syntax**: `when is <expression>` or `when <expression>`
+
+**Semantics**: Extract temporal/iteration coordinate (recursion depth or trajectory length)
+
+**Returns**: Scalar representing temporal position
+
+```eigenscript
+time is when is x       # Returns current iteration/depth
+```
+
+#### WHERE - Spatial Position
+
+**Syntax**: `where is <expression>` or `where <expression>`
+
+**Semantics**: Extract position in semantic space (coordinates)
+
+**Returns**: The value itself (its position IS its coordinates)
+
+```eigenscript
+position is where is x  # Returns x's LRVM coordinates
+```
+
+#### WHY - Causal Direction (Gradient)
+
+**Syntax**: `why is <expression>` or `why <expression>`
+
+**Semantics**: Extract normalized direction of change (A-B)/‖A-B‖
+
+**Returns**: Unit direction vector from trajectory
+
+```eigenscript
+direction is why is x   # Returns gradient/causal direction
+```
+
+#### HOW - Process Quality
+
+**Syntax**: `how is <expression>` or `how <expression>`
+
+**Semantics**: Extract transformation quality metrics (Framework Strength, curvature, conditioning)
+
+**Returns**: String embedding with FS, r, κ, and conditioning state
+
+```eigenscript
+process is how is x     # Returns "FS=0.85 r=1.2e-3 κ=833 well-conditioned"
+```
+
+**Geometric Unification**:
+
+All six interrogatives derive from I = (A-B)²:
+- **I** → magnitude (WHAT)
+- **A-B** → direction (WHY)
+- **A, B** → positions (WHERE)
+- **‖·‖ signature** → type (WHEN - timelike vs spacelike)
+- **κ = 1/√I** → quality (HOW)
+- **Identity binding** → entity (WHO)
+
+### 2.8 Semantic Predicates - Geometric State Queries
+
+**Purpose**: Natural language conditionals that evaluate geometric state automatically.
+
+These predicates map to the geometric properties computed from I = (A-B)²:
+
+#### converged
+
+**Evaluates to true**: When Framework Strength ≥ threshold (default: 0.95)
+
+```eigenscript
+if converged:
+    return result
+```
+
+#### stable
+
+**Evaluates to true**: When spacetime signature is timelike (S² - C² > 0)
+
+```eigenscript
+if stable:
+    continue
+```
+
+#### diverging
+
+**Evaluates to true**: When spacetime signature is spacelike (S² - C² < 0)
+
+```eigenscript
+if diverging:
+    print of "System exploring state space"
+```
+
+#### equilibrium
+
+**Evaluates to true**: When at lightlike boundary (S² - C² = 0)
+
+```eigenscript
+if equilibrium:
+    print of "At phase boundary"
+```
+
+#### improving
+
+**Evaluates to true**: When radius is decreasing (trajectory contracting)
+
+```eigenscript
+loop while improving:
+    refine is refine of step
+```
+
+#### oscillating
+
+**Evaluates to true**: When oscillation score > 0.15 (sign changes in deltas)
+
+```eigenscript
+if oscillating:
+    print of "Detected paradox/cycle"
+```
+
+**Usage Benefits**:
+
+1. **Dual-level expressiveness**: Write `if converged:` or `if x > threshold:` - both work
+2. **Natural debugging**: `what is x`, `why is convergence`, `how is process`
+3. **No explicit geometry**: Runtime computes I, r, κ, FS automatically
+4. **State introspection**: Query geometric properties without understanding the math
+
 ---
 
 ## 3. Syntax Design

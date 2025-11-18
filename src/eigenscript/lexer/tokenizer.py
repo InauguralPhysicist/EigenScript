@@ -25,6 +25,14 @@ class TokenType(Enum):
     BREAK = "BREAK"
     NULL = "NULL"
 
+    # Interrogatives (geometric projection operators)
+    WHO = "WHO"
+    WHAT = "WHAT"
+    WHEN = "WHEN"
+    WHERE = "WHERE"
+    WHY = "WHY"
+    HOW = "HOW"
+
     # Literals
     NUMBER = "NUMBER"
     STRING = "STRING"
@@ -107,6 +115,13 @@ class Tokenizer:
         "return": TokenType.RETURN,
         "break": TokenType.BREAK,
         "null": TokenType.NULL,
+        # Interrogatives
+        "who": TokenType.WHO,
+        "what": TokenType.WHAT,
+        "when": TokenType.WHEN,
+        "where": TokenType.WHERE,
+        "why": TokenType.WHY,
+        "how": TokenType.HOW,
     }
 
     def __init__(self, source: str):

@@ -217,6 +217,8 @@ class Interpreter:
             return self._eval_literal(node)
         elif isinstance(node, Identifier):
             return self._eval_identifier(node)
+        elif isinstance(node, Interrogative):
+            return self._eval_interrogative(node)
         else:
             raise RuntimeError(f"Unknown AST node type: {type(node).__name__}")
 
@@ -464,15 +466,177 @@ class Interpreter:
         else:
             raise RuntimeError(f"Unknown literal type: {node.literal_type}")
 
-    def _eval_identifier(self, node: Identifier) -> LRVMVector:
+    def _eval_identifier(self, node: Identifier) -> Union[LRVMVector, Function]:
         """
-        Evaluate an identifier (variable lookup).
+        Evaluate an identifier (variable lookup or semantic predicate).
+
+        Supports semantic predicates that evaluate to geometric state:
+        - converged: True if FS >= convergence_threshold
+        - stable: True if spacetime signature is timelike
+        - diverging: True if spacetime signature is spacelike
+        - equilibrium: True if at lightlike boundary
         """
         # Special case: OF is the lightlike operator
         if node.name.upper() == "OF":
             return self._of_vector
 
+        # Check for semantic predicates (case-insensitive)
+        name_lower = node.name.lower()
+
+        # Geometric state predicates
+        if name_lower == "converged":
+            # Check if Framework Strength exceeds threshold
+            fs = self.fs_tracker.compute_fs()
+            result = 1.0 if fs >= self.convergence_threshold else 0.0
+            return self.space.embed_scalar(result)
+
+        elif name_lower == "stable":
+            # Check if system is timelike (converged, stable dimensions dominate)
+            _, classification = self.get_spacetime_signature()
+            result = 1.0 if classification == "timelike" else 0.0
+            return self.space.embed_scalar(result)
+
+        elif name_lower == "diverging":
+            # Check if system is spacelike (exploring, unstable)
+            _, classification = self.get_spacetime_signature()
+            result = 1.0 if classification == "spacelike" else 0.0
+            return self.space.embed_scalar(result)
+
+        elif name_lower == "equilibrium":
+            # Check if at lightlike boundary
+            _, classification = self.get_spacetime_signature()
+            result = 1.0 if classification == "lightlike" else 0.0
+            return self.space.embed_scalar(result)
+
+        elif name_lower == "improving":
+            # Check if trajectory is contracting (radius decreasing)
+            if self.fs_tracker.get_trajectory_length() >= 2:
+                recent = self.fs_tracker.trajectory[-2:]
+                # Compute radii
+                from eigenscript.runtime.eigencontrol import EigenControl
+                r1 = np.sqrt(np.dot(recent[0].coords, recent[0].coords))
+                r2 = np.sqrt(np.dot(recent[1].coords, recent[1].coords))
+                result = 1.0 if r2 < r1 else 0.0
+            else:
+                result = 0.0
+            return self.space.embed_scalar(result)
+
+        elif name_lower == "oscillating":
+            # Check for oscillation pattern
+            if self.fs_tracker.get_trajectory_length() >= 5:
+                values = [state.coords[0] for state in self.fs_tracker.trajectory[-5:]]
+                deltas = np.diff(values)
+                if len(deltas) > 1:
+                    sign_changes = np.sum(np.diff(np.sign(deltas)) != 0)
+                    oscillation_score = sign_changes / len(deltas)
+                    result = 1.0 if oscillation_score > 0.15 else 0.0
+                else:
+                    result = 0.0
+            else:
+                result = 0.0
+            return self.space.embed_scalar(result)
+
+        # Regular variable lookup
         return self.environment.lookup(node.name)
+
+    def _eval_interrogative(self, node: Interrogative) -> LRVMVector:
+        """
+        Evaluate interrogative operator.
+
+        Interrogatives extract geometric information from expressions:
+        - WHO: Identity/entity (extract identifier name as string)
+        - WHAT: Magnitude (scalar value r = √I from first coordinate)
+        - WHEN: Temporal/iteration coordinate (current recursion depth or iteration count)
+        - WHERE: Position (spatial coordinates in semantic space)
+        - WHY: Gradient/direction (normalized difference vector if trajectory exists)
+        - HOW: Transformation (current Framework Strength as process quality measure)
+
+        Args:
+            node: Interrogative AST node
+
+        Returns:
+            LRVM vector containing the requested geometric information
+        """
+        # Evaluate the expression being interrogated
+        value = self.evaluate(node.expression)
+
+        interrogative = node.interrogative.lower()
+
+        if interrogative == "who":
+            # WHO: Identity extraction
+            # If the expression is an identifier, return its name
+            # Otherwise, return a representation of the value type
+            if isinstance(node.expression, Identifier):
+                identity = node.expression.name
+            else:
+                identity = f"<value at {hex(id(value))}>"
+            return self.space.embed_string(identity)
+
+        elif interrogative == "what":
+            # WHAT: Magnitude extraction (scalar value)
+            # Extract the primary scalar value (first coordinate)
+            scalar_value = value.coords[0]
+            return self.space.embed_scalar(scalar_value)
+
+        elif interrogative == "when":
+            # WHEN: Temporal coordinate
+            # Return current iteration/recursion depth or trajectory length
+            if self.recursion_depth > 0:
+                temporal = float(self.recursion_depth)
+            else:
+                temporal = float(self.fs_tracker.get_trajectory_length())
+            return self.space.embed_scalar(temporal)
+
+        elif interrogative == "where":
+            # WHERE: Spatial position
+            # Return the coordinates themselves (first few dimensions for readability)
+            # Create a readable embedding that preserves position information
+            return value  # The value itself IS its position in semantic space
+
+        elif interrogative == "why":
+            # WHY: Causal direction (gradient)
+            # Compute normalized direction of change from trajectory
+            if self.fs_tracker.get_trajectory_length() >= 2:
+                recent = self.fs_tracker.trajectory[-2:]
+                # Direction vector: where we're going minus where we were
+                direction = recent[1].subtract(recent[0])
+                # Normalize to unit direction
+                norm = np.sqrt(np.dot(direction.coords, direction.coords))
+                if norm > 1e-10:
+                    direction = direction.scale(1.0 / norm)
+                return direction
+            else:
+                # No trajectory, return zero (no causal direction yet)
+                return self.space.zero_vector()
+
+        elif interrogative == "how":
+            # HOW: Process quality/transformation
+            # Return Framework Strength as measure of "how well" the process is working
+            fs = self.fs_tracker.compute_fs()
+
+            # Also compute additional process metrics
+            from eigenscript.runtime.eigencontrol import EigenControl
+
+            # If we have trajectory, compute EigenControl geometry
+            if self.fs_tracker.get_trajectory_length() >= 2:
+                recent = self.fs_tracker.trajectory[-2:]
+                eigen = EigenControl(recent[-1], recent[-2])
+
+                # Create a rich "how" response with multiple metrics
+                # Embed as a structured description
+                how_description = (
+                    f"FS={fs:.4f} "
+                    f"r={eigen.radius:.4e} "
+                    f"κ={eigen.curvature:.4e} "
+                    f"{eigen.get_conditioning()}"
+                )
+                return self.space.embed_string(how_description)
+            else:
+                # Just return Framework Strength
+                return self.space.embed_scalar(fs)
+
+        else:
+            raise RuntimeError(f"Unknown interrogative: {interrogative}")
 
     def _eval_block(self, statements: list[ASTNode]) -> LRVMVector:
         """

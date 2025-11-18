@@ -214,6 +214,32 @@ class Break(ASTNode):
 
 
 @dataclass
+class Interrogative(ASTNode):
+    """
+    Represents an interrogative operator (WHO, WHAT, WHEN, WHERE, WHY, HOW).
+
+    These extract geometric information from expressions:
+    - WHO: Identity/entity projection
+    - WHAT: Scalar magnitude (r = √I)
+    - WHEN: Temporal/iteration coordinate
+    - WHERE: Spatial position in semantic space
+    - WHY: Causal direction (gradient)
+    - HOW: Transformation/process
+
+    Example:
+        what is x
+        why is change
+        how is convergence
+    """
+
+    interrogative: str  # "who", "what", "when", "where", "why", "how"
+    expression: ASTNode
+
+    def __repr__(self) -> str:
+        return f"Interrogative({self.interrogative!r}, {self.expression})"
+
+
+@dataclass
 class Program(ASTNode):
     """
     Represents a complete EigenScript program.
@@ -517,6 +543,82 @@ class Parser:
 
         return Return(expression)
 
+    def parse_interrogative(self) -> Interrogative:
+        """
+        Parse an interrogative operator.
+
+        Grammar: (WHO | WHAT | WHEN | WHERE | WHY | HOW) (IS)? primary
+
+        Example:
+            what x
+            what is x  (IS is optional and ignored)
+            why convergence
+        """
+        # Get interrogative type
+        token = self.current_token()
+        interrogative_map = {
+            TokenType.WHO: "who",
+            TokenType.WHAT: "what",
+            TokenType.WHEN: "when",
+            TokenType.WHERE: "where",
+            TokenType.WHY: "why",
+            TokenType.HOW: "how",
+        }
+        interrogative = interrogative_map[token.type]
+        self.advance()
+
+        # IS is optional after interrogatives (for natural language feel)
+        if self.current_token() and self.current_token().type == TokenType.IS:
+            self.advance()
+
+        # Parse a primary expression (identifier, literal, etc)
+        # This avoids infinite recursion since primary won't parse interrogatives
+        expression = self.parse_identifier_or_literal()
+
+        return Interrogative(interrogative, expression)
+
+    def parse_identifier_or_literal(self) -> ASTNode:
+        """
+        Parse just an identifier or literal (for interrogatives).
+
+        This is a subset of parse_primary that doesn't handle interrogatives.
+        """
+        token = self.current_token()
+
+        if not token:
+            raise SyntaxError("Unexpected end of input")
+
+        # Number literal
+        if token.type == TokenType.NUMBER:
+            self.advance()
+            return Literal(token.value, "number")
+
+        # String literal
+        if token.type == TokenType.STRING:
+            self.advance()
+            return Literal(token.value, "string")
+
+        # Null literal
+        if token.type == TokenType.NULL:
+            self.advance()
+            return Literal(None, "null")
+
+        # Identifier
+        if token.type == TokenType.IDENTIFIER:
+            self.advance()
+            return Identifier(token.value)
+
+        # Parenthesized expression
+        if token.type == TokenType.LPAREN:
+            self.advance()
+            expr = self.parse_expression()
+            self.expect(TokenType.RPAREN)
+            return expr
+
+        raise SyntaxError(
+            f"Expected identifier or literal, got {token.type.name} at line {token.line}, column {token.column}"
+        )
+
     def parse_block(self) -> List[ASTNode]:
         """
         Parse an indented block of statements.
@@ -653,14 +755,19 @@ class Parser:
 
     def parse_primary(self) -> ASTNode:
         """
-        Parse a primary expression (literal, identifier, parenthesized expression).
+        Parse a primary expression (literal, identifier, parenthesized expression, interrogative).
 
-        Grammar: NUMBER | STRING | VECTOR | IDENTIFIER | LPAREN expression RPAREN
+        Grammar: NUMBER | STRING | VECTOR | IDENTIFIER | LPAREN expression RPAREN | interrogative
         """
         token = self.current_token()
 
         if not token:
             raise SyntaxError("Unexpected end of input")
+
+        # Interrogative operators
+        if token.type in (TokenType.WHO, TokenType.WHAT, TokenType.WHEN,
+                         TokenType.WHERE, TokenType.WHY, TokenType.HOW):
+            return self.parse_interrogative()
 
         # Number literal
         if token.type == TokenType.NUMBER:
