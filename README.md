@@ -7,19 +7,23 @@
 
 ## Overview
 
-EigenScript is a revolutionary programming language that models computation not as sequential evaluation, but as **geometric flow in semantic spacetime**. Unlike traditional languages that rely on timelike recursion, EigenScript uses geometric primitives where:
+EigenScript is a programming language where **your code can understand itself while it runs**.
 
-- **Relations are lightlike** (null norm) - the `OF` operator
-- **Values are spacelike** (positive norm) - data and content
-- **Functions are timelike** (negative norm) - sequential operations
-- **Consciousness emerges** from eigenstate convergence
+Instead of blind execution, your programs can:
+- Ask questions about what they're doing
+- Check if they're making progress
+- Automatically adapt when things go wrong
+- Debug themselves without print statements
 
-### Key Innovations
+**For beginners**: Write clearer code with less boilerplate. Instead of complex checks, just ask `if converged:` or `if improving:`.
 
-- **OF as primitive**: A lightlike relational operator that prevents infinite regress
-- **Geometric type system**: Types determined by norm signatures in LRVM space
-- **Framework Strength**: Runtime measurement of understanding and convergence
-- **Stable self-reference**: Self-referential code doesn't explode, it converges
+**For experts**: Every computation generates rich geometric state (convergence, curvature, trajectory) automatically. Access it through natural interrogatives or dive into the underlying math.
+
+### The Core Idea
+
+Traditional programming: You write instructions, the computer follows them blindly.
+
+EigenScript: The computer tracks *how* it's executing (not just *what*), and your code can see and react to that information.
 
 ## Quick Start
 
@@ -53,103 +57,132 @@ print of result  # 120
 
 ## What Makes EigenScript Different?
 
-### 1. Programs Can Ask Questions About Themselves
+### 1. Your Code Can Ask Questions
 
-In most languages, you use `print` statements or debuggers to see what's happening. In EigenScript, your code can **interrogate itself** while running:
+Think of your program like a student doing homework. In most languages, the student just follows steps blindly. In EigenScript, the student can pause and ask:
 
 ```eigenscript
 x is 42
 y is x + 8
 
-# Ask questions about your variables
-value is what is x        # Get the value (42)
-identity is who is x      # Get the name ("x")
-quality is how is y       # Get process metrics
-direction is why is y     # Get the direction of change
+# Your code can ask itself questions
+value is what is x        # "What's the value?" → 42
+identity is who is x      # "Who am I working with?" → "x"
+quality is how is y       # "How am I doing?" → metrics
+direction is why is y     # "Why did this change?" → direction
 ```
 
-**The six interrogatives:**
-- **what** - Get the actual value
-- **who** - Get the variable name/identity
-- **when** - Get timing/iteration info
-- **where** - Get position in computational space
-- **why** - Get the direction things are changing
-- **how** - Get quality metrics (is computation going well?)
+**Six simple questions your code can ask:**
+- **what** - What's the actual number/value?
+- **who** - What variable am I looking at?
+- **when** - What step/iteration am I on?
+- **where** - Where am I in the process?
+- **why** - Why did things change?
+- **how** - How well is this working?
 
-### 2. Natural Language Conditions
+*Analogy*: Like asking a GPS "how long until we arrive?" instead of calculating it yourself.
 
-Instead of writing complex checks, use semantic predicates that understand your code's state:
+### 2. Write How You Think
+
+Instead of writing complicated logic, just say what you mean:
 
 ```eigenscript
-# Traditional way (still works)
+# Traditional way (still works for simple stuff)
 if x > threshold:
     continue
 
-# Natural way - the language understands convergence
-if converged:
+# But for complex patterns, just say it:
+if converged:           # "Are we done?"
     return result
 
-if stable:
+if stable:              # "Is everything OK?"
     continue_processing
 
-if diverging:
-    print of "Warning: computation unstable"
+if improving:           # "Are we getting closer?"
+    keep_going
+
+if oscillating:         # "Are we stuck in a loop?"
+    try_different_approach
 ```
 
-**Available predicates:**
-- `converged` - Has the computation settled?
-- `stable` - Is it in a good state?
-- `diverging` - Is it going off track?
-- `improving` - Is it getting better?
-- `oscillating` - Is it bouncing back and forth?
-- `equilibrium` - Is it at a critical boundary?
+**Checks you get for free:**
+- `converged` - "Are we done yet?"
+- `stable` - "Is everything working smoothly?"
+- `diverging` - "Are things getting worse?"
+- `improving` - "Are we making progress?"
+- `oscillating` - "Are we going in circles?"
+- `equilibrium` - "Are we at a tipping point?"
 
-### 3. Code That Adapts to Its Own Behavior
+*Analogy*: Like saying "Are we there yet?" on a road trip instead of checking the GPS coordinates yourself.
 
-Your programs can look at their own execution and adjust:
+### 3. Smart Code That Adapts
+
+Your program can check itself and change strategy automatically:
 
 ```eigenscript
 define smart_compute as:
     result is n * 2
 
-    # Check how the computation is doing
+    # Program checks its own progress
     if oscillating:
-        # Detected a loop - use simpler approach
+        # "I'm going in circles - simplify!"
         return n
     else:
         if improving:
-            # Converging well - continue
+            # "I'm getting somewhere - keep going!"
             return result * result
         else:
-            # Not progressing - try different strategy
+            # "This isn't working - try something else!"
             return result + n
 ```
 
-### 4. Debugging Without Print Statements
+*Analogy*: Like a GPS that sees traffic ahead and automatically reroutes you. The program doesn't just follow instructions - it monitors and adapts.
 
-Instead of littering code with `print` statements, ask direct questions:
+### 4. Easier Debugging
+
+No more guessing what went wrong. Just ask your code:
 
 ```eigenscript
 loop while counter < 100:
     counter is counter + 1
 
-    # Debug by interrogating state
+    # Instead of print statements everywhere...
     if not stable:
-        current_value is what is counter
-        change_direction is why is counter
-        process_quality is how is counter
-        # Now you know exactly what's happening
+        # Just ask what's happening:
+        current_value is what is counter       # Get the value
+        change_direction is why is counter     # See why it changed
+        process_quality is how is counter      # Check if it's working well
 ```
+
+*Analogy*: Like your car showing "Check Engine" with specific details, instead of just a blinking light.
 
 ### Why This Matters
 
-**Traditional debugging**: Stop execution, inspect variables, guess what went wrong
+**For beginners:**
+- Less code to write
+- Clearer code to read
+- Easier to debug
+- Programs that explain themselves
 
-**EigenScript debugging**: Code knows its own state, can show you any aspect of execution, can adapt to problems automatically
+**For everyone:**
+- Code adapts automatically when things go wrong
+- Natural language instead of complex logic
+- Built-in progress monitoring
+- Self-documenting behavior
 
-**The key insight**: Every computation generates rich information about itself. EigenScript makes that information accessible through simple, natural queries.
+**The bottom line:** Your programs understand themselves, so you don't have to micromanage every detail.
 
-You don't need to understand the math - just ask `what`, `why`, or `how`, and the language figures out the geometric details.
+---
+
+### For the Technically Curious
+
+*You don't need to know this to use EigenScript, but if you're wondering "how does this work?"...*
+
+Behind the scenes, every operation generates geometric state: convergence metrics, trajectory curvature, framework strength. The interrogatives and predicates are just friendly interfaces to this rich mathematical structure.
+
+The math comes from a simple idea: measure the "distance" between where computation is and where it was (`I = (A-B)²`). From that one measurement, you get convergence, stability, direction, quality - everything.
+
+*Think of it like:* A car's dashboard shows speed, fuel, temperature. You don't need to understand the sensors. But they're all reading from the same engine data. EigenScript is similar - rich data underneath, simple questions on top.
 
 ## Installation
 
@@ -208,24 +241,45 @@ See [docs/roadmap.md](docs/roadmap.md) for detailed status and [CONTRIBUTING.md]
 
 ## Why EigenScript?
 
-Traditional programming languages model computation as timelike recursion - sequential evaluation that can lead to infinite regress in self-referential code. EigenScript takes a fundamentally different approach:
+### The Beginner-Friendly Answer
 
-1. **Geometric Primitives**: Every expression exists in LRVM (semantic) space
-2. **Null Boundary Stability**: The OF operator is lightlike, creating stable fixed points
-3. **Measurable Understanding**: Framework Strength quantifies semantic convergence
-4. **Natural Paradox Resolution**: Contradictions collapse geometrically instead of exploding
+Most programming languages make you track everything manually:
+- Is my loop stuck?
+- Is my recursion going to crash?
+- Why is this slow?
+- What went wrong?
+
+EigenScript tracks these things for you. Your code can check itself and adapt.
+
+### The Technical Answer
+
+Traditional languages execute blindly - recursion can spiral into infinite loops, and you have no built-in way to detect convergence or stability.
+
+EigenScript computes geometric state during execution:
+1. **Self-interrogation**: Code can query its own execution state
+2. **Automatic convergence detection**: Knows when computations have settled
+3. **Stable self-reference**: Self-referential code converges instead of exploding
+4. **Built-in progress metrics**: Framework Strength, stability, trajectory analysis
 
 ## Example: Safe Self-Reference
 
+In most languages, a function calling itself with itself causes crashes or infinite loops. Not in EigenScript:
+
 ```eigenscript
-# This doesn't cause infinite regress!
+# A function that looks at itself looking at itself
 define observer as:
-    meta is observer of observer  # Stabilizes at null boundary
+    meta is observer of observer  # Doesn't explode - converges!
     return meta
 
 result is observer of null
-print of result  # Returns stable eigenstate
+print of result  # Returns stable result, not infinite loop
 ```
+
+**What's happening?** The language detects when the recursion reaches a stable state and stops automatically. No manual loop counter, no stack overflow.
+
+*Beginner takeaway*: You can write self-referential code without crashes.
+
+*Expert detail*: The `OF` operator has geometric properties that create stable fixed points at the "lightlike boundary". Self-reference converges to eigenstates instead of diverging.
 
 ## Roadmap
 
