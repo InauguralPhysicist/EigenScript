@@ -172,6 +172,42 @@ loop while counter < 100:
 
 **The bottom line:** Your programs understand themselves, so you don't have to micromanage every detail.
 
+### 5. Code More Vaguely (When You Want To)
+
+Because your code can interrogate itself, you can write at a higher level:
+
+```eigenscript
+# Traditional: You specify everything
+if (iterations > max_iterations) or (error < threshold) or (variance < epsilon):
+    return result
+
+# EigenScript: Let the code figure it out
+if converged:
+    return result
+```
+
+```eigenscript
+# Traditional: Explicit loop management
+counter is 0
+loop while counter < 100:
+    counter is counter + 1
+    if abs(value - target) < 0.001:
+        break
+
+# EigenScript: Just say when to stop
+loop while improving:
+    refine_value
+```
+
+**The freedom to be vague:**
+- Don't know the exact threshold? Use `if converged`
+- Don't know the exact condition? Use `if stable`
+- Don't know how many iterations? Use `while improving`
+
+The code fills in the details by interrogating its own state.
+
+*Analogy*: Traditional code is like giving step-by-step GPS directions ("turn right in 0.3 miles..."). EigenScript is like saying "head downtown" - the system figures out the specifics.
+
 ---
 
 ### For the Technically Curious
