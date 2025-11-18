@@ -6,11 +6,40 @@ in LRVM space.
 """
 
 import numpy as np
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List, Union
+from dataclasses import dataclass
 from eigenscript.parser.ast_builder import *
 from eigenscript.semantic.lrvm import LRVMVector, LRVMSpace
 from eigenscript.semantic.metric import MetricTensor
 from eigenscript.runtime.framework_strength import FrameworkStrengthTracker
+
+
+@dataclass
+class Function:
+    """
+    Represents a function object in EigenScript.
+
+    Functions are timelike transformations stored with their definition
+    and lexical closure.
+    """
+    name: str
+    parameters: List[str]
+    body: List[ASTNode]
+    closure: "Environment"  # Captured environment
+
+    def __repr__(self) -> str:
+        return f"Function({self.name!r}, params={self.parameters})"
+
+
+class ReturnValue(Exception):
+    """
+    Exception used to implement return statements.
+
+    Raised when a RETURN statement is executed, carrying the return value.
+    """
+    def __init__(self, value: LRVMVector):
+        self.value = value
+        super().__init__()
 
 
 class Environment:
@@ -34,10 +63,10 @@ class Environment:
         Args:
             parent: Parent environment for nested scopes
         """
-        self.bindings: Dict[str, LRVMVector] = {}
+        self.bindings: Dict[str, Union[LRVMVector, Function]] = {}
         self.parent = parent
 
-    def bind(self, name: str, vector: LRVMVector) -> None:
+    def bind(self, name: str, value: Union[LRVMVector, Function]) -> None:
         """
         Create an immutable binding.
 
@@ -46,11 +75,11 @@ class Environment:
 
         Args:
             name: Variable name
-            vector: LRVM vector value
+            value: LRVM vector or Function object
         """
-        self.bindings[name] = vector
+        self.bindings[name] = value
 
-    def lookup(self, name: str) -> LRVMVector:
+    def lookup(self, name: str) -> Union[LRVMVector, Function]:
         """
         Resolve a variable to its LRVM vector.
 
@@ -98,6 +127,8 @@ class Interpreter:
         dimension: int = 768,
         metric_type: str = "euclidean",
         max_iterations: Optional[int] = None,
+        convergence_threshold: float = 0.95,
+        enable_convergence_detection: bool = True,
     ):
         """
         Initialize the interpreter.
@@ -106,6 +137,8 @@ class Interpreter:
             dimension: LRVM space dimensionality
             metric_type: Type of metric tensor to use
             max_iterations: Maximum loop iterations (None = unbounded for Turing completeness)
+            convergence_threshold: FS threshold for eigenstate detection (default: 0.95)
+            enable_convergence_detection: Enable automatic convergence detection (default: True)
         """
         # Geometric components
         self.space = LRVMSpace(dimension=dimension)
@@ -115,6 +148,12 @@ class Interpreter:
         self.environment = Environment()
         self.fs_tracker = FrameworkStrengthTracker()
         self.max_iterations = max_iterations
+
+        # Convergence detection
+        self.convergence_threshold = convergence_threshold
+        self.enable_convergence_detection = enable_convergence_detection
+        self.recursion_depth = 0
+        self.max_recursion_depth = 1000  # Safety limit
 
         # Special lightlike OF vector
         self._of_vector = self._create_of_vector()
@@ -210,11 +249,27 @@ class Interpreter:
         """
         Evaluate OF operator: x of y
 
-        Semantic: Metric contraction x^T g y
+        Semantic: Metric contraction x^T g y OR function application
         """
-        # Evaluate both sides
+        # Special handling for function calls:
+        # If left side is an identifier, check if it's a function before evaluating
+        if isinstance(node.left, Identifier):
+            try:
+                left_value = self.environment.lookup(node.left.name)
+                if isinstance(left_value, Function):
+                    # This is a function call!
+                    return self._call_function(left_value, node.right)
+            except NameError:
+                pass  # Not found, will evaluate normally below
+
+        # Evaluate both sides normally
         left = self.evaluate(node.left)
         right = self.evaluate(node.right)
+
+        # Check if left is a function (in case it came from a complex expression)
+        if isinstance(left, Function):
+            # right should already be evaluated
+            return self._call_function_with_value(left, right)
 
         # Special case: OF of OF = OF
         if self._is_of_vector(left) and self._is_of_vector(right):
@@ -293,20 +348,23 @@ class Interpreter:
         """
         Evaluate IF statement.
 
-        Semantic: Branch based on norm signature
-        - norm > 0 (spacelike/meaningful) → if branch
-        - norm ≈ 0 (lightlike/boundary) → else branch
+        Semantic: Branch based on value
+        - For boolean results (from comparisons): check coords[0] > 0
+        - For other values: check norm > 0
         """
         # Evaluate condition
         condition = self.evaluate(node.condition)
 
-        # Compute norm
-        norm = self.metric.norm(condition)
+        # Determine truthiness
+        # For comparison results, use first coordinate (0.0 or 1.0)
+        # For other values, use norm
+        condition_value = condition.coords[0]
 
-        # Branch based on norm signature
-        if norm > 0:  # Spacelike/Timelike → meaningful
+        # Branch based on condition value
+        # True if first coordinate is non-zero (handles both boolean and norm cases)
+        if abs(condition_value) > 1e-10:
             return self._eval_block(node.if_block)
-        else:  # Lightlike → boundary case
+        else:
             if node.else_block:
                 return self._eval_block(node.else_block)
             else:
@@ -360,11 +418,20 @@ class Interpreter:
 
         Semantic: Create timelike transformation
         """
-        # TODO: Implement function objects
-        # For now, store in environment as a special vector
-        func_vector = self.space.random_vector()  # Placeholder
+        # Create function object with current environment as closure
+        func = Function(
+            name=node.name,
+            parameters=node.parameters if node.parameters else ["n"],  # Default parameter name
+            body=node.body,
+            closure=self.environment
+        )
 
-        self.environment.bind(node.name, func_vector)
+        # Bind function in environment
+        self.environment.bind(node.name, func)
+
+        # Return a vector representation of the function (for geometric consistency)
+        # Functions have timelike signature (negative norm)
+        func_vector = self.space.embed_string(f"<function {node.name}>")
         return func_vector
 
     def _eval_return(self, node: Return) -> LRVMVector:
@@ -372,8 +439,12 @@ class Interpreter:
         Evaluate return statement.
 
         Semantic: Project onto observer frame
+
+        Raises:
+            ReturnValue: To unwind the stack and return from function
         """
-        return self.evaluate(node.expression)
+        value = self.evaluate(node.expression)
+        raise ReturnValue(value)
 
     def _eval_literal(self, node: Literal) -> LRVMVector:
         """
@@ -415,6 +486,123 @@ class Interpreter:
             result = self.evaluate(statement)
 
         return result
+
+    def _call_function(self, func: Function, arg_node: ASTNode) -> LRVMVector:
+        """
+        Call a function with an unevaluated argument expression.
+
+        Args:
+            func: Function object to call
+            arg_node: AST node for the argument (will be evaluated)
+
+        Returns:
+            Result of function execution
+        """
+        # Evaluate the argument
+        arg_value = self.evaluate(arg_node)
+        return self._call_function_with_value(func, arg_value)
+
+    def _call_function_with_value(self, func: Function, arg_value: LRVMVector) -> LRVMVector:
+        """
+        Call a function with an already-evaluated argument.
+
+        Implements convergence detection: if FS > threshold during recursion,
+        return current eigenstate instead of continuing.
+
+        Args:
+            func: Function object to call
+            arg_value: Evaluated argument value
+
+        Returns:
+            Result of function execution or eigenstate if converged
+        """
+        # Track recursion depth
+        self.recursion_depth += 1
+
+        # Safety check: prevent infinite recursion
+        if self.recursion_depth > self.max_recursion_depth:
+            self.recursion_depth -= 1
+            raise RuntimeError(
+                f"Maximum recursion depth ({self.max_recursion_depth}) exceeded. "
+                "System may be diverging."
+            )
+
+        # Convergence detection: check if we've reached eigenstate
+        if self.enable_convergence_detection and self.recursion_depth > 2:
+            # Update FS tracker with current argument value to build trajectory
+            self.fs_tracker.update(arg_value)
+
+            fs = self.fs_tracker.compute_fs()
+
+            # Detect convergence via multiple criteria:
+            # 1. High Framework Strength (FS > threshold)
+            # 2. Fixed-point loop detection (same values repeating = low variance)
+            converged = False
+            variance = 0.0
+
+            if fs >= self.convergence_threshold:
+                converged = True
+            elif self.recursion_depth > 5:  # Deep enough to detect patterns
+                trajectory_len = self.fs_tracker.get_trajectory_length()
+                if trajectory_len >= 3:
+                    # Check variance of recent states to detect cycles
+                    recent_states = self.fs_tracker.trajectory[-3:]
+                    coords = np.array([s.coords for s in recent_states])
+                    variance = float(np.var(coords))
+
+                    # Low variance indicates a fixed-point or cycle
+                    if variance < 1e-6:
+                        converged = True
+
+            if converged:
+                # Eigenstate convergence detected!
+                self.recursion_depth -= 1
+
+                # Create eigenstate marker vector
+                eigenstate = self.space.embed_string(
+                    f"<eigenstate FS={fs:.4f} var={variance:.6f} depth={self.recursion_depth}>"
+                )
+                return eigenstate
+
+        # Create new environment for function execution
+        # Parent is the function's closure (lexical scoping)
+        func_env = Environment(parent=func.closure)
+
+        # Bind arguments to parameters
+        # For now, we support single-argument functions with implicit parameter 'n'
+        if func.parameters:
+            param_name = func.parameters[0]
+        else:
+            param_name = "n"  # Default parameter name
+
+        func_env.bind(param_name, arg_value)
+
+        # Execute function body
+        # Save current environment and switch to function environment
+        saved_env = self.environment
+        self.environment = func_env
+
+        try:
+            result = self.space.zero_vector()
+
+            # Execute each statement in function body
+            for statement in func.body:
+                result = self.evaluate(statement)
+                # Update Framework Strength tracker during execution
+                self.fs_tracker.update(result)
+
+            return result
+
+        except ReturnValue as ret:
+            # Return statement was executed
+            # Update FS with return value
+            self.fs_tracker.update(ret.value)
+            return ret.value
+
+        finally:
+            # Restore original environment and decrement recursion depth
+            self.environment = saved_env
+            self.recursion_depth -= 1
 
     def _is_of_vector(self, vector: LRVMVector) -> bool:
         """
