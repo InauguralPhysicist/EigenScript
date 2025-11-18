@@ -8,6 +8,10 @@ import sys
 import argparse
 from pathlib import Path
 
+from eigenscript.lexer import Tokenizer
+from eigenscript.parser import Parser
+from eigenscript.evaluator import Interpreter
+
 
 def main():
     """Main entry point for the EigenScript interpreter."""
@@ -23,6 +27,11 @@ def main():
     parser.add_argument(
         "-i", "--interactive", action="store_true", help="Start interactive REPL"
     )
+    parser.add_argument(
+        "--show-fs",
+        action="store_true",
+        help="Show Framework Strength metrics after execution",
+    )
 
     args = parser.parse_args()
 
@@ -37,11 +46,44 @@ def main():
             print(f"Error: File not found: {args.file}", file=sys.stderr)
             return 1
 
-        print(f"EigenScript interpreter (Phase 1 - Minimal Core)")
-        print(f"File: {args.file}")
-        print("\nNote: Full interpreter not yet implemented.")
-        print("This is a placeholder for the future implementation.")
-        return 0
+        try:
+            # Read source code
+            with open(file_path, "r", encoding="utf-8") as f:
+                source = f.read()
+
+            # Tokenize
+            tokenizer = Tokenizer(source)
+            tokens = tokenizer.tokenize()
+
+            # Parse
+            parser_obj = Parser(tokens)
+            ast = parser_obj.parse()
+
+            # Interpret
+            interpreter = Interpreter()
+            result = interpreter.evaluate(ast)
+
+            # Show metrics if requested
+            if args.show_fs:
+                fs = interpreter.get_framework_strength()
+                signature, classification = interpreter.get_spacetime_signature()
+                converged = interpreter.has_converged()
+                
+                print(f"\n=== Framework Strength Metrics ===")
+                print(f"Framework Strength: {fs:.4f}")
+                print(f"Converged: {converged}")
+                print(f"Spacetime Signature: {signature:.4f} ({classification})")
+
+            return 0
+
+        except FileNotFoundError:
+            print(f"Error: File not found: {args.file}", file=sys.stderr)
+            return 1
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            return 1
     else:
         parser.print_help()
         return 0
