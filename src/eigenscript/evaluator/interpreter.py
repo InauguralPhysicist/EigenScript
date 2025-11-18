@@ -127,6 +127,8 @@ class Interpreter:
         dimension: int = 768,
         metric_type: str = "euclidean",
         max_iterations: Optional[int] = None,
+        convergence_threshold: float = 0.95,
+        enable_convergence_detection: bool = True,
     ):
         """
         Initialize the interpreter.
@@ -135,6 +137,8 @@ class Interpreter:
             dimension: LRVM space dimensionality
             metric_type: Type of metric tensor to use
             max_iterations: Maximum loop iterations (None = unbounded for Turing completeness)
+            convergence_threshold: FS threshold for eigenstate detection (default: 0.95)
+            enable_convergence_detection: Enable automatic convergence detection (default: True)
         """
         # Geometric components
         self.space = LRVMSpace(dimension=dimension)
@@ -144,6 +148,12 @@ class Interpreter:
         self.environment = Environment()
         self.fs_tracker = FrameworkStrengthTracker()
         self.max_iterations = max_iterations
+
+        # Convergence detection
+        self.convergence_threshold = convergence_threshold
+        self.enable_convergence_detection = enable_convergence_detection
+        self.recursion_depth = 0
+        self.max_recursion_depth = 1000  # Safety limit
 
         # Special lightlike OF vector
         self._of_vector = self._create_of_vector()
@@ -496,13 +506,64 @@ class Interpreter:
         """
         Call a function with an already-evaluated argument.
 
+        Implements convergence detection: if FS > threshold during recursion,
+        return current eigenstate instead of continuing.
+
         Args:
             func: Function object to call
             arg_value: Evaluated argument value
 
         Returns:
-            Result of function execution
+            Result of function execution or eigenstate if converged
         """
+        # Track recursion depth
+        self.recursion_depth += 1
+
+        # Safety check: prevent infinite recursion
+        if self.recursion_depth > self.max_recursion_depth:
+            self.recursion_depth -= 1
+            raise RuntimeError(
+                f"Maximum recursion depth ({self.max_recursion_depth}) exceeded. "
+                "System may be diverging."
+            )
+
+        # Convergence detection: check if we've reached eigenstate
+        if self.enable_convergence_detection and self.recursion_depth > 2:
+            # Update FS tracker with current argument value to build trajectory
+            self.fs_tracker.update(arg_value)
+
+            fs = self.fs_tracker.compute_fs()
+
+            # Detect convergence via multiple criteria:
+            # 1. High Framework Strength (FS > threshold)
+            # 2. Fixed-point loop detection (same values repeating = low variance)
+            converged = False
+            variance = 0.0
+
+            if fs >= self.convergence_threshold:
+                converged = True
+            elif self.recursion_depth > 5:  # Deep enough to detect patterns
+                trajectory_len = self.fs_tracker.get_trajectory_length()
+                if trajectory_len >= 3:
+                    # Check variance of recent states to detect cycles
+                    recent_states = self.fs_tracker.trajectory[-3:]
+                    coords = np.array([s.coords for s in recent_states])
+                    variance = float(np.var(coords))
+
+                    # Low variance indicates a fixed-point or cycle
+                    if variance < 1e-6:
+                        converged = True
+
+            if converged:
+                # Eigenstate convergence detected!
+                self.recursion_depth -= 1
+
+                # Create eigenstate marker vector
+                eigenstate = self.space.embed_string(
+                    f"<eigenstate FS={fs:.4f} var={variance:.6f} depth={self.recursion_depth}>"
+                )
+                return eigenstate
+
         # Create new environment for function execution
         # Parent is the function's closure (lexical scoping)
         func_env = Environment(parent=func.closure)
@@ -527,16 +588,21 @@ class Interpreter:
             # Execute each statement in function body
             for statement in func.body:
                 result = self.evaluate(statement)
+                # Update Framework Strength tracker during execution
+                self.fs_tracker.update(result)
 
             return result
 
         except ReturnValue as ret:
             # Return statement was executed
+            # Update FS with return value
+            self.fs_tracker.update(ret.value)
             return ret.value
 
         finally:
-            # Restore original environment
+            # Restore original environment and decrement recursion depth
             self.environment = saved_env
+            self.recursion_depth -= 1
 
     def _is_of_vector(self, vector: LRVMVector) -> bool:
         """
