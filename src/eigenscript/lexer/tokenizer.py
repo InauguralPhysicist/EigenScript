@@ -39,6 +39,15 @@ class TokenType(Enum):
     LBRACKET = "LBRACKET"
     RBRACKET = "RBRACKET"
 
+    # Arithmetic Operators (equilibrium operations)
+    PLUS = "PLUS"
+    MINUS = "MINUS"
+    MULTIPLY = "MULTIPLY"
+    DIVIDE = "DIVIDE"
+    EQUALS = "EQUALS"
+    LESS_THAN = "LESS_THAN"
+    GREATER_THAN = "GREATER_THAN"
+
     # Whitespace (significant in Python-style indentation)
     NEWLINE = "NEWLINE"
     INDENT = "INDENT"
@@ -172,7 +181,7 @@ class Tokenizer:
                 self.tokens.append(self.read_identifier())
                 continue
 
-            # Punctuation
+            # Punctuation and Operators
             start_line = self.line
             start_col = self.column
 
@@ -194,6 +203,29 @@ class Tokenizer:
             elif char == "]":
                 self.advance()
                 self.tokens.append(Token(TokenType.RBRACKET, line=start_line, column=start_col))
+            # Arithmetic operators
+            elif char == "+":
+                self.advance()
+                self.tokens.append(Token(TokenType.PLUS, line=start_line, column=start_col))
+            elif char == "-" and not (self.peek_char() and self.peek_char().isdigit()):
+                # Only treat as operator if not start of negative number
+                self.advance()
+                self.tokens.append(Token(TokenType.MINUS, line=start_line, column=start_col))
+            elif char == "*":
+                self.advance()
+                self.tokens.append(Token(TokenType.MULTIPLY, line=start_line, column=start_col))
+            elif char == "/":
+                self.advance()
+                self.tokens.append(Token(TokenType.DIVIDE, line=start_line, column=start_col))
+            elif char == "=":
+                self.advance()
+                self.tokens.append(Token(TokenType.EQUALS, line=start_line, column=start_col))
+            elif char == "<":
+                self.advance()
+                self.tokens.append(Token(TokenType.LESS_THAN, line=start_line, column=start_col))
+            elif char == ">":
+                self.advance()
+                self.tokens.append(Token(TokenType.GREATER_THAN, line=start_line, column=start_col))
             else:
                 raise SyntaxError(
                     f"Unexpected character '{char}' at line {self.line}, column {self.column}"
