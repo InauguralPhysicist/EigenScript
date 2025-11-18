@@ -126,8 +126,85 @@ class Tokenizer:
         Raises:
             SyntaxError: If invalid syntax is encountered
         """
-        # TODO: Implement tokenization logic
-        # For now, return empty list with EOF
+        # Track if we're at the beginning of a line for indentation
+        at_line_start = True
+
+        while self.position < len(self.source):
+            # Handle indentation at the start of lines
+            if at_line_start:
+                self.handle_indentation()
+                at_line_start = False
+                continue
+
+            # Skip whitespace (but not newlines)
+            self.skip_whitespace()
+
+            # Skip comments
+            if self.current_char() == "#":
+                self.skip_comment()
+                continue
+
+            char = self.current_char()
+
+            if char is None:
+                break
+
+            # Newlines are significant (for indentation tracking)
+            if char == "\n":
+                token = Token(TokenType.NEWLINE, line=self.line, column=self.column)
+                self.tokens.append(token)
+                self.advance()
+                at_line_start = True
+                continue
+
+            # Numbers
+            if char.isdigit() or (char == "-" and self.peek_char() and self.peek_char().isdigit()):
+                self.tokens.append(self.read_number())
+                continue
+
+            # Strings
+            if char in ('"', "'"):
+                self.tokens.append(self.read_string())
+                continue
+
+            # Identifiers and keywords
+            if char.isalpha() or char == "_":
+                self.tokens.append(self.read_identifier())
+                continue
+
+            # Punctuation
+            start_line = self.line
+            start_col = self.column
+
+            if char == ":":
+                self.advance()
+                self.tokens.append(Token(TokenType.COLON, line=start_line, column=start_col))
+            elif char == ",":
+                self.advance()
+                self.tokens.append(Token(TokenType.COMMA, line=start_line, column=start_col))
+            elif char == "(":
+                self.advance()
+                self.tokens.append(Token(TokenType.LPAREN, line=start_line, column=start_col))
+            elif char == ")":
+                self.advance()
+                self.tokens.append(Token(TokenType.RPAREN, line=start_line, column=start_col))
+            elif char == "[":
+                self.advance()
+                self.tokens.append(Token(TokenType.LBRACKET, line=start_line, column=start_col))
+            elif char == "]":
+                self.advance()
+                self.tokens.append(Token(TokenType.RBRACKET, line=start_line, column=start_col))
+            else:
+                raise SyntaxError(
+                    f"Unexpected character '{char}' at line {self.line}, column {self.column}"
+                )
+
+        # Close any remaining indentation levels
+        while len(self.indent_stack) > 1:
+            self.indent_stack.pop()
+            self.tokens.append(Token(TokenType.DEDENT, line=self.line, column=self.column))
+
+        # Add EOF token
         self.tokens.append(Token(TokenType.EOF, line=self.line, column=self.column))
         return self.tokens
 
@@ -178,9 +255,31 @@ class Tokenizer:
         Returns:
             Token with NUMBER type and numeric value
         """
-        # TODO: Implement number reading
-        # Should handle: 42, 3.14, -17, etc.
-        pass
+        start_line = self.line
+        start_col = self.column
+        num_str = ""
+
+        # Handle negative sign
+        if self.current_char() == "-":
+            num_str += self.advance()
+
+        # Read digits before decimal point
+        while self.current_char() and self.current_char().isdigit():
+            num_str += self.advance()
+
+        # Check for decimal point
+        if self.current_char() == "." and self.peek_char() and self.peek_char().isdigit():
+            num_str += self.advance()  # Add the '.'
+            while self.current_char() and self.current_char().isdigit():
+                num_str += self.advance()
+
+        # Convert to appropriate numeric type
+        if "." in num_str:
+            value = float(num_str)
+        else:
+            value = int(num_str)
+
+        return Token(TokenType.NUMBER, value, start_line, start_col)
 
     def read_string(self) -> Token:
         """
@@ -189,9 +288,43 @@ class Tokenizer:
         Returns:
             Token with STRING type and string value
         """
-        # TODO: Implement string reading
-        # Should handle: "hello", 'world', escape sequences
-        pass
+        start_line = self.line
+        start_col = self.column
+
+        # Get quote character (either ' or ")
+        quote_char = self.advance()
+        value = ""
+
+        while self.current_char() and self.current_char() != quote_char:
+            char = self.current_char()
+
+            # Handle escape sequences
+            if char == "\\":
+                self.advance()
+                next_char = self.current_char()
+                if next_char is None:
+                    raise SyntaxError(f"Unterminated string at line {start_line}, column {start_col}")
+
+                # Common escape sequences
+                escape_map = {
+                    "n": "\n",
+                    "t": "\t",
+                    "r": "\r",
+                    "\\": "\\",
+                    "'": "'",
+                    '"': '"',
+                }
+                value += escape_map.get(next_char, next_char)
+                self.advance()
+            else:
+                value += self.advance()
+
+        # Consume closing quote
+        if self.current_char() != quote_char:
+            raise SyntaxError(f"Unterminated string at line {start_line}, column {start_col}")
+        self.advance()
+
+        return Token(TokenType.STRING, value, start_line, start_col)
 
     def read_identifier(self) -> Token:
         """
@@ -200,9 +333,26 @@ class Tokenizer:
         Returns:
             Token with IDENTIFIER or keyword type
         """
-        # TODO: Implement identifier reading
-        # Should recognize keywords vs identifiers
-        pass
+        start_line = self.line
+        start_col = self.column
+        identifier = ""
+
+        # Read first character (letter or underscore)
+        identifier += self.advance()
+
+        # Read remaining characters (letters, digits, underscores)
+        while self.current_char() and (
+            self.current_char().isalnum() or self.current_char() == "_"
+        ):
+            identifier += self.advance()
+
+        # Check if it's a keyword
+        identifier_lower = identifier.lower()
+        if identifier_lower in self.KEYWORDS:
+            return Token(self.KEYWORDS[identifier_lower], line=start_line, column=start_col)
+
+        # It's a regular identifier
+        return Token(TokenType.IDENTIFIER, identifier, start_line, start_col)
 
     def read_vector(self) -> Token:
         """
@@ -211,9 +361,10 @@ class Tokenizer:
         Returns:
             Token with VECTOR type and list value
         """
-        # TODO: Implement vector reading
-        # Should handle: (1, 2, 3), (1.0, -2.5, 3.14)
-        pass
+        # Note: Vector parsing is currently handled by the parser
+        # This method is a placeholder for future enhancements
+        # For now, vectors are parsed as LPAREN, values, RPAREN sequences
+        raise NotImplementedError("Vector literals are parsed at the parser level")
 
     def handle_indentation(self):
         """
@@ -221,6 +372,37 @@ class Tokenizer:
 
         Emits INDENT and DEDENT tokens similar to Python.
         """
-        # TODO: Implement indentation handling
-        # Track indent levels and emit INDENT/DEDENT tokens
-        pass
+        # Count spaces/tabs at the beginning of the line
+        indent_level = 0
+        start_pos = self.position
+
+        while self.current_char() and self.current_char() in " \t":
+            if self.current_char() == " ":
+                indent_level += 1
+            else:  # tab
+                indent_level += 4  # Treat tab as 4 spaces
+            self.advance()
+
+        # Skip blank lines (lines with only whitespace)
+        if self.current_char() in ("\n", None, "#"):
+            return
+
+        # Compare with current indent level
+        current_indent = self.indent_stack[-1]
+
+        if indent_level > current_indent:
+            # Increased indentation - emit INDENT
+            self.indent_stack.append(indent_level)
+            self.tokens.append(Token(TokenType.INDENT, line=self.line, column=1))
+        elif indent_level < current_indent:
+            # Decreased indentation - emit DEDENT(s)
+            while len(self.indent_stack) > 1 and self.indent_stack[-1] > indent_level:
+                self.indent_stack.pop()
+                self.tokens.append(Token(TokenType.DEDENT, line=self.line, column=1))
+
+            # Check for indentation error (mismatched indent level)
+            if self.indent_stack[-1] != indent_level:
+                raise SyntaxError(
+                    f"Indentation error at line {self.line}: "
+                    f"expected {self.indent_stack[-1]} spaces, got {indent_level}"
+                )
