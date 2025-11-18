@@ -14,3 +14,10 @@ mypy>=1.5.0
 
 # Typing extensions
 typing-extensions>=4.7.0
+black
+flake8
+mypy
+numpy
+pytest
+pytest-cov
+typing-extensions
