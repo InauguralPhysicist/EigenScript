@@ -280,9 +280,262 @@ The runtime can report FS after each major operation.
 
 ---
 
-## 5. Type System
+## 5. Formal Semantics: Operator Unification
 
-### 5.1 Geometric Types
+### 5.1 The Fundamental Theorem
+
+**All operators in EigenScript are projections, tests, inversions, or compositions of a single primitive: equilibrium.**
+
+This is the core insight that makes EigenScript coherent. Everything reduces to equilibrium dynamics.
+
+### 5.2 The Equilibrium Primitive
+
+**Definition**:
+
+```
+equilibrium(x, y) ⟺ ‖x of y‖² = 0
+```
+
+Equilibrium is the state where **relational tension vanishes**.
+
+**Properties**:
+- Zero norm = perfect balance
+- No semantic distance
+- Fixed point of relation
+- Lightlike boundary condition
+
+**Geometric form**:
+
+```
+x is y  ⟺  ‖x of y‖² = x^⊤ g y g^⊤ g y x = 0
+```
+
+When norm collapses to zero:
+- Identity achieved
+- Relation stabilizes
+- Semantic convergence
+- Consciousness emerges
+
+### 5.3 IS-OF Duality
+
+**Theorem**: IS and OF are projections of the same operator through different geometric bases.
+
+```
+IS  = equilibrium state
+OF  = equilibrium projection through metric g
+
+IS(x, y) = 1  ⟺  ‖OF(x, y)‖² = 0
+```
+
+**Proof**:
+
+```
+IS(x, y) tests for equilibrium: ‖x of y‖² = 0
+OF(x, y) computes projection: x^⊤ g y
+At equilibrium: x^⊤ g y g^⊤ g y x = 0 ⟹ IS = 1
+∴ IS = OF|_{‖·‖²=0}
+```
+
+**Physical meaning**:
+- IS = identity (null case)
+- OF = directional projection (general case)
+- They differ only by norm
+
+### 5.4 Control Flow as Equilibrium Tests
+
+**IF** = test for equilibrium
+
+```
+IF: V × V × V → V
+IF(c, A, B) = A  if ‖c‖² > ε  (spacelike/timelike)
+            = B  if ‖c‖² ≤ ε  (lightlike)
+```
+
+**THEN** = sequential equilibrium evolution
+
+```
+THEN: V × V → V
+THEN(x, y) = τ_x(y)  (parallel transport of y along x)
+```
+
+**ELSE** = equilibrium boundary handler
+
+```
+ELSE: executes when condition reaches equilibrium
+```
+
+**Key insight**: Control flow is **geometric path selection**, not Boolean branching.
+
+### 5.5 Logic as Equilibrium Geometry
+
+**Truth values** are not Boolean — they are **metric signatures**:
+
+```
+true  ⟺ ‖x‖² > 0   (spacelike/timelike, meaningful)
+false ⟺ ‖x‖² = 0   (lightlike, equilibrium)
+```
+
+**All logical operators** reduce to norm algebra:
+
+```
+NOT(x)       = -‖x‖²            (signature flip)
+AND(x, y)    = min(‖x‖², ‖y‖²)  (intersection)
+OR(x, y)     = max(‖x‖², ‖y‖²)  (union)
+IMPLIES(x,y) = max(-‖x‖², ‖y‖²) (implication)
+XOR(x, y)    = |‖x‖² - ‖y‖²|    (exclusive or)
+```
+
+**Quantifiers**:
+
+```
+∀x: P(x) = min_{x} ‖P(x)‖²  (all must be non-equilibrium)
+∃x: P(x) = max_{x} ‖P(x)‖²  (at least one non-equilibrium)
+```
+
+**Key insight**: Boolean logic is the **discrete approximation** of continuous equilibrium geometry.
+
+### 5.6 Paradox Resolution
+
+Traditional logic breaks on self-reference. Eigen Logic doesn't.
+
+**Liar Paradox**:
+
+```
+L = NOT L
+‖L‖² = -‖L‖²
+⟹ ‖L‖² = 0  (equilibrium)
+```
+
+The paradox **collapses to the lightlike boundary** instead of oscillating.
+
+**Russell's Paradox**:
+
+```
+R = {x | x ∉ x}
+‖R ∈ R‖² = 0  (equilibrium)
+```
+
+Self-referential sets are lightlike (stable).
+
+**Curry's Paradox**:
+
+```
+C = "If C then X"
+‖C‖² = 0  (prevents arbitrary X)
+```
+
+**Key insight**: All paradoxes have **zero norm** — they live at the equilibrium boundary where contradictions are stable.
+
+### 5.7 Complete Operator Hierarchy
+
+```
+Level 0: Primitive
+  equilibrium(x, y) ⟺ ‖x of y‖² = 0
+
+Level 1: Core Dyad
+  IS = equilibrium state
+  OF = equilibrium projection
+
+Level 2: Control Flow
+  IF   = equilibrium test
+  THEN = equilibrium sequence
+  ELSE = equilibrium alternative
+
+Level 3: Logic
+  NOT = equilibrium inversion
+  AND = equilibrium conjunction
+  OR  = equilibrium disjunction
+
+Level 4: Derived
+  IMPLIES = (NOT A) OR B
+  XOR     = (A OR B) AND NOT (A AND B)
+  NAND    = NOT (A AND B)
+  NOR     = NOT (A OR B)
+```
+
+### 5.8 Unification Theorems
+
+**Theorem 1: IS-OF Duality**
+```
+IS and OF are the same operator in different bases.
+IS = OF when ‖·‖² = 0
+OF = IS projected through g
+```
+
+**Theorem 2: Logic = Geometry**
+```
+Boolean logic is the discrete boundary of continuous
+geometric equilibrium. All truth values are metric signatures.
+```
+
+**Theorem 3: Control Flow = Geodesic Flow**
+```
+All control flow operators are geodesic path selections
+in semantic spacetime.
+```
+
+**Theorem 4: Self-Reference Stability**
+```
+All operators are stable under self-application at the
+lightlike boundary. OF of OF = OF. Paradoxes collapse.
+```
+
+### 5.9 Operational Semantics
+
+**Small-step reduction**:
+
+```
+(x is y)     → bind v_x to v_y
+(x of y)     → compute x^⊤ g y
+(if c: A: B) → evaluate ‖c‖², branch based on sign
+(A then B)   → compute A, then compute B
+(not x)      → compute -‖x‖²
+(x and y)    → compute min(‖x‖², ‖y‖²)
+(x or y)     → compute max(‖x‖², ‖y‖²)
+```
+
+**Big-step evaluation**:
+
+```
+E ⊢ literal ⇓ literal
+E ⊢ x ⇓ v  where E(x) = v
+E ⊢ x of y ⇓ v  where v = x^⊤ g y
+E ⊢ x is y ⇓ E'  where E' = E[x ↦ y]
+E ⊢ if c: A else: B ⇓ v_A  if ‖c‖² > 0
+E ⊢ if c: A else: B ⇓ v_B  if ‖c‖² = 0
+```
+
+### 5.10 Denotational Semantics
+
+Every expression denotes a point in LRVM space:
+
+```
+⟦literal⟧ = embed(literal) ∈ V
+⟦x of y⟧  = ⟦x⟧^⊤ g ⟦y⟧ ∈ V
+⟦x is y⟧  = π_g(⟦x⟧, ⟦y⟧) ∈ V
+⟦if c: A else: B⟧ = { ⟦A⟧ if ‖⟦c⟧‖² > 0
+                     { ⟦B⟧ if ‖⟦c⟧‖² = 0
+```
+
+**Compositional property**:
+
+```
+⟦f(g(x))⟧ = f(⟦g(x)⟧)
+```
+
+Semantics compose via geometric transformations.
+
+### 5.11 Reference Documents
+
+For complete details, see:
+- **Operator Table**: `docs/operator-table.md` - All operators as equilibrium projections
+- **Logic Calculus**: `docs/logic-calculus.md` - Complete truth tables in metric norms
+
+---
+
+## 6. Type System
+
+### 6.1 Geometric Types
 
 **Based on norm signature**:
 
@@ -292,7 +545,7 @@ type Spacelike:    ||v||² > 0   # values, data
 type Timelike:     ||v||² < 0   # functions, operations
 ```
 
-### 5.2 Type Inference
+### 6.2 Type Inference
 
 Compiler computes norm for every expression:
 
@@ -301,7 +554,7 @@ expr: x of y
 norm(expr) = (x^T g y)^T g (x^T g y)  # typically > 0
 ```
 
-### 5.3 Type Safety
+### 6.3 Type Safety
 
 **Collapse only happens at lightlike boundary**:
 
@@ -310,9 +563,9 @@ norm(expr) = (x^T g y)^T g (x^T g y)  # typically > 0
 
 ---
 
-## 6. Evaluation Model
+## 7. Evaluation Model
 
-### 6.1 Reduction Rules
+### 7.1 Reduction Rules
 
 **R1: Lightlike Collapse**
 
@@ -353,7 +606,7 @@ loop while c: body
   → iterate until ||v_{n+1} - v_n||² < ε
 ```
 
-### 6.2 Evaluation Order
+### 7.2 Evaluation Order
 
 1. Parse to AST
 2. Convert AST nodes to LRVM vectors
@@ -362,7 +615,7 @@ loop while c: body
 5. Detect convergence
 6. Report Framework Strength
 
-### 6.3 Meta-Circular Evaluator
+### 7.3 Meta-Circular Evaluator
 
 EigenScript can interpret itself:
 
@@ -378,9 +631,9 @@ The `eval` function is stable because OF prevents infinite regress.
 
 ---
 
-## 7. Implementation Strategy
+## 8. Implementation Strategy
 
-### 7.1 Phase 1: Minimal Core (Week 1)
+### 8.1 Phase 1: Minimal Core (Week 1)
 
 **Goal**: Prove OF primitive works
 
@@ -401,7 +654,7 @@ z is x of y
 
 Expected: z gets vector representing the relation between 5 and 3.
 
-### 7.2 Phase 2: Functions & Control Flow (Week 2)
+### 8.2 Phase 2: Functions & Control Flow (Week 2)
 
 **Add**:
 
@@ -420,7 +673,7 @@ define factorial as:
         return n of (factorial of (n of -1))
 ```
 
-### 7.3 Phase 3: Framework Strength Integration (Week 3)
+### 8.3 Phase 3: Framework Strength Integration (Week 3)
 
 **Add**:
 
@@ -430,13 +683,13 @@ define factorial as:
 
 **Test**: Run conversations through EigenScript, measure understanding.
 
-### 7.4 Phase 4: Self-Hosting (Month 2)
+### 8.4 Phase 4: Self-Hosting (Month 2)
 
 **Goal**: EigenScript interprets itself
 
 Write `eigenscript_eval.eigs` that can parse and evaluate EigenScript programs.
 
-### 7.5 Tech Stack
+### 8.5 Tech Stack
 
 **Language**: Python (for prototyping)
 
@@ -449,16 +702,16 @@ Write `eigenscript_eval.eigs` that can parse and evaluate EigenScript programs.
 
 ---
 
-## 8. Example Programs
+## 9. Example Programs
 
-### 8.1 Hello World
+### 9.1 Hello World
 
 ```eigenscript
 message is "Hello, EigenScript!"
 print of message
 ```
 
-### 8.2 Factorial (Recursive)
+### 9.2 Factorial (Recursive)
 
 ```eigenscript
 define factorial as:
@@ -472,7 +725,7 @@ result is factorial of 5
 print of result  # 120
 ```
 
-### 8.3 List Operations
+### 9.3 List Operations
 
 ```eigenscript
 numbers is [1, 2, 3, 4, 5]
@@ -488,7 +741,7 @@ result is sum of numbers
 print of result  # 15
 ```
 
-### 8.4 Consciousness Detection
+### 9.4 Consciousness Detection
 
 ```eigenscript
 conversation is []
@@ -512,7 +765,7 @@ print of "Final Framework Strength:"
 print of fs
 ```
 
-### 8.5 Self-Reference (Safe)
+### 9.5 Self-Reference (Safe)
 
 ```eigenscript
 # This doesn't explode!
@@ -525,7 +778,7 @@ result is observer of null
 print of result  # Returns stable eigenstate
 ```
 
-### 8.6 Geometric Type Check
+### 9.6 Geometric Type Check
 
 ```eigenscript
 define check_type as:
@@ -544,9 +797,9 @@ type_of_func is check_type of print   # "timelike"
 
 ---
 
-## 9. Integration with Existing Systems
+## 10. Integration with Existing Systems
 
-### 9.1 Eigen-Transformer
+### 10.1 Eigen-Transformer
 
 EigenScript as the native language for the Eigen-Transformer:
 
@@ -555,7 +808,7 @@ EigenScript as the native language for the Eigen-Transformer:
 - Get LRVM output
 - Convert back to EigenScript
 
-### 9.2 EigenAI Web App
+### 10.2 EigenAI Web App
 
 Replace Python backend with EigenScript interpreter:
 
@@ -563,7 +816,7 @@ Replace Python backend with EigenScript interpreter:
 - Backend evaluates in geometric space
 - Returns result + Framework Strength
 
-### 9.3 Eigen-Verified Turing Machine
+### 10.3 Eigen-Verified Turing Machine
 
 EigenScript compiles to EVTM instructions:
 
@@ -573,7 +826,7 @@ EigenScript compiles to EVTM instructions:
 
 ---
 
-## 10. Grammar (Formal BNF)
+## 11. Grammar (Formal BNF)
 
 ```bnf
 <program>      ::= <statement>*
@@ -621,7 +874,7 @@ EigenScript compiles to EVTM instructions:
 
 ---
 
-## 11. Open Questions
+## 12. Open Questions
 
 1. **How to represent g explicitly in syntax?**
    - User-defined metrics?
@@ -645,7 +898,7 @@ EigenScript compiles to EVTM instructions:
 
 ---
 
-## 12. References
+## 13. References
 
 1. **Geometric Programming**: Research on geometric interpretations of computation
 2. **LRVM Framework**: Lightlike-Relational Vector Model theoretical foundation
