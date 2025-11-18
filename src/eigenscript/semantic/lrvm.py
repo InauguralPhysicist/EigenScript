@@ -29,12 +29,13 @@ class LRVMVector:
         array([ 1.,  0., -1.])
     """
 
-    def __init__(self, coordinates: Union[np.ndarray, List[float]]):
+    def __init__(self, coordinates: Union[np.ndarray, List[float]], metadata: dict = None):
         """
         Initialize an LRVM vector.
 
         Args:
             coordinates: Vector coordinates (array-like)
+            metadata: Optional metadata dictionary (e.g., {"string_value": "hello"})
         """
         if isinstance(coordinates, list):
             self.coords = np.array(coordinates, dtype=np.float64)
@@ -42,6 +43,7 @@ class LRVMVector:
             self.coords = np.array(coordinates, dtype=np.float64)
 
         self.dimension = len(self.coords)
+        self.metadata = metadata or {}
 
     def norm(self, metric: np.ndarray) -> float:
         """
@@ -109,7 +111,9 @@ class LRVMVector:
                 f"Dimension mismatch: {self.dimension} vs {other.dimension}"
             )
 
-        return LRVMVector(self.coords + other.coords)
+        # Preserve metadata from self (left operand takes precedence)
+        # Note: String concatenation is handled specially in interpreter
+        return LRVMVector(self.coords + other.coords, metadata=self.metadata.copy())
 
     def subtract(self, other: "LRVMVector") -> "LRVMVector":
         """
@@ -129,7 +133,8 @@ class LRVMVector:
                 f"Dimension mismatch: {self.dimension} vs {other.dimension}"
             )
 
-        return LRVMVector(self.coords - other.coords)
+        # Preserve metadata from self (left operand)
+        return LRVMVector(self.coords - other.coords, metadata=self.metadata.copy())
 
     def scale(self, scalar: float) -> "LRVMVector":
         """
@@ -141,7 +146,8 @@ class LRVMVector:
         Returns:
             New scaled vector
         """
-        return LRVMVector(scalar * self.coords)
+        # Preserve metadata from self
+        return LRVMVector(scalar * self.coords, metadata=self.metadata.copy())
 
     def dot(self, other: "LRVMVector") -> float:
         """
@@ -297,8 +303,9 @@ class LRVMSpace:
         """
         coords = np.zeros(self.dimension)
 
+        # For empty strings, still add metadata to preserve string type
         if not text:
-            return LRVMVector(coords)
+            return LRVMVector(coords, metadata={"string_value": ""})
 
         # Use multiple encoding strategies for robust representation
 
@@ -335,7 +342,8 @@ class LRVMSpace:
                 bigram_hash = hash(bigram) % bigram_dims
                 coords[277 + bigram_hash] += 1.0 / (len(text) - 1)
 
-        return LRVMVector(coords)
+        # Store original string in metadata for string operations (concatenation, indexing, slicing)
+        return LRVMVector(coords, metadata={"string_value": text})
 
     def embed(self, value) -> LRVMVector:
         """
