@@ -12,6 +12,7 @@ from eigenscript.parser.ast_builder import *
 from eigenscript.semantic.lrvm import LRVMVector, LRVMSpace
 from eigenscript.semantic.metric import MetricTensor
 from eigenscript.runtime.framework_strength import FrameworkStrengthTracker
+from eigenscript.runtime.builtins import BuiltinFunction, create_builtins
 
 
 @dataclass
@@ -63,10 +64,10 @@ class Environment:
         Args:
             parent: Parent environment for nested scopes
         """
-        self.bindings: Dict[str, Union[LRVMVector, Function]] = {}
+        self.bindings: Dict[str, Union[LRVMVector, Function, "BuiltinFunction"]] = {}
         self.parent = parent
 
-    def bind(self, name: str, value: Union[LRVMVector, Function]) -> None:
+    def bind(self, name: str, value: Union[LRVMVector, Function, "BuiltinFunction"]) -> None:
         """
         Create an immutable binding.
 
@@ -75,13 +76,13 @@ class Environment:
 
         Args:
             name: Variable name
-            value: LRVM vector or Function object
+            value: LRVM vector, Function, or BuiltinFunction object
         """
         self.bindings[name] = value
 
-    def lookup(self, name: str) -> Union[LRVMVector, Function]:
+    def lookup(self, name: str) -> Union[LRVMVector, Function, "BuiltinFunction"]:
         """
-        Resolve a variable to its LRVM vector.
+        Resolve a variable to its value.
 
         Searches current environment, then parent environments.
 
@@ -89,7 +90,7 @@ class Environment:
             name: Variable name
 
         Returns:
-            LRVM vector bound to the name
+            LRVM vector, Function, or BuiltinFunction bound to the name
 
         Raises:
             NameError: If variable is not defined
@@ -158,6 +159,9 @@ class Interpreter:
         # Special lightlike OF vector
         self._of_vector = self._create_of_vector()
 
+        # Initialize built-in functions
+        self._init_builtins()
+
     def _create_of_vector(self) -> LRVMVector:
         """
         Create the special lightlike OF vector.
@@ -181,6 +185,18 @@ class Interpreter:
             coords = np.zeros(self.space.dimension)
 
         return LRVMVector(coords)
+
+    def _init_builtins(self) -> None:
+        """
+        Initialize built-in functions in the global environment.
+
+        This binds all built-in functions (print, type, norm, etc.)
+        to the top-level environment.
+        """
+        builtins = create_builtins(self.space)
+
+        for name, builtin in builtins.items():
+            self.environment.bind(name, builtin)
 
     def evaluate(self, node: ASTNode) -> LRVMVector:
         """
@@ -261,6 +277,10 @@ class Interpreter:
                 if isinstance(left_value, Function):
                     # This is a function call!
                     return self._call_function(left_value, node.right)
+                elif isinstance(left_value, BuiltinFunction):
+                    # This is a built-in function call!
+                    arg_value = self.evaluate(node.right)
+                    return left_value.call(arg_value)
             except NameError:
                 pass  # Not found, will evaluate normally below
 
@@ -272,6 +292,9 @@ class Interpreter:
         if isinstance(left, Function):
             # right should already be evaluated
             return self._call_function_with_value(left, right)
+        elif isinstance(left, BuiltinFunction):
+            # Built-in function from expression
+            return left.call(right)
 
         # Special case: OF of OF = OF
         if self._is_of_vector(left) and self._is_of_vector(right):
@@ -466,7 +489,7 @@ class Interpreter:
         else:
             raise RuntimeError(f"Unknown literal type: {node.literal_type}")
 
-    def _eval_identifier(self, node: Identifier) -> Union[LRVMVector, Function]:
+    def _eval_identifier(self, node: Identifier) -> Union[LRVMVector, Function, BuiltinFunction]:
         """
         Evaluate an identifier (variable lookup or semantic predicate).
 
