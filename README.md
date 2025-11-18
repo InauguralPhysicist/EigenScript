@@ -74,14 +74,29 @@ python -m eigenscript examples/hello_world.eigs
 
 ## Project Status
 
-**Current Phase**: Phase 1 - Minimal Core (Week 1)
+**Current Phase**: Phase 3 Complete (85%), Phase 4 In Progress (40%)
 
-- [ ] Lexer (tokenize OF, IS, literals)
-- [ ] Parser (build AST for simple expressions)
-- [ ] LRVM converter (map AST → vectors)
-- [ ] Metric evaluator (compute x^T g y)
+**Last Updated**: 2025-01-18
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development roadmap and how to contribute.
+### ✅ Completed
+- ✅ Lexer (221 lines, 96% test coverage)
+- ✅ Parser (256 lines, 87% test coverage)
+- ✅ LRVM backend (128 lines, 84% test coverage)
+- ✅ Metric Tensor (48 lines, 96% test coverage)
+- ✅ Interpreter (159 lines, 88% test coverage)
+- ✅ Control flow (IF/ELSE, LOOP)
+- ✅ Arithmetic operators (+, -, *, /, =, <, >)
+- ✅ **Turing completeness achieved**
+- ✅ **127 passing tests, 83% overall coverage**
+
+### ⚠️ In Progress
+- ⚠️ Function execution (parsing works, execution not implemented)
+- ⚠️ Framework Strength introspection
+
+### 🎯 Next Milestone
+**Self-hosting test**: Implement function execution to enable meta-circular evaluator and test stable self-simulation hypothesis.
+
+See [docs/roadmap.md](docs/roadmap.md) for detailed status and [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute.
 
 ## Why EigenScript?
 
