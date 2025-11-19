@@ -6,6 +6,10 @@ Provides standard library functions like print, input, len, etc.
 
 import sys
 import math
+import os
+import json
+import time
+from datetime import datetime
 import numpy as np
 from typing import Callable, Any, Union
 from dataclasses import dataclass
@@ -987,6 +991,704 @@ def builtin_round(arg: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVM
         raise TypeError("round requires a number argument")
 
 
+# ============================================================================
+# File I/O Operations
+# ============================================================================
+
+def builtin_file_open(args, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Open a file and return a file handle.
+    
+    Args:
+        args: Two-element list [filename, mode]
+              mode can be "r" (read), "w" (write), "a" (append)
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        File handle as LRVM vector with file object in metadata
+        
+    Example:
+        handle is file_open of ["data.txt", "r"]
+        content is file_read of handle
+        file_close of handle
+    """
+    from eigenscript.evaluator.interpreter import EigenList
+    
+    if not isinstance(args, EigenList):
+        raise TypeError("file_open requires a list of [filename, mode]")
+    
+    if len(args.elements) != 2:
+        raise TypeError("file_open requires exactly 2 arguments: filename and mode")
+    
+    filename = decode_vector(args.elements[0], space, metric)
+    mode = decode_vector(args.elements[1], space, metric)
+    
+    if not isinstance(filename, str):
+        raise TypeError("Filename must be a string")
+    
+    if not isinstance(mode, str):
+        raise TypeError("Mode must be a string")
+    
+    if mode not in ['r', 'w', 'a', 'rb', 'wb', 'ab']:
+        raise ValueError(f"Invalid mode '{mode}'. Must be 'r', 'w', or 'a' (with optional 'b' for binary)")
+    
+    try:
+        file_obj = open(filename, mode)
+        # Store file object in vector metadata
+        handle = space.zero_vector()
+        handle.metadata["file_object"] = file_obj
+        handle.metadata["filename"] = filename
+        handle.metadata["mode"] = mode
+        return handle
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File not found: {filename}")
+    except PermissionError:
+        raise PermissionError(f"Permission denied: {filename}")
+    except Exception as e:
+        raise RuntimeError(f"Error opening file {filename}: {str(e)}")
+
+
+def builtin_file_read(handle: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Read the entire contents of a file.
+    
+    Args:
+        handle: File handle from file_open
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        File contents as LRVM vector (string)
+        
+    Example:
+        handle is file_open of ["data.txt", "r"]
+        content is file_read of handle
+        file_close of handle
+    """
+    if "file_object" not in handle.metadata:
+        raise TypeError("file_read requires a valid file handle")
+    
+    file_obj = handle.metadata["file_object"]
+    
+    try:
+        content = file_obj.read()
+        if isinstance(content, bytes):
+            content = content.decode('utf-8')
+        return space.embed_string(content)
+    except Exception as e:
+        raise RuntimeError(f"Error reading file: {str(e)}")
+
+
+def builtin_file_write(args, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Write content to a file.
+    
+    Args:
+        args: Two-element list [handle, content]
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Null vector
+        
+    Example:
+        handle is file_open of ["output.txt", "w"]
+        file_write of [handle, "Hello, world!"]
+        file_close of handle
+    """
+    from eigenscript.evaluator.interpreter import EigenList
+    
+    if not isinstance(args, EigenList):
+        raise TypeError("file_write requires a list of [handle, content]")
+    
+    if len(args.elements) != 2:
+        raise TypeError("file_write requires exactly 2 arguments: handle and content")
+    
+    handle = args.elements[0]
+    content = decode_vector(args.elements[1], space, metric)
+    
+    if "file_object" not in handle.metadata:
+        raise TypeError("file_write requires a valid file handle")
+    
+    file_obj = handle.metadata["file_object"]
+    
+    try:
+        content_str = str(content)
+        file_obj.write(content_str)
+        file_obj.flush()  # Ensure data is written
+        return space.zero_vector()
+    except Exception as e:
+        raise RuntimeError(f"Error writing to file: {str(e)}")
+
+
+def builtin_file_close(handle: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Close a file handle.
+    
+    Args:
+        handle: File handle from file_open
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Null vector
+        
+    Example:
+        handle is file_open of ["data.txt", "r"]
+        file_close of handle
+    """
+    if "file_object" not in handle.metadata:
+        raise TypeError("file_close requires a valid file handle")
+    
+    file_obj = handle.metadata["file_object"]
+    
+    try:
+        file_obj.close()
+        # Clear the file object from metadata
+        del handle.metadata["file_object"]
+        return space.zero_vector()
+    except Exception as e:
+        raise RuntimeError(f"Error closing file: {str(e)}")
+
+
+def builtin_file_exists(path: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Check if a file or directory exists.
+    
+    Args:
+        path: File path as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        1 if exists, 0 if not (as LRVM vector)
+        
+    Example:
+        exists is file_exists of "data.txt"
+        if exists:
+            # file exists
+    """
+    path_str = decode_vector(path, space, metric)
+    
+    if not isinstance(path_str, str):
+        raise TypeError("file_exists requires a string path")
+    
+    exists = os.path.exists(path_str)
+    return space.embed(1.0 if exists else 0.0)
+
+
+def builtin_list_dir(path: LRVMVector, space: LRVMSpace, metric: Any = None):
+    """
+    List files and directories in a directory.
+    
+    Args:
+        path: Directory path as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        EigenList of filenames
+        
+    Example:
+        files is list_dir of "."
+        print of files
+    """
+    from eigenscript.evaluator.interpreter import EigenList
+    
+    path_str = decode_vector(path, space, metric)
+    
+    if not isinstance(path_str, str):
+        raise TypeError("list_dir requires a string path")
+    
+    try:
+        entries = os.listdir(path_str)
+        # Convert each filename to an LRVM vector
+        entry_vectors = [space.embed_string(entry) for entry in entries]
+        return EigenList(entry_vectors)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Directory not found: {path_str}")
+    except PermissionError:
+        raise PermissionError(f"Permission denied: {path_str}")
+    except Exception as e:
+        raise RuntimeError(f"Error listing directory {path_str}: {str(e)}")
+
+
+def builtin_file_size(path: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Get the size of a file in bytes.
+    
+    Args:
+        path: File path as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        File size in bytes as LRVM vector
+        
+    Example:
+        size is file_size of "data.txt"
+        print of size
+    """
+    path_str = decode_vector(path, space, metric)
+    
+    if not isinstance(path_str, str):
+        raise TypeError("file_size requires a string path")
+    
+    try:
+        size = os.path.getsize(path_str)
+        return space.embed(float(size))
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File not found: {path_str}")
+    except Exception as e:
+        raise RuntimeError(f"Error getting file size for {path_str}: {str(e)}")
+
+
+def builtin_dirname(path: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Get the directory name from a path.
+    
+    Args:
+        path: File path as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Directory name as LRVM vector
+        
+    Example:
+        dir is dirname of "/path/to/file.txt"  # "/path/to"
+    """
+    path_str = decode_vector(path, space, metric)
+    
+    if not isinstance(path_str, str):
+        raise TypeError("dirname requires a string path")
+    
+    dir_name = os.path.dirname(path_str)
+    return space.embed_string(dir_name if dir_name else ".")
+
+
+def builtin_basename(path: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Get the base name from a path.
+    
+    Args:
+        path: File path as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Base name as LRVM vector
+        
+    Example:
+        name is basename of "/path/to/file.txt"  # "file.txt"
+    """
+    path_str = decode_vector(path, space, metric)
+    
+    if not isinstance(path_str, str):
+        raise TypeError("basename requires a string path")
+    
+    base_name = os.path.basename(path_str)
+    return space.embed_string(base_name)
+
+
+def builtin_absolute_path(path: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Get the absolute path from a relative path.
+    
+    Args:
+        path: File path as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Absolute path as LRVM vector
+        
+    Example:
+        abs_path is absolute_path of "data.txt"
+    """
+    path_str = decode_vector(path, space, metric)
+    
+    if not isinstance(path_str, str):
+        raise TypeError("absolute_path requires a string path")
+    
+    abs_path = os.path.abspath(path_str)
+    return space.embed_string(abs_path)
+
+
+# ============================================================================
+# JSON Support
+# ============================================================================
+
+def builtin_json_parse(json_str: LRVMVector, space: LRVMSpace, metric: Any = None):
+    """
+    Parse a JSON string into EigenScript data structures.
+    
+    Args:
+        json_str: JSON string as LRVM vector
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Parsed data as LRVM vector or EigenList
+        
+    Example:
+        data is json_parse of '{"name": "Alice", "age": 30}'
+    """
+    from eigenscript.evaluator.interpreter import EigenList
+    
+    json_string = decode_vector(json_str, space, metric)
+    
+    if not isinstance(json_string, str):
+        raise TypeError("json_parse requires a string argument")
+    
+    try:
+        parsed = json.loads(json_string)
+        return _python_to_eigenscript(parsed, space)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON: {str(e)}")
+    except Exception as e:
+        raise RuntimeError(f"Error parsing JSON: {str(e)}")
+
+
+def builtin_json_stringify(args, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Convert EigenScript data to a JSON string.
+    
+    Args:
+        args: Either a single value or [value, indent] where indent is number of spaces
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        JSON string as LRVM vector
+        
+    Example:
+        json_str is json_stringify of data
+        pretty_json is json_stringify of [data, 2]
+    """
+    from eigenscript.evaluator.interpreter import EigenList
+    
+    # Handle both single value and [value, indent] formats
+    if isinstance(args, EigenList) and len(args.elements) == 2:
+        value = args.elements[0]
+        indent_vec = args.elements[1]
+        indent = int(decode_vector(indent_vec, space, metric))
+    else:
+        value = args
+        indent = None
+    
+    try:
+        python_obj = _eigenscript_to_python(value, space, metric)
+        json_str = json.dumps(python_obj, indent=indent)
+        return space.embed_string(json_str)
+    except Exception as e:
+        raise RuntimeError(f"Error stringifying JSON: {str(e)}")
+
+
+def _python_to_eigenscript(obj: Any, space: LRVMSpace):
+    """Convert Python objects to EigenScript values."""
+    from eigenscript.evaluator.interpreter import EigenList
+    
+    if obj is None:
+        return space.zero_vector()
+    elif isinstance(obj, bool):
+        return space.embed(1.0 if obj else 0.0)
+    elif isinstance(obj, (int, float)):
+        return space.embed(float(obj))
+    elif isinstance(obj, str):
+        return space.embed_string(obj)
+    elif isinstance(obj, list):
+        elements = [_python_to_eigenscript(item, space) for item in obj]
+        return EigenList(elements)
+    elif isinstance(obj, dict):
+        # For now, store dict as a list of [key, value] pairs
+        # Future: implement proper dict type
+        pairs = []
+        for key, value in obj.items():
+            key_vec = space.embed_string(str(key))
+            value_vec = _python_to_eigenscript(value, space)
+            pairs.append(EigenList([key_vec, value_vec]))
+        return EigenList(pairs)
+    else:
+        raise TypeError(f"Cannot convert Python type {type(obj)} to EigenScript")
+
+
+def _eigenscript_to_python(value: Any, space: LRVMSpace, metric: Any = None) -> Any:
+    """Convert EigenScript values to Python objects."""
+    from eigenscript.evaluator.interpreter import EigenList
+    
+    if isinstance(value, EigenList):
+        # Check if it's a dict representation (list of [key, value] pairs)
+        if len(value.elements) > 0:
+            # Try to detect dict format: all elements are 2-element lists
+            is_dict = all(
+                isinstance(elem, EigenList) and len(elem.elements) == 2
+                for elem in value.elements
+            )
+            
+            if is_dict:
+                # Convert to Python dict
+                result = {}
+                for pair in value.elements:
+                    key = decode_vector(pair.elements[0], space, metric)
+                    val = _eigenscript_to_python(pair.elements[1], space, metric)
+                    result[key] = val
+                return result
+        
+        # Otherwise, convert as a list
+        return [_eigenscript_to_python(elem, space, metric) for elem in value.elements]
+    else:
+        decoded = decode_vector(value, space, metric)
+        if decoded == "null":
+            return None
+        return decoded
+
+
+# ============================================================================
+# Date/Time Operations
+# ============================================================================
+
+def builtin_time_now(arg: LRVMVector, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Get the current Unix timestamp.
+    
+    Args:
+        arg: Ignored (pass null)
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Current Unix timestamp as LRVM vector
+        
+    Example:
+        now is time_now of null
+    """
+    timestamp = time.time()
+    return space.embed(timestamp)
+
+
+def builtin_time_format(args, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Format a timestamp as a string.
+    
+    Args:
+        args: Two-element list [timestamp, format_string]
+              Format uses strftime syntax (e.g., "%Y-%m-%d %H:%M:%S")
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Formatted time string as LRVM vector
+        
+    Example:
+        formatted is time_format of [now, "%Y-%m-%d"]
+    """
+    from eigenscript.evaluator.interpreter import EigenList
+    
+    if not isinstance(args, EigenList):
+        raise TypeError("time_format requires a list of [timestamp, format]")
+    
+    if len(args.elements) != 2:
+        raise TypeError("time_format requires exactly 2 arguments: timestamp and format")
+    
+    timestamp = decode_vector(args.elements[0], space, metric)
+    format_str = decode_vector(args.elements[1], space, metric)
+    
+    if not isinstance(timestamp, (int, float)):
+        raise TypeError("Timestamp must be a number")
+    
+    if not isinstance(format_str, str):
+        raise TypeError("Format must be a string")
+    
+    try:
+        dt = datetime.fromtimestamp(timestamp)
+        formatted = dt.strftime(format_str)
+        return space.embed_string(formatted)
+    except Exception as e:
+        raise RuntimeError(f"Error formatting time: {str(e)}")
+
+
+def builtin_time_parse(args, space: LRVMSpace, metric: Any = None) -> LRVMVector:
+    """
+    Parse a time string into a Unix timestamp.
+    
+    Args:
+        args: Two-element list [time_string, format_string]
+              Format uses strftime syntax (e.g., "%Y-%m-%d %H:%M:%S")
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Unix timestamp as LRVM vector
+        
+    Example:
+        timestamp is time_parse of ["2025-11-19", "%Y-%m-%d"]
+    """
+    from eigenscript.evaluator.interpreter import EigenList
+    
+    if not isinstance(args, EigenList):
+        raise TypeError("time_parse requires a list of [time_string, format]")
+    
+    if len(args.elements) != 2:
+        raise TypeError("time_parse requires exactly 2 arguments: time string and format")
+    
+    time_str = decode_vector(args.elements[0], space, metric)
+    format_str = decode_vector(args.elements[1], space, metric)
+    
+    if not isinstance(time_str, str):
+        raise TypeError("Time string must be a string")
+    
+    if not isinstance(format_str, str):
+        raise TypeError("Format must be a string")
+    
+    try:
+        dt = datetime.strptime(time_str, format_str)
+        timestamp = dt.timestamp()
+        return space.embed(timestamp)
+    except Exception as e:
+        raise RuntimeError(f"Error parsing time: {str(e)}")
+
+
+# ============================================================================
+# Enhanced List Operations
+# ============================================================================
+
+def builtin_zip(args, space: LRVMSpace, metric: Any = None):
+    """
+    Combine multiple lists element-wise into a list of lists.
+    
+    Args:
+        args: List of lists to zip together
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        EigenList of paired elements
+        
+    Example:
+        list1 is [1, 2, 3]
+        list2 is ["a", "b", "c"]
+        zipped is zip of [list1, list2]
+        # Result: [[1, "a"], [2, "b"], [3, "c"]]
+    """
+    from eigenscript.evaluator.interpreter import EigenList
+    
+    if not isinstance(args, EigenList):
+        raise TypeError("zip requires a list of lists")
+    
+    # Each element should be a list
+    lists = []
+    for elem in args.elements:
+        if not isinstance(elem, EigenList):
+            raise TypeError("zip requires a list of lists")
+        lists.append(elem.elements)
+    
+    if len(lists) == 0:
+        return EigenList([])
+    
+    # Zip the lists together (stop at shortest list)
+    min_length = min(len(lst) for lst in lists)
+    result = []
+    
+    for i in range(min_length):
+        # Create a list of the i-th element from each list
+        tuple_elements = [lst[i] for lst in lists]
+        result.append(EigenList(tuple_elements))
+    
+    return EigenList(result)
+
+
+def builtin_enumerate(target_list, space: LRVMSpace, metric: Any = None):
+    """
+    Add indices to list elements.
+    
+    Args:
+        target_list: List to enumerate
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        EigenList of [index, element] pairs
+        
+    Example:
+        items is ["apple", "banana", "cherry"]
+        indexed is enumerate of items
+        # Result: [[0, "apple"], [1, "banana"], [2, "cherry"]]
+    """
+    from eigenscript.evaluator.interpreter import EigenList
+    
+    if not isinstance(target_list, EigenList):
+        raise TypeError("enumerate requires a list")
+    
+    result = []
+    for i, elem in enumerate(target_list.elements):
+        index_vec = space.embed(float(i))
+        result.append(EigenList([index_vec, elem]))
+    
+    return EigenList(result)
+
+
+def builtin_flatten(target_list, space: LRVMSpace, metric: Any = None):
+    """
+    Flatten a nested list by one level.
+    
+    Args:
+        target_list: Nested list to flatten
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Flattened EigenList
+        
+    Example:
+        nested is [[1, 2], [3, 4], [5]]
+        flat is flatten of nested
+        # Result: [1, 2, 3, 4, 5]
+    """
+    from eigenscript.evaluator.interpreter import EigenList
+    
+    if not isinstance(target_list, EigenList):
+        raise TypeError("flatten requires a list")
+    
+    result = []
+    for elem in target_list.elements:
+        if isinstance(elem, EigenList):
+            # Add all elements from the nested list
+            result.extend(elem.elements)
+        else:
+            # Add the element as-is
+            result.append(elem)
+    
+    return EigenList(result)
+
+
+def builtin_reverse(target_list, space: LRVMSpace, metric: Any = None):
+    """
+    Reverse the order of elements in a list.
+    
+    Args:
+        target_list: List to reverse
+        space: LRVM space for operations
+        metric: Metric tensor (optional)
+        
+    Returns:
+        Reversed EigenList
+        
+    Example:
+        items is [1, 2, 3, 4, 5]
+        reversed is reverse of items
+        # Result: [5, 4, 3, 2, 1]
+    """
+    from eigenscript.evaluator.interpreter import EigenList
+    
+    if not isinstance(target_list, EigenList):
+        raise TypeError("reverse requires a list")
+    
+    reversed_elements = list(reversed(target_list.elements))
+    return EigenList(reversed_elements)
+
+
 def get_builtins(space: LRVMSpace) -> dict:
     """
     Get all built-in functions for the EigenScript environment.
@@ -1142,6 +1844,105 @@ def get_builtins(space: LRVMSpace) -> dict:
             name="round",
             func=builtin_round,
             description="Round a number to the nearest integer"
+        ),
+        # File I/O operations
+        "file_open": BuiltinFunction(
+            name="file_open",
+            func=builtin_file_open,
+            description="Open a file and return a handle"
+        ),
+        "file_read": BuiltinFunction(
+            name="file_read",
+            func=builtin_file_read,
+            description="Read the contents of a file"
+        ),
+        "file_write": BuiltinFunction(
+            name="file_write",
+            func=builtin_file_write,
+            description="Write content to a file"
+        ),
+        "file_close": BuiltinFunction(
+            name="file_close",
+            func=builtin_file_close,
+            description="Close a file handle"
+        ),
+        "file_exists": BuiltinFunction(
+            name="file_exists",
+            func=builtin_file_exists,
+            description="Check if a file exists"
+        ),
+        "list_dir": BuiltinFunction(
+            name="list_dir",
+            func=builtin_list_dir,
+            description="List files in a directory"
+        ),
+        "file_size": BuiltinFunction(
+            name="file_size",
+            func=builtin_file_size,
+            description="Get the size of a file"
+        ),
+        "dirname": BuiltinFunction(
+            name="dirname",
+            func=builtin_dirname,
+            description="Get directory name from path"
+        ),
+        "basename": BuiltinFunction(
+            name="basename",
+            func=builtin_basename,
+            description="Get base name from path"
+        ),
+        "absolute_path": BuiltinFunction(
+            name="absolute_path",
+            func=builtin_absolute_path,
+            description="Get absolute path from relative path"
+        ),
+        # JSON operations
+        "json_parse": BuiltinFunction(
+            name="json_parse",
+            func=builtin_json_parse,
+            description="Parse JSON string to data"
+        ),
+        "json_stringify": BuiltinFunction(
+            name="json_stringify",
+            func=builtin_json_stringify,
+            description="Convert data to JSON string"
+        ),
+        # Date/Time operations
+        "time_now": BuiltinFunction(
+            name="time_now",
+            func=builtin_time_now,
+            description="Get current Unix timestamp"
+        ),
+        "time_format": BuiltinFunction(
+            name="time_format",
+            func=builtin_time_format,
+            description="Format timestamp as string"
+        ),
+        "time_parse": BuiltinFunction(
+            name="time_parse",
+            func=builtin_time_parse,
+            description="Parse time string to timestamp"
+        ),
+        # Enhanced list operations
+        "zip": BuiltinFunction(
+            name="zip",
+            func=builtin_zip,
+            description="Combine lists element-wise"
+        ),
+        "enumerate": BuiltinFunction(
+            name="enumerate",
+            func=builtin_enumerate,
+            description="Add indices to list elements"
+        ),
+        "flatten": BuiltinFunction(
+            name="flatten",
+            func=builtin_flatten,
+            description="Flatten nested lists"
+        ),
+        "reverse": BuiltinFunction(
+            name="reverse",
+            func=builtin_reverse,
+            description="Reverse list order"
         ),
     }
     
