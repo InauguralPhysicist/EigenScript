@@ -920,11 +920,12 @@ print of message
 
 ```eigenscript
 define factorial as:
-    if n is 0:
+    if n < 2:
         return 1
     else:
-        prev is n of -1
-        return n of (factorial of prev)
+        prev is n - 1
+        sub_result is factorial of prev
+        return n * sub_result
 
 result is factorial of 5
 print of result  # 120

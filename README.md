@@ -25,6 +25,33 @@ Traditional programming: You write instructions, the computer follows them blind
 
 EigenScript: The computer tracks *how* it's executing (not just *what*), and your code can see and react to that information.
 
+## Current Status: Alpha 0.1
+
+EigenScript is in **early alpha**. The core interpreter is solid (538 passing tests, 82% coverage), but this is experimental software.
+
+✅ **What works well:**
+- Basic programs (variables, functions, loops, conditionals)
+- Mathematical operations and built-in math library
+- File I/O, JSON parsing, datetime operations
+- Higher-order functions (map, filter, reduce)
+- Interrogatives (what, who, how, etc.) and predicates (converged, stable, improving, etc.)
+- Framework Strength tracking and geometric semantics
+- All 29 example programs execute successfully
+
+⚠️ **Known limitations:**
+- Performance not optimized (tree-walking interpreter)
+- Recursive functions work best with shallow depths (≤5 levels)
+- Limited standard library compared to mature languages
+- No IDE support yet (syntax highlighting available for basic editors)
+- Breaking changes may occur between alpha versions
+
+❌ **Not ready for:**
+- Production use
+- Critical systems
+- Performance-sensitive applications
+
+See [HONEST_ROADMAP.md](HONEST_ROADMAP.md) for development plans and [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for detailed issue tracking.
+
 ## Quick Start
 
 ```eigenscript
@@ -34,11 +61,12 @@ print of message
 
 # Factorial with geometric semantics
 define factorial as:
-    if n is 0:
+    if n < 2:
         return 1
     else:
-        prev is n of -1
-        return n of (factorial of prev)
+        prev is n - 1
+        sub_result is factorial of prev
+        return n * sub_result
 
 result is factorial of 5
 print of result  # 120
