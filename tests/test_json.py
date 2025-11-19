@@ -193,7 +193,6 @@ class TestJSONStringify:
         # Could be with or without .0 for floats
         assert json_str in ['[1, 2, 3]', '[1.0, 2.0, 3.0]']
     
-    @pytest.mark.skip(reason="Nested list type conversion edge case - to be fixed in future iteration")
     def test_stringify_nested_list(self, interpreter):
         """Test stringifying nested list."""
         code = '''
@@ -276,7 +275,6 @@ class TestJSONRoundTrip:
         values = [decode_vector(elem, interpreter.space) for elem in result.elements]
         assert values == [1, 2, 3]
     
-    @pytest.mark.skip(reason="Nested list type conversion edge case - to be fixed in future iteration")
     def test_roundtrip_nested_list(self, interpreter):
         """Test round-trip for nested list."""
         code = '''
