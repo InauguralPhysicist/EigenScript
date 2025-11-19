@@ -10,9 +10,10 @@ from pathlib import Path
 from eigenscript.lexer import Tokenizer
 from eigenscript.parser import Parser
 from eigenscript.evaluator import Interpreter
+from eigenscript.benchmark import Benchmark
 
 
-def run_file(file_path: str, verbose: bool = False, show_fs: bool = False) -> int:
+def run_file(file_path: str, verbose: bool = False, show_fs: bool = False, benchmark: bool = False) -> int:
     """
     Execute an EigenScript file.
 
@@ -20,10 +21,13 @@ def run_file(file_path: str, verbose: bool = False, show_fs: bool = False) -> in
         file_path: Path to .eigs file
         verbose: Print execution details
         show_fs: Show Framework Strength metrics after execution
+        benchmark: Measure and display performance metrics
 
     Returns:
         Exit code (0 for success, 1 for error)
     """
+    bench_ctx = None
+    
     try:
         # Read source code
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -32,6 +36,11 @@ def run_file(file_path: str, verbose: bool = False, show_fs: bool = False) -> in
         if verbose:
             print(f"Executing: {file_path}")
             print("=" * 60)
+
+        # Start benchmarking if requested
+        if benchmark:
+            bench_ctx = Benchmark(track_memory=True)
+            bench_ctx.__enter__()
 
         # Tokenize
         tokenizer = Tokenizer(source)
@@ -44,6 +53,15 @@ def run_file(file_path: str, verbose: bool = False, show_fs: bool = False) -> in
         # Interpret
         interpreter = Interpreter(dimension=768)
         result = interpreter.evaluate(ast)
+
+        # Stop benchmarking
+        if benchmark and bench_ctx:
+            bench_ctx.add_metadata("file", file_path)
+            bench_ctx.add_metadata("source_lines", source.count('\n') + 1)
+            bench_ctx.add_metadata("tokens", len(tokens))
+            bench_ctx.__exit__(None, None, None)
+            bench_result = bench_ctx.get_result()
+            print(f"\n{bench_result}")
 
         if verbose:
             print("=" * 60)
@@ -65,10 +83,14 @@ def run_file(file_path: str, verbose: bool = False, show_fs: bool = False) -> in
         return 0
 
     except FileNotFoundError:
+        if benchmark and bench_ctx:
+            bench_ctx.__exit__(FileNotFoundError, None, None)
         print(f"Error: File not found: {file_path}", file=sys.stderr)
         print(f"Please check the file path and try again.", file=sys.stderr)
         return 1
     except SyntaxError as e:
+        if benchmark and bench_ctx:
+            bench_ctx.__exit__(SyntaxError, e, None)
         print(f"Syntax Error: {e}", file=sys.stderr)
         print(f"Please check your EigenScript syntax.", file=sys.stderr)
         if verbose:
@@ -76,16 +98,22 @@ def run_file(file_path: str, verbose: bool = False, show_fs: bool = False) -> in
             traceback.print_exc()
         return 1
     except NameError as e:
+        if benchmark and bench_ctx:
+            bench_ctx.__exit__(NameError, e, None)
         print(f"Name Error: {e}", file=sys.stderr)
         print(f"This variable or function may not be defined.", file=sys.stderr)
         return 1
     except RuntimeError as e:
+        if benchmark and bench_ctx:
+            bench_ctx.__exit__(RuntimeError, e, None)
         print(f"Runtime Error: {e}", file=sys.stderr)
         if verbose:
             import traceback
             traceback.print_exc()
         return 1
     except Exception as e:
+        if benchmark and bench_ctx:
+            bench_ctx.__exit__(type(e), e, None)
         print(f"Error: {type(e).__name__}: {e}", file=sys.stderr)
         if verbose:
             import traceback
@@ -200,6 +228,11 @@ def main():
         action="store_true",
         help="Show Framework Strength metrics after execution",
     )
+    parser.add_argument(
+        "-b", "--benchmark",
+        action="store_true",
+        help="Measure and display performance metrics (time, memory)",
+    )
 
     args = parser.parse_args()
 
@@ -207,7 +240,7 @@ def main():
         return run_repl(verbose=args.verbose)
 
     if args.file:
-        return run_file(args.file, verbose=args.verbose, show_fs=args.show_fs)
+        return run_file(args.file, verbose=args.verbose, show_fs=args.show_fs, benchmark=args.benchmark)
     else:
         parser.print_help()
         return 0

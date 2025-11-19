@@ -255,9 +255,41 @@ cd eigenscript
 # Install dependencies
 pip install -r requirements.txt
 
-# Run the interpreter (coming soon)
+# Run the interpreter
 python -m eigenscript examples/hello_world.eigs
+
+# Run with benchmarking
+python -m eigenscript examples/hello_world.eigs --benchmark
 ```
+
+## Benchmarking
+
+EigenScript includes built-in performance benchmarking to measure execution time and memory usage:
+
+```bash
+# Run with benchmark flag
+python -m eigenscript your_program.eigs --benchmark
+
+# Short form
+python -m eigenscript your_program.eigs -b
+
+# Combine with other flags
+python -m eigenscript your_program.eigs --benchmark --verbose
+```
+
+**Benchmark Output Includes:**
+- Execution time (automatically formatted in µs, ms, or s)
+- Peak memory usage
+- Source file metrics (lines, tokens)
+
+**Example benchmarks are available in the `benchmarks/` directory:**
+- `factorial_bench.eigs` - Recursive factorial computation (62.99 ms)
+- `fibonacci_bench.eigs` - Recursive Fibonacci sequence (758.11 ms)
+- `list_operations_bench.eigs` - List manipulation performance (26.15 ms)
+- `math_bench.eigs` - Mathematical functions (31.20 ms)
+- `loop_bench.eigs` - Loop and iteration performance (153.83 ms)
+
+See [benchmarks/README.md](benchmarks/README.md) for usage details and [BENCHMARK_RESULTS.md](BENCHMARK_RESULTS.md) for comprehensive results and analysis.
 
 ## Documentation
 
@@ -265,6 +297,7 @@ python -m eigenscript examples/hello_world.eigs
 - [Getting Started](docs/getting-started.md) - Tutorial and examples
 - [Architecture](docs/architecture.md) - Implementation details
 - [Examples](docs/examples.md) - Sample programs
+- [Benchmarks](benchmarks/README.md) - Performance benchmarking
 
 ## Project Status
 
@@ -295,10 +328,11 @@ python -m eigenscript examples/hello_world.eigs
 - ✅ **List operations** (comprehensions, mutations, nested lists)
 - ✅ **String operations** (concatenation, comparison, manipulation)
 - ✅ **Enhanced error messages** with line and column tracking
-- ✅ **351 passing tests, 78% overall coverage**
-- ✅ **CLI testing complete** (80% coverage with 36 comprehensive tests)
+- ✅ **499 passing tests, 82% overall coverage**
+- ✅ **CLI testing complete** (80% coverage with 45 comprehensive tests)
 - ✅ **Code cleanup** (211 lines of unused code removed)
 - ✅ **All TODO comments resolved** (documentation improved)
+- ✅ **Benchmarking support** (performance measurement with time and memory tracking)
 
 ### ⚠️ In Progress
 - ⚠️ Error message enhancements (assessment in progress)

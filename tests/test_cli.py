@@ -573,3 +573,158 @@ first_num is numbers[0]
         
         # Should succeed
         assert exit_code == 0
+
+
+class TestBenchmarkFlag:
+    """Test suite for benchmark functionality."""
+
+    def test_benchmark_flag_basic(self, tmp_path, capsys):
+        """Should display benchmark results with --benchmark flag."""
+        # Create test file
+        test_file = tmp_path / "test.eigs"
+        test_file.write_text("x is 5\ny is x + 10\n")
+        
+        # Run with benchmark flag
+        exit_code = run_file(str(test_file), benchmark=True)
+        
+        # Check for benchmark output
+        captured = capsys.readouterr()
+        assert exit_code == 0
+        assert "Benchmark Results" in captured.out
+        assert "Execution Time:" in captured.out
+        assert "Peak Memory:" in captured.out
+
+    def test_benchmark_flag_short_form(self, tmp_path, capsys):
+        """Should work with -b short flag."""
+        # Create test file
+        test_file = tmp_path / "test.eigs"
+        test_file.write_text("x is 10\n")
+        
+        # Run with -b flag
+        with patch.object(sys, 'argv', ['eigenscript', str(test_file), '-b']):
+            exit_code = main()
+        
+        # Check for benchmark output
+        captured = capsys.readouterr()
+        assert exit_code == 0
+        assert "Benchmark Results" in captured.out
+
+    def test_benchmark_with_verbose(self, tmp_path, capsys):
+        """Should combine benchmark with verbose output."""
+        # Create test file
+        test_file = tmp_path / "test.eigs"
+        test_file.write_text("x is 5\n")
+        
+        # Run with both flags
+        exit_code = run_file(str(test_file), verbose=True, benchmark=True)
+        
+        # Should have both outputs
+        captured = capsys.readouterr()
+        assert exit_code == 0
+        assert "Benchmark Results" in captured.out
+        assert "Execution Time:" in captured.out
+
+    def test_benchmark_with_show_fs(self, tmp_path, capsys):
+        """Should combine benchmark with Framework Strength metrics."""
+        # Create test file
+        test_file = tmp_path / "test.eigs"
+        test_file.write_text("x is 5\n")
+        
+        # Run with both flags
+        exit_code = run_file(str(test_file), show_fs=True, benchmark=True)
+        
+        # Should have both outputs
+        captured = capsys.readouterr()
+        assert exit_code == 0
+        assert "Benchmark Results" in captured.out
+        assert "Framework Strength Metrics" in captured.out
+
+    def test_benchmark_with_computation(self, tmp_path, capsys):
+        """Should benchmark a program with actual computation."""
+        # Create test file with computation
+        test_file = tmp_path / "test.eigs"
+        test_file.write_text("""
+define factorial as:
+    if n < 2:
+        return 1
+    else:
+        prev is n - 1
+        sub_result is factorial of prev
+        return n * sub_result
+
+n is 10
+result is factorial of n
+print of result
+""")
+        
+        # Run with benchmark
+        exit_code = run_file(str(test_file), benchmark=True)
+        
+        # Check results
+        captured = capsys.readouterr()
+        assert exit_code == 0
+        assert "3628800" in captured.out  # factorial(10)
+        assert "Benchmark Results" in captured.out
+        assert "Execution Time:" in captured.out
+        assert "Peak Memory:" in captured.out
+
+    def test_benchmark_metadata(self, tmp_path, capsys):
+        """Should include metadata in benchmark results."""
+        # Create test file
+        test_file = tmp_path / "test.eigs"
+        test_file.write_text("x is 5\ny is 10\n")
+        
+        # Run with benchmark
+        exit_code = run_file(str(test_file), benchmark=True)
+        
+        # Check for metadata
+        captured = capsys.readouterr()
+        assert exit_code == 0
+        assert "Additional Metrics:" in captured.out
+        assert "source_lines:" in captured.out
+        assert "tokens:" in captured.out
+
+    def test_benchmark_with_error(self, tmp_path, capsys):
+        """Should handle errors gracefully with benchmark enabled."""
+        # Create file with error
+        test_file = tmp_path / "test.eigs"
+        test_file.write_text("x is undefined_var\n")
+        
+        # Run with benchmark (should fail)
+        exit_code = run_file(str(test_file), benchmark=True)
+        
+        # Should fail but not crash
+        assert exit_code == 1
+        captured = capsys.readouterr()
+        assert "Error" in captured.err or "Name Error" in captured.err
+
+    def test_main_benchmark_flag(self, tmp_path, capsys):
+        """Should work through main() function."""
+        # Create test file
+        test_file = tmp_path / "test.eigs"
+        test_file.write_text("x is 42\n")
+        
+        # Run through main with --benchmark
+        with patch.object(sys, 'argv', ['eigenscript', str(test_file), '--benchmark']):
+            exit_code = main()
+        
+        # Check results
+        captured = capsys.readouterr()
+        assert exit_code == 0
+        assert "Benchmark Results" in captured.out
+
+    def test_benchmark_combined_flags(self, tmp_path, capsys):
+        """Should work with multiple flags."""
+        # Create test file
+        test_file = tmp_path / "test.eigs"
+        test_file.write_text("x is 100\n")
+        
+        # Run with multiple flags
+        with patch.object(sys, 'argv', ['eigenscript', str(test_file), '-v', '-b', '--show-fs']):
+            exit_code = main()
+        
+        # Should have all outputs
+        captured = capsys.readouterr()
+        assert exit_code == 0
+        assert "Benchmark Results" in captured.out
+        assert "Framework Strength" in captured.out
