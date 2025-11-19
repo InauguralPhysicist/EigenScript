@@ -4,8 +4,8 @@
 conversation is []
 
 # Simulate a conversation loop
+# Get user input each iteration
 loop while active:
-    # Get user input
     user_input is input of prompt
     conversation is append of (user_input, conversation)
 

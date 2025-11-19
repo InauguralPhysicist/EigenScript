@@ -6,8 +6,8 @@ print of "=== Self-Interrogating Counter ==="
 # A counter that can examine itself
 counter is 0
 
-loop while counter < 5:
     # Use interrogatives to examine the computation
+loop while counter < 5:
     current_value is what is counter
     var_name is who is counter
     
