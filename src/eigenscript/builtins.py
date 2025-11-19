@@ -1370,10 +1370,30 @@ def builtin_json_stringify(args, space: LRVMSpace, metric: Any = None) -> LRVMVe
     from eigenscript.evaluator.interpreter import EigenList
     
     # Handle both single value and [value, indent] formats
+    # Need to check if second element is a scalar number (indent) vs nested list
     if isinstance(args, EigenList) and len(args.elements) == 2:
-        value = args.elements[0]
-        indent_vec = args.elements[1]
-        indent = int(decode_vector(indent_vec, space, metric))
+        # Check if second element is a scalar number (indent parameter)
+        second_elem = args.elements[1]
+        try:
+            # Try to decode as a number
+            if not isinstance(second_elem, EigenList):
+                indent_value = decode_vector(second_elem, space, metric)
+                if isinstance(indent_value, (int, float)):
+                    # This is [value, indent] format
+                    value = args.elements[0]
+                    indent = int(indent_value)
+                else:
+                    # Not a number, treat whole thing as value to stringify
+                    value = args
+                    indent = None
+            else:
+                # Second element is a list, so this is a nested list, not [value, indent]
+                value = args
+                indent = None
+        except:
+            # If decode fails, treat as regular value
+            value = args
+            indent = None
     else:
         value = args
         indent = None
@@ -1420,21 +1440,32 @@ def _eigenscript_to_python(value: Any, space: LRVMSpace, metric: Any = None) -> 
     
     if isinstance(value, EigenList):
         # Check if it's a dict representation (list of [key, value] pairs)
+        # A dict should have string keys (not numeric), so we need to check more carefully
         if len(value.elements) > 0:
-            # Try to detect dict format: all elements are 2-element lists
+            # Try to detect dict format: all elements are 2-element lists with string keys
             is_dict = all(
                 isinstance(elem, EigenList) and len(elem.elements) == 2
                 for elem in value.elements
             )
             
             if is_dict:
-                # Convert to Python dict
-                result = {}
-                for pair in value.elements:
-                    key = decode_vector(pair.elements[0], space, metric)
-                    val = _eigenscript_to_python(pair.elements[1], space, metric)
-                    result[key] = val
-                return result
+                # Check if first element of each pair is a string (dict keys should be strings)
+                try:
+                    first_keys_are_strings = all(
+                        isinstance(decode_vector(elem.elements[0], space, metric), str)
+                        for elem in value.elements
+                    )
+                except:
+                    first_keys_are_strings = False
+                
+                if first_keys_are_strings:
+                    # Convert to Python dict
+                    result = {}
+                    for pair in value.elements:
+                        key = decode_vector(pair.elements[0], space, metric)
+                        val = _eigenscript_to_python(pair.elements[1], space, metric)
+                        result[key] = val
+                    return result
         
         # Otherwise, convert as a list
         return [_eigenscript_to_python(elem, space, metric) for elem in value.elements]
