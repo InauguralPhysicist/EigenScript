@@ -12,14 +12,15 @@ from eigenscript.parser import Parser
 from eigenscript.evaluator import Interpreter
 
 
-def run_file(file_path: str, verbose: bool = False) -> int:
+def run_file(file_path: str, verbose: bool = False, show_fs: bool = False) -> int:
     """
     Execute an EigenScript file.
-    
+
     Args:
         file_path: Path to .eigs file
         verbose: Print execution details
-        
+        show_fs: Show Framework Strength metrics after execution
+
     Returns:
         Exit code (0 for success, 1 for error)
     """
@@ -27,31 +28,42 @@ def run_file(file_path: str, verbose: bool = False) -> int:
         # Read source code
         with open(file_path, 'r', encoding='utf-8') as f:
             source = f.read()
-        
+
         if verbose:
             print(f"Executing: {file_path}")
             print("=" * 60)
-        
+
         # Tokenize
         tokenizer = Tokenizer(source)
         tokens = tokenizer.tokenize()
-        
+
         # Parse
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         # Interpret
         interpreter = Interpreter(dimension=768)
         result = interpreter.evaluate(ast)
-        
+
         if verbose:
             print("=" * 60)
             print(f"Execution complete")
             print(f"Framework Strength: {interpreter.fs_tracker.compute_fs():.4f}")
             print(f"Variables: {len(interpreter.environment.bindings)}")
-        
+
+        # Show metrics if requested
+        if show_fs:
+            fs = interpreter.get_framework_strength()
+            signature, classification = interpreter.get_spacetime_signature()
+            converged = interpreter.has_converged()
+
+            print(f"\n=== Framework Strength Metrics ===")
+            print(f"Framework Strength: {fs:.4f}")
+            print(f"Converged: {converged}")
+            print(f"Spacetime Signature: {signature:.4f} ({classification})")
+
         return 0
-        
+
     except FileNotFoundError:
         print(f"Error: File not found: {file_path}", file=sys.stderr)
         print(f"Please check the file path and try again.", file=sys.stderr)
@@ -183,6 +195,11 @@ def main():
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Verbose output"
     )
+    parser.add_argument(
+        "--show-fs",
+        action="store_true",
+        help="Show Framework Strength metrics after execution",
+    )
 
     args = parser.parse_args()
 
@@ -190,7 +207,7 @@ def main():
         return run_repl(verbose=args.verbose)
 
     if args.file:
-        return run_file(args.file, verbose=args.verbose)
+        return run_file(args.file, verbose=args.verbose, show_fs=args.show_fs)
     else:
         parser.print_help()
         return 0
