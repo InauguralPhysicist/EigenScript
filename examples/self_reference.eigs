@@ -2,10 +2,10 @@
 # Demonstrates that self-reference converges instead of exploding
 
 # This doesn't cause infinite regress!
+# Observer observing itself
+# In traditional languages, this would infinite loop
+# In EigenScript, it converges to a stable eigenstate
 define observer as:
-    # Observer observing itself
-    # In traditional languages, this would infinite loop
-    # In EigenScript, it converges to a stable eigenstate
     meta is observer of observer
     return meta
 

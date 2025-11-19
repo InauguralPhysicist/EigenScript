@@ -24,14 +24,14 @@ print of ""
 # ============================================================================
 
 # Get the type of an AST node
-define get_node_type as:
     # node is expected to be a list [type, data]
+define get_node_type as:
     type_field is node[0]
     return type_field
 
 # Get the data/value from an AST node
-define get_node_data as:
     # node is expected to be a list [type, data]
+define get_node_data as:
     data_field is node[1]
     return data_field
 
@@ -42,14 +42,14 @@ define get_node_data as:
 # Environment represented as a list of [name, value] pairs
 # For simplicity, we use a flat list structure
 
-define env_new as:
     # Create an empty environment
+define env_new as:
     empty_env is []
     return empty_env
 
-define env_bind as:
     # Bind a name to a value in the environment
     # env_data is [env, name, value]
+define env_bind as:
     env is env_data[0]
     name is env_data[1]
     val is env_data[2]
@@ -63,9 +63,9 @@ define env_bind as:
     # TODO: Proper list append/cons operation
     return new_env
 
-define env_lookup as:
     # Look up a name in the environment
     # lookup_data is [env, name]
+define env_lookup as:
     env is lookup_data[0]
     name is lookup_data[1]
     
@@ -78,9 +78,9 @@ define env_lookup as:
 # EVALUATOR CORE
 # ============================================================================
 
-define eval as:
     # Main evaluation function
     # eval_args is [node, env]
+define eval as:
     node is eval_args[0]
     env is eval_args[1]
     

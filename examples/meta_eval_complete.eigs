@@ -10,8 +10,8 @@ print of ""
 # ============================================================================
 
 # Evaluate a literal value (numbers, strings)
-define eval_literal as:
     # n is the literal value (already evaluated)
+define eval_literal as:
     return n
 
 # Evaluate binary operations (+, -, *, /)

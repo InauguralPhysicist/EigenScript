@@ -9,23 +9,21 @@
 
 # Example 1: Adaptive Algorithm
 # The function interrogates its process quality and adapts
-define adaptive_search as:
     # Initial computation
+define adaptive_search as:
     result is n * 2
 
     # Self-interrogate: How well am I performing?
     quality is how is result
 
     # Self-modify based on quality assessment
+    # Detected paradox/cycle - use simplified approach
     if oscillating:
-        # Detected paradox/cycle - use simplified approach
         return n
     else:
         if improving:
-            # Converging well - continue with complex method
             return result * result
         else:
-            # Plateau - try alternative
             return result + n
 
 # Example 2: Self-Monitoring Loop
@@ -43,22 +41,19 @@ define self_monitoring_iterate as:
 
         # Self-modify based on geometric state
         if converged:
-            # Reached eigenstate - return early
             return state
 
         if diverging:
-            # Moving away from solution - reverse direction
             state is state - 1
         else:
-            # Approaching solution - continue
             state is state + 1
 
     return state
 
 # Example 3: Meta-Circular Self-Reference
 # The function can safely observe itself observing itself
-define self_observer as:
     # First level: observe input
+define self_observer as:
     magnitude is what is n
 
     # Second level: observe the observation
@@ -77,7 +72,6 @@ define complex_computation as:
 
     # Self-interrogate for debugging
     if not stable:
-        # System unstable - log state
         debug_value is what is temp
         debug_where is where is temp
         debug_when is when is temp
@@ -92,7 +86,6 @@ define complex_computation as:
     if converged:
         return result
     else:
-        # Need more iterations
         return complex_computation of result
 
 # Example 5: Self-Modifying Control Flow
@@ -105,24 +98,20 @@ define dynamic_branching as:
 
     # Branch based on geometric properties (not just values)
     if stable:
-        # In stable regime - use fast method
         return x * 2
     else:
         if diverging:
-            # Exploring space - use conservative method
             return x + 1
         else:
             if equilibrium:
-                # At phase boundary - special handling
                 return x
             else:
-                # Default case
                 return x - 1
 
 # Example 6: Self-Aware Recursion
 # Function monitors its own recursion depth and adjusts
-define depth_aware_factorial as:
     # Check recursion depth
+define depth_aware_factorial as:
     depth is when is n
 
     # Base case (standard)
@@ -131,7 +120,6 @@ define depth_aware_factorial as:
 
     # But also self-modify based on depth
     if depth > 10:
-        # Deep recursion detected - switch to iterative
         result is 1
         counter is n
         loop while counter > 1:
@@ -139,7 +127,6 @@ define depth_aware_factorial as:
             counter is counter - 1
         return result
     else:
-        # Shallow recursion - continue recursively
         prev is n - 1
         sub is depth_aware_factorial of prev
         return n * sub
