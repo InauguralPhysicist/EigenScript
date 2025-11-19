@@ -24,15 +24,15 @@ print of ""
 # ============================================================================
 
 # Get the type of an AST node
-    # node is expected to be a list [type, data]
+    # n is expected to be a list [type, data]
 define get_node_type as:
-    type_field is node[0]
+    type_field is n[0]
     return type_field
 
 # Get the data/value from an AST node
-    # node is expected to be a list [type, data]
+    # n is expected to be a list [type, data]
 define get_node_data as:
-    data_field is node[1]
+    data_field is n[1]
     return data_field
 
 # ============================================================================
@@ -48,11 +48,11 @@ define env_new as:
     return empty_env
 
     # Bind a name to a value in the environment
-    # env_data is [env, name, value]
+    # n is [env, name, value]
 define env_bind as:
-    env is env_data[0]
-    name is env_data[1]
-    val is env_data[2]
+    env is n[0]
+    name is n[1]
+    val is n[2]
     
     # Create new binding [name, value]
     binding is [name, val]
@@ -64,10 +64,10 @@ define env_bind as:
     return new_env
 
     # Look up a name in the environment
-    # lookup_data is [env, name]
+    # n is [env, name]
 define env_lookup as:
-    env is lookup_data[0]
-    name is lookup_data[1]
+    env is n[0]
+    name is n[1]
     
     # For this demo, we'll return a dummy value
     # In production, we'd search through the environment list
@@ -79,10 +79,10 @@ define env_lookup as:
 # ============================================================================
 
     # Main evaluation function
-    # eval_args is [node, env]
+    # n is [node, env]
 define eval as:
-    node is eval_args[0]
-    env is eval_args[1]
+    node is n[0]
+    env is n[1]
     
     node_type is get_node_type of node
     
