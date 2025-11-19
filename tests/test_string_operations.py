@@ -25,10 +25,10 @@ result is first + second
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "Hello World"
@@ -42,10 +42,10 @@ result is "A" + "B" + "C"
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "ABC"
@@ -59,10 +59,10 @@ result is "Hello" + ""
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "Hello"
@@ -76,10 +76,10 @@ result is "A" + "B" + "C" + "D"
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "ABCD"
@@ -98,10 +98,10 @@ result is text[0]
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "H"
@@ -116,10 +116,10 @@ result is text[4]
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "d"
@@ -134,10 +134,10 @@ result is text[2]
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "t"
@@ -152,7 +152,7 @@ result is text[10]
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         with pytest.raises(IndexError):
             interpreter.evaluate(ast)
@@ -171,10 +171,10 @@ result is text[0:5]
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "Hello"
@@ -189,10 +189,10 @@ result is text[:3]
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "Pyt"
@@ -207,10 +207,10 @@ result is text[6:]
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "World"
@@ -225,10 +225,10 @@ result is text[:]
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "Test"
@@ -247,10 +247,10 @@ result is upper of text
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "HELLO WORLD"
@@ -265,10 +265,10 @@ result is lower of text
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "hello world"
@@ -283,17 +283,23 @@ words is split of text
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         words_list = interpreter.environment.lookup("words")
         assert len(words_list.elements) == 3
-        
-        word0 = decode_vector(words_list.elements[0], interpreter.space, interpreter.metric)
-        word1 = decode_vector(words_list.elements[1], interpreter.space, interpreter.metric)
-        word2 = decode_vector(words_list.elements[2], interpreter.space, interpreter.metric)
-        
+
+        word0 = decode_vector(
+            words_list.elements[0], interpreter.space, interpreter.metric
+        )
+        word1 = decode_vector(
+            words_list.elements[1], interpreter.space, interpreter.metric
+        )
+        word2 = decode_vector(
+            words_list.elements[2], interpreter.space, interpreter.metric
+        )
+
         assert word0 == "hello"
         assert word1 == "world"
         assert word2 == "test"
@@ -308,10 +314,10 @@ result is join of words
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "hello world"
@@ -329,10 +335,10 @@ result is upper of ("hello" + " world")
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "HELLO WORLD"
@@ -347,10 +353,10 @@ result is text[0:5] + text[6:]
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "HelloWorld"
@@ -367,10 +373,10 @@ result is upper of first
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == "HELLO"

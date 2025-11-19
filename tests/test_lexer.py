@@ -146,7 +146,6 @@ done"""
         of_tokens = [t for t in tokens if t.type == TokenType.OF]
         assert len(of_tokens) == 2
 
-
     def test_string_escape_sequences(self):
         """String literals should handle escape sequences."""
         test_cases = [
@@ -238,7 +237,9 @@ done"""
         assert tokens[0].column == 1
 
         # Find 'y' token (should be on line 2)
-        y_token = next(t for t in tokens if t.type == TokenType.IDENTIFIER and t.value == "y")
+        y_token = next(
+            t for t in tokens if t.type == TokenType.IDENTIFIER and t.value == "y"
+        )
         assert y_token.line == 2
 
     def test_multiple_indentation_levels(self):
@@ -267,7 +268,9 @@ y is 10"""
         tokens = tokenizer.tokenize()
 
         # Should not produce any INDENT/DEDENT tokens
-        indent_dedent = [t for t in tokens if t.type in (TokenType.INDENT, TokenType.DEDENT)]
+        indent_dedent = [
+            t for t in tokens if t.type in (TokenType.INDENT, TokenType.DEDENT)
+        ]
         assert len(indent_dedent) == 0
 
     def test_equilibrium_expression(self):

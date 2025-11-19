@@ -191,11 +191,11 @@ class MetricTensor:
         Note:
             For flat metrics (Euclidean, Minkowski), parallel transport is trivial -
             the vector remains unchanged along any path. This is geometrically correct.
-            
+
             Curved metrics (e.g., Schwarzschild, FLRW) are not currently supported
             and would require implementing the parallel transport equation with
             Christoffel symbols. This is planned for Phase 6+ as an advanced feature.
-            
+
         Supported metrics:
             - euclidean: Flat positive-definite metric (production)
             - minkowski: Flat Lorentzian metric (research/experimental)

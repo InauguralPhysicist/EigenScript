@@ -29,7 +29,9 @@ class LRVMVector:
         array([ 1.,  0., -1.])
     """
 
-    def __init__(self, coordinates: Union[np.ndarray, List[float]], metadata: dict = None):
+    def __init__(
+        self, coordinates: Union[np.ndarray, List[float]], metadata: dict = None
+    ):
         """
         Initialize an LRVM vector.
 
@@ -387,7 +389,9 @@ class LRVMSpace:
                     # Embed as list
                     return self.embed_vector(value.tolist())
             else:
-                raise ValueError(f"Cannot embed multi-dimensional array: shape {value.shape}")
+                raise ValueError(
+                    f"Cannot embed multi-dimensional array: shape {value.shape}"
+                )
 
         # None/null
         elif value is None:

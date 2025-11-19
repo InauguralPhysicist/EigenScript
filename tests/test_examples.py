@@ -26,20 +26,20 @@ def get_all_examples():
 @pytest.mark.parametrize("example", get_all_examples())
 def test_example_runs(example):
     """Ensure all examples execute without error.
-    
+
     This test runs each .eigs file in the examples/ directory and verifies
     that it completes successfully (exit code 0).
     """
     # Set timeout based on whether this is a slow example
     timeout = 30 if example.name in SLOW_EXAMPLES else 10
-    
+
     result = subprocess.run(
         ["python", "-m", "eigenscript", str(example)],
         capture_output=True,
         text=True,
-        timeout=timeout
+        timeout=timeout,
     )
-    
+
     assert result.returncode == 0, (
         f"{example.name} failed with exit code {result.returncode}\n"
         f"STDERR: {result.stderr}\n"

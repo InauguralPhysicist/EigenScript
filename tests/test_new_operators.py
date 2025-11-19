@@ -21,10 +21,10 @@ class TestAndOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -35,10 +35,10 @@ class TestAndOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 0.0
 
@@ -49,10 +49,10 @@ class TestAndOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 0.0
 
@@ -63,10 +63,10 @@ class TestAndOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 0.0
 
@@ -84,10 +84,10 @@ else:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result_vector = interpreter.environment.lookup("result")
         value = decode_vector(result_vector, interpreter.space, interpreter.metric)
         assert value == 100
@@ -103,10 +103,10 @@ class TestOrOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -117,10 +117,10 @@ class TestOrOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -131,10 +131,10 @@ class TestOrOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -145,10 +145,10 @@ class TestOrOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 0.0
 
@@ -166,10 +166,10 @@ else:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result_vector = interpreter.environment.lookup("result")
         value = decode_vector(result_vector, interpreter.space, interpreter.metric)
         assert value == 100
@@ -185,10 +185,10 @@ class TestLessEqualOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -199,10 +199,10 @@ class TestLessEqualOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -213,10 +213,10 @@ class TestLessEqualOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 0.0
 
@@ -231,10 +231,10 @@ class TestGreaterEqualOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -245,10 +245,10 @@ class TestGreaterEqualOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -259,10 +259,10 @@ class TestGreaterEqualOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 0.0
 
@@ -277,10 +277,10 @@ class TestNotEqualOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -291,10 +291,10 @@ class TestNotEqualOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 0.0
 
@@ -309,10 +309,10 @@ class TestModuloOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -323,10 +323,10 @@ class TestModuloOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 0.0
 
@@ -340,16 +340,16 @@ odd is 11 % 2
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         even_vector = interpreter.environment.lookup("even")
         odd_vector = interpreter.environment.lookup("odd")
-        
+
         even_value = decode_vector(even_vector, interpreter.space, interpreter.metric)
         odd_value = decode_vector(odd_vector, interpreter.space, interpreter.metric)
-        
+
         assert even_value == 0.0
         assert odd_value == 1.0
 
@@ -365,10 +365,10 @@ class TestOperatorPrecedence:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0  # Should be true because AND binds tighter
 
@@ -379,10 +379,10 @@ class TestOperatorPrecedence:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -393,10 +393,10 @@ class TestOperatorPrecedence:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -415,11 +415,11 @@ result is (5 < 3) and (10 / 0 = 5)
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         # Should not raise error due to short-circuit
         interpreter.evaluate(ast)
-        
+
         result_vector = interpreter.environment.lookup("result")
         value = decode_vector(result_vector, interpreter.space, interpreter.metric)
         assert value == 0.0
@@ -435,11 +435,11 @@ result is (5 > 3) or (10 / 0 = 5)
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         # Should not raise error due to short-circuit
         interpreter.evaluate(ast)
-        
+
         result_vector = interpreter.environment.lookup("result")
         value = decode_vector(result_vector, interpreter.space, interpreter.metric)
         assert value == 1.0
@@ -454,10 +454,10 @@ result is (5 > 3) and (x = 0)
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result_vector = interpreter.environment.lookup("result")
         value = decode_vector(result_vector, interpreter.space, interpreter.metric)
         assert value == 1.0
@@ -472,10 +472,10 @@ result is (3 > 5) or (x = 5)
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result_vector = interpreter.environment.lookup("result")
         value = decode_vector(result_vector, interpreter.space, interpreter.metric)
         assert value == 1.0
@@ -497,10 +497,10 @@ else:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result_vector = interpreter.environment.lookup("result")
         value = decode_vector(result_vector, interpreter.space, interpreter.metric)
         assert value == 1.0
@@ -518,10 +518,10 @@ else:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result_vector = interpreter.environment.lookup("result")
         value = decode_vector(result_vector, interpreter.space, interpreter.metric)
         assert value == 100

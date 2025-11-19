@@ -13,7 +13,12 @@ from eigenscript.evaluator import Interpreter
 from eigenscript.benchmark import Benchmark
 
 
-def run_file(file_path: str, verbose: bool = False, show_fs: bool = False, benchmark: bool = False) -> int:
+def run_file(
+    file_path: str,
+    verbose: bool = False,
+    show_fs: bool = False,
+    benchmark: bool = False,
+) -> int:
     """
     Execute an EigenScript file.
 
@@ -27,10 +32,10 @@ def run_file(file_path: str, verbose: bool = False, show_fs: bool = False, bench
         Exit code (0 for success, 1 for error)
     """
     bench_ctx = None
-    
+
     try:
         # Read source code
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             source = f.read()
 
         if verbose:
@@ -57,7 +62,7 @@ def run_file(file_path: str, verbose: bool = False, show_fs: bool = False, bench
         # Stop benchmarking
         if benchmark and bench_ctx:
             bench_ctx.add_metadata("file", file_path)
-            bench_ctx.add_metadata("source_lines", source.count('\n') + 1)
+            bench_ctx.add_metadata("source_lines", source.count("\n") + 1)
             bench_ctx.add_metadata("tokens", len(tokens))
             bench_ctx.__exit__(None, None, None)
             bench_result = bench_ctx.get_result()
@@ -95,6 +100,7 @@ def run_file(file_path: str, verbose: bool = False, show_fs: bool = False, bench
         print(f"Please check your EigenScript syntax.", file=sys.stderr)
         if verbose:
             import traceback
+
             traceback.print_exc()
         return 1
     except NameError as e:
@@ -109,6 +115,7 @@ def run_file(file_path: str, verbose: bool = False, show_fs: bool = False, bench
         print(f"Runtime Error: {e}", file=sys.stderr)
         if verbose:
             import traceback
+
             traceback.print_exc()
         return 1
     except Exception as e:
@@ -117,6 +124,7 @@ def run_file(file_path: str, verbose: bool = False, show_fs: bool = False, bench
         print(f"Error: {type(e).__name__}: {e}", file=sys.stderr)
         if verbose:
             import traceback
+
             traceback.print_exc()
         return 1
 
@@ -124,10 +132,10 @@ def run_file(file_path: str, verbose: bool = False, show_fs: bool = False, bench
 def run_repl(verbose: bool = False) -> int:
     """
     Run interactive Read-Eval-Print Loop with multi-line support.
-    
+
     Args:
         verbose: Show detailed execution information
-        
+
     Returns:
         Exit code (0 for success)
     """
@@ -135,55 +143,57 @@ def run_repl(verbose: bool = False) -> int:
     print("Type 'exit' or press Ctrl+D to quit")
     print("Use blank line to complete multi-line blocks")
     print("=" * 60)
-    
+
     interpreter = Interpreter(dimension=768)
-    
+
     while True:
         try:
             lines = []
             prompt = ">>> "
-            
+
             while True:
                 line = input(prompt)
-                
+
                 if line.strip() in ("exit", "quit") and not lines:
                     print("Goodbye!")
                     return 0
-                
+
                 if not line.strip() and not lines:
                     break
-                
+
                 if not line.strip() and lines:
                     break
-                
+
                 lines.append(line)
-                
+
                 if line.endswith(":"):
                     prompt = "... "
                 elif prompt == ">>> ":
                     break
                 elif prompt == "... " and line and not line[0].isspace():
                     break
-            
+
             if not lines:
                 continue
-            
+
             source = "\n".join(lines)
-            
+
             tokenizer = Tokenizer(source)
             tokens = tokenizer.tokenize()
-            
+
             parser = Parser(tokens)
             ast = parser.parse()
-            
+
             result = interpreter.evaluate(ast)
-            
+
             print(result)
-            
+
             if verbose:
                 fs = interpreter.fs_tracker.compute_fs()
-                print(f"[FS: {fs:.4f}, Variables: {len(interpreter.environment.bindings)}]")
-            
+                print(
+                    f"[FS: {fs:.4f}, Variables: {len(interpreter.environment.bindings)}]"
+                )
+
         except EOFError:
             print("\nGoodbye!")
             return 0
@@ -192,17 +202,25 @@ def run_repl(verbose: bool = False) -> int:
             continue
         except SyntaxError as e:
             print(f"Syntax Error: {e}", file=sys.stderr)
-            print(f"Hint: Check your EigenScript syntax (operators, indentation, etc.)", file=sys.stderr)
+            print(
+                f"Hint: Check your EigenScript syntax (operators, indentation, etc.)",
+                file=sys.stderr,
+            )
             if verbose:
                 import traceback
+
                 traceback.print_exc()
         except NameError as e:
             print(f"Name Error: {e}", file=sys.stderr)
-            print(f"Hint: Make sure all variables and functions are defined before use", file=sys.stderr)
+            print(
+                f"Hint: Make sure all variables and functions are defined before use",
+                file=sys.stderr,
+            )
         except Exception as e:
             print(f"Error: {type(e).__name__}: {e}", file=sys.stderr)
             if verbose:
                 import traceback
+
                 traceback.print_exc()
 
 
@@ -220,16 +238,15 @@ def main():
     parser.add_argument(
         "-i", "--interactive", action="store_true", help="Start interactive REPL"
     )
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Verbose output"
-    )
+    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
     parser.add_argument(
         "--show-fs",
         action="store_true",
         help="Show Framework Strength metrics after execution",
     )
     parser.add_argument(
-        "-b", "--benchmark",
+        "-b",
+        "--benchmark",
         action="store_true",
         help="Measure and display performance metrics (time, memory)",
     )
@@ -240,7 +257,12 @@ def main():
         return run_repl(verbose=args.verbose)
 
     if args.file:
-        return run_file(args.file, verbose=args.verbose, show_fs=args.show_fs, benchmark=args.benchmark)
+        return run_file(
+            args.file,
+            verbose=args.verbose,
+            show_fs=args.show_fs,
+            benchmark=args.benchmark,
+        )
     else:
         parser.print_help()
         return 0

@@ -21,10 +21,10 @@ class TestListLiterals:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         assert isinstance(result, EigenList)
         assert len(result.elements) == 0
 
@@ -35,10 +35,10 @@ class TestListLiterals:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         assert isinstance(result, EigenList)
         assert len(result.elements) == 5
 
@@ -49,10 +49,10 @@ class TestListLiterals:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         assert isinstance(result, EigenList)
         assert len(result.elements) == 1
 
@@ -63,10 +63,10 @@ class TestListLiterals:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         # Assignment returns the value
         assert isinstance(result, EigenList)
         assert len(result.elements) == 3
@@ -82,11 +82,12 @@ class TestListIndexing:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         from eigenscript.builtins import decode_vector
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 10
 
@@ -97,11 +98,12 @@ class TestListIndexing:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         from eigenscript.builtins import decode_vector
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 300
 
@@ -112,9 +114,9 @@ class TestListIndexing:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
-        
+
         with pytest.raises(IndexError):
             interpreter.evaluate(ast)
 
@@ -129,10 +131,10 @@ class TestRangeFunction:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         assert isinstance(result, EigenList)
         assert len(result.elements) == 0
 
@@ -143,15 +145,16 @@ class TestRangeFunction:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         assert isinstance(result, EigenList)
         assert len(result.elements) == 5
-        
+
         # Verify elements are 0 through 4
         from eigenscript.builtins import decode_vector
+
         for i, elem in enumerate(result.elements):
             value = decode_vector(elem, interpreter.space, interpreter.metric)
             assert value == i
@@ -167,11 +170,12 @@ class TestListBuiltins:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         from eigenscript.builtins import decode_vector
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 5
 
@@ -182,11 +186,12 @@ class TestListBuiltins:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         from eigenscript.builtins import decode_vector
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 0
 
@@ -197,10 +202,10 @@ class TestListBuiltins:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         # type() returns a string-encoded vector
         assert result is not None
 
@@ -211,19 +216,19 @@ class TestListIteration:
     def test_manual_iteration(self):
         """Test manual iteration with index."""
         from eigenscript.builtins import decode_vector
-        
+
         interpreter = Interpreter()
-        
+
         # Access first element
         source1 = "[5, 10, 15][0]"
         r1 = interpreter.evaluate(Parser(Tokenizer(source1).tokenize()).parse())
         assert decode_vector(r1, interpreter.space, interpreter.metric) == 5
-        
+
         # Access second element
         source2 = "[5, 10, 15][1]"
         r2 = interpreter.evaluate(Parser(Tokenizer(source2).tokenize()).parse())
         assert decode_vector(r2, interpreter.space, interpreter.metric) == 10
-        
+
         # Access third element
         source3 = "[5, 10, 15][2]"
         r3 = interpreter.evaluate(Parser(Tokenizer(source3).tokenize()).parse())
@@ -240,8 +245,8 @@ class TestListEdgeCases:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
-        
+
         with pytest.raises(TypeError):
             interpreter.evaluate(ast)

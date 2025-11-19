@@ -65,8 +65,8 @@ class ListComprehension(ASTNode):
     """
 
     expression: ASTNode  # The expression to evaluate for each element
-    variable: str        # The loop variable name
-    iterable: ASTNode    # The list/iterable to loop over
+    variable: str  # The loop variable name
+    iterable: ASTNode  # The list/iterable to loop over
     condition: Optional[ASTNode] = None  # Optional filter condition
 
     def __repr__(self) -> str:
@@ -103,8 +103,8 @@ class Slice(ASTNode):
     """
 
     expr: ASTNode
-    start: ASTNode | None  # None means start from beginning
-    end: ASTNode | None    # None means go to end
+    start: Optional[ASTNode]  # None means start from beginning
+    end: Optional[ASTNode]  # None means go to end
 
     def __repr__(self) -> str:
         return f"Slice({self.expr}, {self.start}, {self.end})"
@@ -165,7 +165,9 @@ class BinaryOp(ASTNode):
     """
 
     left: ASTNode
-    operator: str  # "+", "-", "*", "/", "%", "=", "<", ">", "<=", ">=", "!=", "and", "or"
+    operator: (
+        str  # "+", "-", "*", "/", "%", "=", "<", ">", "<=", ">=", "!=", "and", "or"
+    )
     right: ASTNode
 
     def __repr__(self) -> str:
@@ -442,9 +444,7 @@ class Parser:
                     f"Expected {token_type.name}, got {token.type.name}"
                 )
             else:
-                raise SyntaxError(
-                    f"Expected {token_type.name}, got EOF"
-                )
+                raise SyntaxError(f"Expected {token_type.name}, got EOF")
         return self.advance()
 
     def parse_statement(self) -> Optional[ASTNode]:
@@ -689,7 +689,9 @@ class Parser:
             # Get the position from the last token we saw
             last_pos = self.tokens[self.position - 1] if self.position > 0 else None
             if last_pos:
-                raise SyntaxError(f"Line {last_pos.line}, Column {last_pos.column}: Unexpected end of input")
+                raise SyntaxError(
+                    f"Line {last_pos.line}, Column {last_pos.column}: Unexpected end of input"
+                )
             else:
                 raise SyntaxError("Unexpected end of input")
 
@@ -919,26 +921,32 @@ class Parser:
         # Handle indexing and slicing
         while self.current_token() and self.current_token().type == TokenType.LBRACKET:
             self.advance()
-            
+
             # Check if this is slicing or indexing
             # Peek ahead to see if there's a colon
             start_expr = None
             end_expr = None
-            
+
             # Parse the first expression (if any) before potential colon
-            if self.current_token() and self.current_token().type != TokenType.COLON and \
-               self.current_token().type != TokenType.RBRACKET:
+            if (
+                self.current_token()
+                and self.current_token().type != TokenType.COLON
+                and self.current_token().type != TokenType.RBRACKET
+            ):
                 start_expr = self.parse_expression()
-            
+
             # Check for colon (indicates slicing)
             if self.current_token() and self.current_token().type == TokenType.COLON:
                 # This is a slice
                 self.advance()  # consume COLON
-                
+
                 # Parse end expression (if any)
-                if self.current_token() and self.current_token().type != TokenType.RBRACKET:
+                if (
+                    self.current_token()
+                    and self.current_token().type != TokenType.RBRACKET
+                ):
                     end_expr = self.parse_expression()
-                
+
                 self.expect(TokenType.RBRACKET)
                 expr = Slice(expr, start_expr, end_expr)
             else:
@@ -946,7 +954,9 @@ class Parser:
                 if start_expr is None:
                     token = self.current_token()
                     if token:
-                        raise SyntaxError(f"Line {token.line}, Column {token.column}: Expected index expression")
+                        raise SyntaxError(
+                            f"Line {token.line}, Column {token.column}: Expected index expression"
+                        )
                     else:
                         raise SyntaxError("Expected index expression")
                 self.expect(TokenType.RBRACKET)
@@ -988,13 +998,21 @@ class Parser:
             # Get the position from the last token we saw
             last_pos = self.tokens[self.position - 1] if self.position > 0 else None
             if last_pos:
-                raise SyntaxError(f"Line {last_pos.line}, Column {last_pos.column}: Unexpected end of input")
+                raise SyntaxError(
+                    f"Line {last_pos.line}, Column {last_pos.column}: Unexpected end of input"
+                )
             else:
                 raise SyntaxError("Unexpected end of input")
 
         # Interrogative operators
-        if token.type in (TokenType.WHO, TokenType.WHAT, TokenType.WHEN,
-                         TokenType.WHERE, TokenType.WHY, TokenType.HOW):
+        if token.type in (
+            TokenType.WHO,
+            TokenType.WHAT,
+            TokenType.WHEN,
+            TokenType.WHERE,
+            TokenType.WHY,
+            TokenType.HOW,
+        ):
             return self.parse_interrogative()
 
         # Number literal
@@ -1034,20 +1052,32 @@ class Parser:
                 self.advance()  # consume FOR
 
                 # Parse variable name
-                if not self.current_token() or self.current_token().type != TokenType.IDENTIFIER:
+                if (
+                    not self.current_token()
+                    or self.current_token().type != TokenType.IDENTIFIER
+                ):
                     token = self.current_token()
                     if token:
-                        raise SyntaxError(f"Line {token.line}, Column {token.column}: Expected variable name after FOR in list comprehension")
+                        raise SyntaxError(
+                            f"Line {token.line}, Column {token.column}: Expected variable name after FOR in list comprehension"
+                        )
                     else:
-                        raise SyntaxError("Expected variable name after FOR in list comprehension")
+                        raise SyntaxError(
+                            "Expected variable name after FOR in list comprehension"
+                        )
                 var_name = self.current_token().value
                 self.advance()
 
                 # Expect IN keyword
-                if not self.current_token() or self.current_token().type != TokenType.IN:
+                if (
+                    not self.current_token()
+                    or self.current_token().type != TokenType.IN
+                ):
                     token = self.current_token()
                     if token:
-                        raise SyntaxError(f"Line {token.line}, Column {token.column}: Expected IN keyword in list comprehension")
+                        raise SyntaxError(
+                            f"Line {token.line}, Column {token.column}: Expected IN keyword in list comprehension"
+                        )
                     else:
                         raise SyntaxError("Expected IN keyword in list comprehension")
                 self.advance()
@@ -1068,7 +1098,10 @@ class Parser:
             elements = [first_expr]
             while self.current_token() and self.current_token().type == TokenType.COMMA:
                 self.advance()  # consume COMMA
-                if self.current_token() and self.current_token().type != TokenType.RBRACKET:
+                if (
+                    self.current_token()
+                    and self.current_token().type != TokenType.RBRACKET
+                ):
                     elements.append(self.parse_expression())
 
             self.expect(TokenType.RBRACKET)
@@ -1081,13 +1114,21 @@ class Parser:
             # Check if it's a vector literal (1, 2, 3)
             # or a parenthesized expression (x of y)
             elements = []
-            while self.current_token() and self.current_token().type != TokenType.RPAREN:
+            while (
+                self.current_token() and self.current_token().type != TokenType.RPAREN
+            ):
                 elements.append(self.parse_expression())
 
                 # Check for comma (vector literal)
-                if self.current_token() and self.current_token().type == TokenType.COMMA:
+                if (
+                    self.current_token()
+                    and self.current_token().type == TokenType.COMMA
+                ):
                     self.advance()
-                elif self.current_token() and self.current_token().type != TokenType.RPAREN:
+                elif (
+                    self.current_token()
+                    and self.current_token().type != TokenType.RPAREN
+                ):
                     # Single expression in parens
                     break
 
@@ -1116,10 +1157,15 @@ class Parser:
             self.advance()
             elements = []
 
-            while self.current_token() and self.current_token().type != TokenType.RBRACKET:
+            while (
+                self.current_token() and self.current_token().type != TokenType.RBRACKET
+            ):
                 elements.append(self.parse_expression())
 
-                if self.current_token() and self.current_token().type == TokenType.COMMA:
+                if (
+                    self.current_token()
+                    and self.current_token().type == TokenType.COMMA
+                ):
                     self.advance()
 
             self.expect(TokenType.RBRACKET)

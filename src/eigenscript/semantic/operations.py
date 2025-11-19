@@ -39,7 +39,9 @@ class GeometricOperations:
     # IS - The Fundamental Identity Relation
     # ========================================================================
 
-    def is_identical(self, x: LRVMVector, y: LRVMVector, epsilon: float = 1e-10) -> bool:
+    def is_identical(
+        self, x: LRVMVector, y: LRVMVector, epsilon: float = 1e-10
+    ) -> bool:
         """
         Test if x IS y (identity relation).
 
@@ -122,7 +124,9 @@ class GeometricOperations:
         """
         return self.metric.contract_to_vector(x, y)
 
-    def of_collapses_to_is(self, x: LRVMVector, y: LRVMVector, epsilon: float = 1e-10) -> bool:
+    def of_collapses_to_is(
+        self, x: LRVMVector, y: LRVMVector, epsilon: float = 1e-10
+    ) -> bool:
         """
         Check if OF relation has collapsed to IS (lightlike).
 
@@ -221,7 +225,9 @@ class GeometricOperations:
         """
         return self.is_identical(x, y) == self.is_identical(y, x)
 
-    def is_of_symmetric(self, x: LRVMVector, y: LRVMVector, epsilon: float = 1e-10) -> bool:
+    def is_of_symmetric(
+        self, x: LRVMVector, y: LRVMVector, epsilon: float = 1e-10
+    ) -> bool:
         """
         Check if OF is symmetric for this particular x, y.
 
@@ -245,7 +251,7 @@ class GeometricOperations:
         initial: LRVMVector,
         transform: callable,
         max_iterations: int = 1000,
-        epsilon: float = 1e-6
+        epsilon: float = 1e-6,
     ) -> Tuple[LRVMVector, int, bool]:
         """
         Apply repeated OF projections until convergence to IS identity.

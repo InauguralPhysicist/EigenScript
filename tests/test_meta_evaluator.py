@@ -114,16 +114,16 @@ r2 is identity of r1
 r3 is identity of r2
 """
         self.run_code(code)
-        
+
         # All should be 42
         r1 = self.interpreter.environment.lookup("r1")
         r2 = self.interpreter.environment.lookup("r2")
         r3 = self.interpreter.environment.lookup("r3")
-        
+
         v1 = self.decode_scalar(r1)
         v2 = self.decode_scalar(r2)
         v3 = self.decode_scalar(r3)
-        
+
         assert v1 == pytest.approx(42.0, rel=0.01)
         assert v2 == pytest.approx(42.0, rel=0.01)
         assert v3 == pytest.approx(42.0, rel=0.01)
@@ -151,13 +151,13 @@ args2 is [0, 100, 200]
 result2 is eval_if_then_else of args2
 """
         self.run_code(code)
-        
+
         result1 = self.interpreter.environment.lookup("result1")
         result2 = self.interpreter.environment.lookup("result2")
-        
+
         v1 = self.decode_scalar(result1)
         v2 = self.decode_scalar(result2)
-        
+
         assert v1 == pytest.approx(100.0, rel=0.01)
         assert v2 == pytest.approx(200.0, rel=0.01)
 
@@ -174,7 +174,7 @@ args is [5, 3]
 result is eval_add of args
 """
         self.run_code(code)
-        
+
         # Check that system remains stable
         fs = self.interpreter.fs_tracker.compute_fs()
         assert fs >= 0.0  # FS should be valid
@@ -201,10 +201,10 @@ args2 is [sum, 2]
 result is eval_mul of args2
 """
         self.run_code(code)
-        
+
         result = self.interpreter.environment.lookup("result")
         value = self.decode_scalar(result)
-        
+
         # (5 + 3) * 2 = 16
         assert value == pytest.approx(16.0, rel=0.01)
 
@@ -229,10 +229,10 @@ args is [2, 3]
 result is eval_power of args
 """
         self.run_code(code)
-        
+
         result = self.interpreter.environment.lookup("result")
         value = self.decode_scalar(result)
-        
+
         # 2^3 = 8
         assert value == pytest.approx(8.0, rel=0.01)
 
@@ -251,7 +251,7 @@ class TestSelfHostingProperties:
         parser = Parser(tokens)
         ast = parser.parse()
         return self.interpreter.evaluate(ast)
-    
+
     def decode_scalar(self, vector: LRVMVector) -> float:
         """Helper to decode a scalar from LRVM vector."""
         value = decode_vector(vector, self.interpreter.space, self.interpreter.metric)
@@ -265,7 +265,7 @@ class TestSelfHostingProperties:
         # - Conditionals
         # - List operations
         # - Return statements
-        
+
         code = """
 define test_completeness as:
     result is 1
@@ -278,7 +278,7 @@ define test_completeness as:
 result is test_completeness of 5
 """
         self.run_code(code)
-        
+
         # If we get here without error, self-hosting primitives work
         result = self.interpreter.environment.lookup("result")
         assert result is not None
@@ -298,10 +298,10 @@ r4 is identity of r3
 r5 is identity of r4
 """
         self.run_code(code)
-        
+
         # System should remain stable despite self-reference
         fs = self.interpreter.fs_tracker.compute_fs()
-        
+
         # FS should be reasonable (not NaN or negative)
         assert not (fs < 0.0 or fs > 1.0)
 
@@ -310,7 +310,7 @@ r5 is identity of r4
         # This is a key property: traditional meta-circular evaluators
         # can have issues with self-application, but geometric semantics
         # should ensure convergence
-        
+
         code = """
 define simple_eval as:
     result is n * 2
@@ -321,10 +321,10 @@ r1 is simple_eval of val
 r2 is simple_eval of r1
 """
         self.run_code(code)
-        
+
         # Should complete without error
         r2 = self.interpreter.environment.lookup("r2")
         value = self.decode_scalar(r2)
-        
+
         # 21 * 2 * 2 = 84
         assert value == pytest.approx(84.0, rel=0.01)
