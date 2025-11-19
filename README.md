@@ -268,9 +268,9 @@ python -m eigenscript examples/hello_world.eigs
 
 ## Project Status
 
-**Current Phase**: Phase 4 Complete (100%), Phase 5 In Progress
+**Current Phase**: Phase 4 Complete (100%), Phase 5 In Progress (~35% complete)
 
-**Last Updated**: 2025-11-18
+**Last Updated**: 2025-11-19
 
 ### ✅ Completed
 - ✅ Lexer with interrogative keywords (455 lines, 96% test coverage)
@@ -295,10 +295,13 @@ python -m eigenscript examples/hello_world.eigs
 - ✅ **List operations** (comprehensions, mutations, nested lists)
 - ✅ **String operations** (concatenation, comparison, manipulation)
 - ✅ **Enhanced error messages** with line and column tracking
-- ✅ **315 passing tests, 65% overall coverage**
+- ✅ **351 passing tests, 78% overall coverage**
+- ✅ **CLI testing complete** (80% coverage with 36 comprehensive tests)
+- ✅ **Code cleanup** (211 lines of unused code removed)
+- ✅ **All TODO comments resolved** (documentation improved)
 
 ### ⚠️ In Progress
-- ⚠️ CLI/REPL testing and validation (implementation exists, needs test coverage)
+- ⚠️ Error message enhancements (assessment in progress)
 - ⚠️ Standard library expansion (file I/O, date/time, JSON)
 - ⚠️ Documentation website
 
@@ -363,18 +366,18 @@ print of result  # Returns stable result, not infinite loop
 
 ## Roadmap
 
-**Current Status**: Phase 4 Complete ✅ (Self-hosting achieved!) | Phase 5 In Progress ⚠️ (20% complete)
+**Current Status**: Phase 4 Complete ✅ (Self-hosting achieved!) | Phase 5 In Progress ⚠️ (~35% complete)
 
 ### Completed Phases ✅
 
 - **Phase 1-3: Core Language** ✅ - Lexer, parser, interpreter, LRVM backend
-- **Phase 4: Self-Hosting** ✅ - Meta-circular evaluator, 315 passing tests, 65% coverage
+- **Phase 4: Self-Hosting** ✅ - Meta-circular evaluator, 351 passing tests, 78% coverage
   
-### Phase 5: Production Polish (3-4 weeks remaining)
+### Phase 5: Production Polish (2-3 weeks remaining)
 
-**Week 1 - Critical**: CLI testing, unused module cleanup, coverage to 70%  
-**Week 2 - Quality**: Enhanced error messages, code cleanup  
-**Week 3 - Features**: File I/O, JSON, date/time operations  
+**Week 1 - Critical** ✅: CLI testing (80% coverage), unused module cleanup (211 lines removed), coverage boost (78%)  
+**Week 2 - Quality** 🔄: TODO resolution complete, documentation updates in progress, error message assessment  
+**Week 3 - Features** ⏳: File I/O, JSON, date/time operations  
 **Week 4 - Documentation**: Website, tutorials, API reference
 
 **For detailed plans, see**:

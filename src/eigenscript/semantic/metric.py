@@ -179,7 +179,7 @@ class MetricTensor:
         Parallel transport a vector along a geodesic path.
 
         This operation is used for function application in EigenScript.
-        In a flat space (Euclidean metric), parallel transport is trivial.
+        Current implementation supports flat metrics (Euclidean and Minkowski).
 
         Args:
             vector: Vector to transport
@@ -189,15 +189,24 @@ class MetricTensor:
             Transported vector
 
         Note:
-            In Euclidean space, the vector remains unchanged.
-            In curved spaces, this would need proper implementation.
+            For flat metrics (Euclidean, Minkowski), parallel transport is trivial -
+            the vector remains unchanged along any path. This is geometrically correct.
+            
+            Curved metrics (e.g., Schwarzschild, FLRW) are not currently supported
+            and would require implementing the parallel transport equation with
+            Christoffel symbols. This is planned for Phase 6+ as an advanced feature.
+            
+        Supported metrics:
+            - euclidean: Flat positive-definite metric (production)
+            - minkowski: Flat Lorentzian metric (research/experimental)
         """
-        # TODO: Implement proper parallel transport for curved metrics
-        # For flat (Euclidean) metric, vector is unchanged
-        if self.metric_type == "euclidean":
+        # For flat metrics, parallel transport leaves vectors unchanged
+        # This is mathematically correct: ∇_v V = 0 for constant vector fields
+        if self.metric_type in ("euclidean", "minkowski"):
             return vector
         else:
-            # Placeholder for curved space transport
+            # Curved metrics not implemented - return unchanged as approximation
+            # Future: Implement Christoffel symbol computation and transport equation
             return vector
 
     def geodesic(

@@ -214,20 +214,25 @@ class Interpreter:
 
         The OF operator must have ||OF||² = 0 (null norm).
 
-        Returns:
-            Lightlike LRVM vector
-        """
-        # TODO: Properly construct lightlike vector for the chosen metric
-        # For Minkowski metric, (1, 1, 0, ...) works
-        # For Euclidean, we need a different approach
+        For different metric signatures:
+        - Minkowski (-,+,+,+): Use (1,1,0,...) where -1²+1²=0 (lightlike)
+        - Euclidean (+,+,+,+): Only zero vector has norm 0
+        
+        The choice of lightlike vector is geometrically correct for each metric type.
+        In Euclidean space, the zero vector is the unique lightlike vector.
 
+        Returns:
+            Lightlike LRVM vector appropriate for the metric
+        """
         if self.metric.metric_type == "minkowski":
+            # Minkowski metric: Use (1,1,0,...) for lightlike vector
+            # With signature (-,+,+,+): norm = -1² + 1² = -1 + 1 = 0 ✓
             coords = np.zeros(self.space.dimension)
             coords[0] = 1.0  # Timelike component
             coords[1] = 1.0  # Spacelike component
-            # Result: norm = -1 + 1 = 0 (lightlike)
         else:
-            # For Euclidean metric, just use zero vector (placeholder)
+            # Euclidean metric: Zero vector is the only lightlike vector
+            # With signature (+,+,+,+): only ||0||² = 0 satisfies the requirement
             coords = np.zeros(self.space.dimension)
 
         return LRVMVector(coords)
