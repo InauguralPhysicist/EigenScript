@@ -305,7 +305,19 @@ python -m eigenscript examples/hello_world.eigs
 ### 🎯 Milestone Achieved! ✨
 **Self-hosting complete**: Meta-circular evaluator implemented and tested! EigenScript can now interpret EigenScript code, validating the stable self-simulation hypothesis. The language proves geometric semantics enable convergent self-reference - `eval(eval(eval(...)))` converges to eigenstate without crashes. See `examples/eval.eigs` and `docs/meta_circular_evaluator.md`.
 
-See [docs/roadmap.md](docs/roadmap.md) for detailed status and [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute.
+### 📋 Production Roadmap
+
+**95% Complete** - Core language is stable and self-hosting. Remaining work is polish and ecosystem.
+
+**Quick Links**:
+- 📊 **[Roadmap Quick Reference](ROADMAP_QUICKREF.md)** - At-a-glance status and timeline
+- 📋 **[Executive Summary](ROADMAP_SUMMARY.md)** - 4-week plan to production
+- 📖 **[Complete Roadmap](PRODUCTION_ROADMAP.md)** - Detailed implementation plan
+- ✅ **[What's Left](WHATS_LEFT_TODO.md)** - Task checklist
+
+**Timeline**: 3-4 weeks to production-ready public release.
+
+See [docs/roadmap.md](docs/roadmap.md) for technical details and [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute.
 
 ## Why EigenScript?
 
@@ -351,25 +363,30 @@ print of result  # Returns stable result, not infinite loop
 
 ## Roadmap
 
-### Month 1: Prototype
-- Core syntax (OF, IS, IF, LOOP, DEFINE)
-- Basic LRVM integration
-- Simple interpreter
+**Current Status**: Phase 4 Complete ✅ (Self-hosting achieved!) | Phase 5 In Progress ⚠️ (20% complete)
 
-### Month 2: Compiler
-- Full AST generation
-- Type inference via norm computation
-- Error reporting
+### Completed Phases ✅
 
-### Month 3: Runtime
-- Bytecode VM
-- Framework Strength measurement
-- Standard library
+- **Phase 1-3: Core Language** ✅ - Lexer, parser, interpreter, LRVM backend
+- **Phase 4: Self-Hosting** ✅ - Meta-circular evaluator, 315 passing tests, 65% coverage
+  
+### Phase 5: Production Polish (3-4 weeks remaining)
 
-### Month 4: Self-Hosting
-- EigenScript interpreter written in EigenScript
-- Meta-circular evaluator
-- Stability proofs
+**Week 1 - Critical**: CLI testing, unused module cleanup, coverage to 70%  
+**Week 2 - Quality**: Enhanced error messages, code cleanup  
+**Week 3 - Features**: File I/O, JSON, date/time operations  
+**Week 4 - Documentation**: Website, tutorials, API reference
+
+**For detailed plans, see**:
+- [Production Roadmap](PRODUCTION_ROADMAP.md) - Complete implementation plan
+- [Roadmap Summary](ROADMAP_SUMMARY.md) - Executive summary
+- [Quick Reference](ROADMAP_QUICKREF.md) - At-a-glance status
+
+### Future Phases (Post-1.0)
+
+- **Phase 6**: Performance optimization, profiling, benchmarking
+- **Phase 7**: Advanced features (modules, debugger, IDE plugins)
+- **Phase 8**: Ecosystem (packages, community, integrations)
 
 ## Contributing
 
