@@ -568,7 +568,7 @@ loop while n:
 
 ```eigenscript
 define factorial as:
-    if n is 0:
+    if n < 2:
         return 1
     else:
         prev is n - 1
