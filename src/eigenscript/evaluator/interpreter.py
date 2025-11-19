@@ -1209,7 +1209,7 @@ class Interpreter:
         else:
             raise RuntimeError(f"Unknown interrogative: {interrogative}")
 
-    def _eval_block(self, statements: list[ASTNode]) -> Value:
+    def _eval_block(self, statements: List[ASTNode]) -> Value:
         """
         Evaluate a block of statements.
 

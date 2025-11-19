@@ -16,7 +16,7 @@ Key Insight: Convergence occurs when I → 0, which makes κ → ∞
 """
 
 import numpy as np
-from typing import Tuple
+from typing import Tuple, List
 from eigenscript.semantic.lrvm import LRVMVector
 
 
@@ -176,7 +176,7 @@ class EigenControlTracker:
 
     def __init__(self):
         """Initialize empty trajectory."""
-        self.trajectory: list[EigenControl] = []
+        self.trajectory: List[EigenControl] = []
 
     def update(self, current: LRVMVector, target: LRVMVector) -> EigenControl:
         """

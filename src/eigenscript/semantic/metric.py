@@ -6,6 +6,7 @@ It is used to compute norms, distances, and contractions (the OF operator).
 """
 
 import numpy as np
+from typing import List
 from eigenscript.semantic.lrvm import LRVMVector
 
 
@@ -173,7 +174,7 @@ class MetricTensor:
         return v1.distance(v2, self.g)
 
     def parallel_transport(
-        self, vector: LRVMVector, path: list[LRVMVector]
+        self, vector: LRVMVector, path: List[LRVMVector]
     ) -> LRVMVector:
         """
         Parallel transport a vector along a geodesic path.
@@ -211,7 +212,7 @@ class MetricTensor:
 
     def geodesic(
         self, start: LRVMVector, end: LRVMVector, steps: int = 10
-    ) -> list[LRVMVector]:
+    ) -> List[LRVMVector]:
         """
         Compute geodesic (shortest path) between two points.
 
