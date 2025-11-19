@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "EigenScript Contributors"}
+    {name = "J. McReynolds", email = "inauguralphysicist@gmail.com"}
 ]
 keywords = ["programming-language", "geometric", "lrvm", "consciousness", "ai"]
 classifiers = [
@@ -42,10 +42,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/eigenscript"
-Documentation = "https://github.com/yourusername/eigenscript/docs"
-Repository = "https://github.com/yourusername/eigenscript"
-Issues = "https://github.com/yourusername/eigenscript/issues"
+Homepage = "https://github.com/InauguralPhysicist/eigenscript"
+Documentation = "https://github.com/InauguralPhysicist/eigenscript/docs"
+Repository = "https://github.com/InauguralPhysicist/eigenscript"
+Issues = "https://github.com/InauguralPhysicist/eigenscript/issues"
 
 [project.scripts]
 eigenscript = "eigenscript.__main__:main"

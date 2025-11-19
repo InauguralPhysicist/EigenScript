@@ -625,7 +625,7 @@ These three operations, grounded in LRVM geometry, provide:
 
 **Version:** 1.0
 **Status:** Formal specification
-**Last Updated:** 2024
+**Last Updated:** 2025
 
 ---
 

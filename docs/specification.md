@@ -1113,5 +1113,5 @@ EigenScript compiles to EVTM instructions:
 ---
 
 **Document Version**: 0.1
-**Last Updated**: 2024
+**Last Updated**: 2025
 **Status**: Draft - Subject to change during implementation
