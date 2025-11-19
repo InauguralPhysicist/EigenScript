@@ -283,13 +283,13 @@ python -m eigenscript your_program.eigs --benchmark --verbose
 - Source file metrics (lines, tokens)
 
 **Example benchmarks are available in the `benchmarks/` directory:**
-- `factorial_bench.eigs` - Recursive factorial computation
-- `fibonacci_bench.eigs` - Recursive Fibonacci sequence
-- `list_operations_bench.eigs` - List manipulation performance
-- `math_bench.eigs` - Mathematical functions
-- `loop_bench.eigs` - Loop and iteration performance
+- `factorial_bench.eigs` - Recursive factorial computation (62.99 ms)
+- `fibonacci_bench.eigs` - Recursive Fibonacci sequence (758.11 ms)
+- `list_operations_bench.eigs` - List manipulation performance (26.15 ms)
+- `math_bench.eigs` - Mathematical functions (31.20 ms)
+- `loop_bench.eigs` - Loop and iteration performance (153.83 ms)
 
-See [benchmarks/README.md](benchmarks/README.md) for more details.
+See [benchmarks/README.md](benchmarks/README.md) for usage details and [BENCHMARK_RESULTS.md](BENCHMARK_RESULTS.md) for comprehensive results and analysis.
 
 ## Documentation
 
