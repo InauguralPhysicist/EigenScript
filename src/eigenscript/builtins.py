@@ -11,9 +11,12 @@ import json
 import time
 from datetime import datetime
 import numpy as np
-from typing import Callable, Any, Union
+from typing import Callable, Any, Union, TYPE_CHECKING
 from dataclasses import dataclass
 from eigenscript.semantic.lrvm import LRVMVector, LRVMSpace
+
+if TYPE_CHECKING:
+    from eigenscript.evaluator.interpreter import EigenList
 
 # Type alias for values that can flow through the interpreter
 # Must match the Value type in interpreter.py
