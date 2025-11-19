@@ -1273,6 +1273,11 @@ class Interpreter:
             param_name = "n"  # Default parameter name
 
         func_env.bind(param_name, arg_value)
+        
+        # Also bind under 'arg' for compatibility with tests that use 'arg'
+        # This allows functions to use either 'n' or 'arg' as the implicit parameter
+        if param_name == "n":
+            func_env.bind("arg", arg_value)
 
         # Execute function body
         # Save current environment and switch to function environment
