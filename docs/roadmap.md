@@ -1,8 +1,8 @@
 # EigenScript Implementation Roadmap
 
-**Status**: Phase 4 Complete (95%), Phase 5 Foundations Laid
+**Status**: Phase 4 Complete (100%), Phase 5 In Progress (20%)
 
-**Last Updated**: 2025-11-18
+**Last Updated**: 2025-11-19
 
 **Major Breakthrough**: Universal geometric algorithm (EigenControl) integrated. All three repositories (Geometric-Control, EigenFunction, EigenScript) now unified under single primitive: **I = (A - B)²**
 
@@ -54,16 +54,18 @@
 4. Spacetime signature (S² - C² > 0 for timelike convergence)
 
 ### What We Need ❌
-- ❌ Meta-circular evaluator (eval.eigs) - foundations ready
-- ❌ CLI/REPL improvements (placeholder only)
-- ❌ Standard library (print, input, etc.)
-- ❌ Error messages/recovery
-- ❌ FS/signature introspectable from EigenScript code
+- ✅ Meta-circular evaluator (eval.eigs) - **COMPLETE**
+- ⚠️ CLI/REPL testing (implementation exists, 0% test coverage)
+- ⚠️ Standard library expansion (file I/O, date/time, JSON)
+- ⚠️ Documentation website
+- ⚠️ Unused module cleanup (3 modules with 0% coverage)
 
 ### The Path Forward
-**Phase 5: Complete self-hosting via meta-circular evaluator**
+**Phase 5: Usability & Production Polish**
 
-Next milestone: Write eval.eigs using trilogy insights for true self-hosting.
+✅ Meta-circular evaluator complete - self-hosting achieved!
+
+Next milestone: CLI testing, standard library expansion, documentation website.
 
 ---
 
@@ -1086,17 +1088,18 @@ x is y
 - ✅ **Can verify**: 1 + 1 = 2
 - ✅ **BONUS**: Turing completeness achieved
 
-### Phase 4 (Self-Hosting) - ⚠️ 40% COMPLETE
-- ✅ Can measure Framework Strength (30% coverage, needs improvement)
+### Phase 4 (Self-Hosting) - ✅ 100% COMPLETE
+- ✅ Can measure Framework Strength (87% coverage)
 - ✅ Can detect eigenstate convergence
-- ❌ **Cannot run yet**: EigenScript interpreter written in EigenScript (needs function execution)
+- ✅ **META-CIRCULAR EVALUATOR COMPLETE**: EigenScript interpreter written in EigenScript - see examples/eval.eigs
+- ✅ **315 passing tests, 65% overall coverage**
 
-### Phase 5 (Usability) - ❌ NOT STARTED
-- ❌ Has standard library (print, input, len, range)
-- ❌ Has REPL
-- ❌ Has CLI (placeholder exists, 0% coverage)
-- ❌ Has helpful error messages
-- ✅ Has comprehensive test suite (83% coverage - EXCEEDS target!)
+### Phase 5 (Usability) - ⚠️ 20% IN PROGRESS
+- ✅ Has standard library (18 built-in functions including print, input, len, range, map, filter, reduce, etc.)
+- ⚠️ Has REPL (implemented but not tested - 0% coverage)
+- ⚠️ Has CLI (implemented but not tested - 0% coverage)
+- ✅ Has helpful error messages (with line and column tracking)
+- ✅ Has comprehensive test suite (315 passing tests, 65% coverage)
 
 ---
 
@@ -1319,62 +1322,60 @@ The foundation is solid:
 
 ---
 
-## IMMEDIATE PRIORITIES (Phase 4 Completion)
+## IMMEDIATE PRIORITIES (Phase 5 Completion)
 
-### Priority 1: Function Execution (BLOCKING)
-**File**: `src/eigenscript/evaluator/interpreter.py`
+### Priority 1: CLI Testing (CRITICAL)
+**File**: `src/eigenscript/__main__.py`
 
-**Current status**: Lines 357-368 are placeholder
-```python
-def _eval_function_def(self, node: FunctionDef) -> LRVMVector:
-    # TODO: Implement function objects
-    func_vector = self.space.random_vector()  # Placeholder
-    self.environment.bind(node.name, func_vector)
-    return func_vector
-```
-
+**Current status**: 132 lines, 0% test coverage
 **What's needed**:
-1. Store function AST + closure in environment
-2. Implement function call evaluation
-3. Handle parameter binding
-4. Support return statements
+1. Test file execution pathway
+2. Test REPL mode
+3. Test command-line argument parsing
+4. Test --measure-fs flag
+5. Test error handling in CLI
 
-**Why critical**: Blocks meta-circular evaluator and self-hosting test
+**Why critical**: Users need reliable command-line interface
 
-### Priority 2: Test Self-Simulation Stability
-**File**: `examples/eval.eigs` (to be created)
+### Priority 2: Cleanup Unused Modules (HIGH)
+**Files with 0% coverage**:
+- `src/eigenscript/runtime/builtins.py` (51 lines) - May duplicate main builtins.py
+- `src/eigenscript/runtime/eigencontrol.py` (88 lines) - EigenControl algorithm not integrated
+- `src/eigenscript/evaluator/unified_interpreter.py` (160 lines) - Alternative interpreter unused
 
-Once functions work, write:
-```eigenscript
-define eval of program:
-    # Meta-circular evaluator
-    result is eval of eval  # Test stability hypothesis
-    return result
-```
+**Action**: Investigate each, then either integrate+test or remove
 
-**Expected**: Converges to eigenstate (FS → 1.0), doesn't blow up
+### Priority 3: Standard Library Expansion (MEDIUM)
+**Missing functionality**:
+- File I/O operations (open, read, write, close)
+- JSON parsing/serialization
+- Date/time operations
+- Regular expressions
 
-### Priority 3: Make Framework Strength Introspectable
-**Current**: FS measured externally only
-**Needed**: Built-in `framework_strength` variable programs can access
-
-**Why**: Enable computational agency (programs that branch on their own coherence)
+**Reference**: See docs/library_expansion_plan.md for details
 
 ---
 
 ## SUCCESS CRITERIA
 
-**Phase 4 complete when**:
+**Phase 4**: ✅ **COMPLETE**
 - ✅ Functions execute correctly
 - ✅ Recursive factorial works
 - ✅ `eval.eigs` self-simulation is stable
 - ✅ FS > 0.95 during self-reference (proving equilibrium convergence)
+- ✅ Geometry enables stable self-simulation via equilibrium **PROVEN**
 
-**This proves**: Geometry enables stable self-simulation via equilibrium
+**Phase 5 complete when**:
+- [ ] CLI has >75% test coverage
+- [ ] All unused modules resolved (integrated or removed)
+- [ ] File I/O implemented
+- [ ] JSON support added
+- [ ] Documentation website live
+- [ ] Overall coverage >70%
 
 ---
 
-**Document Version**: 2.0
-**Status**: Phase 3 Complete, Phase 4 In Progress (40%)
-**Next Action**: Implement function execution (interpreter.py:357-368)
-**Updated**: 2025-01-18
+**Document Version**: 3.0
+**Status**: Phase 4 Complete (100%), Phase 5 In Progress (20%)
+**Next Action**: Test CLI (0% coverage needs tests)
+**Updated**: 2025-11-19

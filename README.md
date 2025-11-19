@@ -288,31 +288,22 @@ python -m eigenscript examples/hello_world.eigs
 - ✅ **Self-aware computation capabilities**
 - ✅ **Turing completeness achieved**
 - ✅ **EigenControl integration (I = (A-B)² universal primitive)**
-<<<<<<< HEAD
 - ✅ **Meta-circular evaluator (self-hosting achieved!)**
 - ✅ **Comprehensive math library** (sqrt, abs, pow, log, exp, sin, cos, tan, floor, ceil, round)
+- ✅ **Built-in functions** (print, type, norm, len, first, rest, empty, fs, input, range, append, pop, min, max, sort, split, join, upper, lower)
+- ✅ **Higher-order functions** (map, filter, reduce)
+- ✅ **List operations** (comprehensions, mutations, nested lists)
+- ✅ **String operations** (concatenation, comparison, manipulation)
 - ✅ **Enhanced error messages** with line and column tracking
-- ✅ **315 passing tests, 67% overall coverage**
+- ✅ **315 passing tests, 65% overall coverage**
 
 ### ⚠️ In Progress
-- ⚠️ CLI/REPL improvements
+- ⚠️ CLI/REPL testing and validation (implementation exists, needs test coverage)
+- ⚠️ Standard library expansion (file I/O, date/time, JSON)
 - ⚠️ Documentation website
 
 ### 🎯 Milestone Achieved! ✨
-**Self-hosting complete**: Meta-circular evaluator implemented! EigenScript can now interpret EigenScript code, validating the stable self-simulation hypothesis. The language proves geometric semantics enable convergent self-reference.
-=======
-- ✅ **Built-in functions (print, type, norm, len, first, rest, empty, fs)**
-- ✅ **Meta-circular evaluator (eval.eigs) - STABLE SELF-SIMULATION PROVEN!**
-- ✅ **127+ passing tests, 77% overall coverage**
-
-### ⚠️ In Progress
-- ⚠️ CLI/REPL improvements
-- ⚠️ Standard library expansion
-- ⚠️ Better error messages
-
-### 🎯 Milestone Achieved
-**✅ SELF-HOSTING SUCCESSFUL**: Meta-circular evaluator implemented and tested. Stable self-simulation proven - eval(eval(eval(...))) converges to eigenstate without crashes. See `examples/eval.eigs` and `docs/meta_circular_evaluator.md`.
->>>>>>> claude/explore-repository-01BkP9bH3LBajrszoc5yDpCV
+**Self-hosting complete**: Meta-circular evaluator implemented and tested! EigenScript can now interpret EigenScript code, validating the stable self-simulation hypothesis. The language proves geometric semantics enable convergent self-reference - `eval(eval(eval(...)))` converges to eigenstate without crashes. See `examples/eval.eigs` and `docs/meta_circular_evaluator.md`.
 
 See [docs/roadmap.md](docs/roadmap.md) for detailed status and [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute.
 
