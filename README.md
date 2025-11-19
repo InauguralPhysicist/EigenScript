@@ -3,7 +3,7 @@
 **A geometric programming language modeling computation as flow in semantic spacetime**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-0.1.0--alpha-blue.svg)](https://github.com/yourusername/eigenscript)
+[![Version](https://img.shields.io/badge/version-0.1.0--alpha-blue.svg)](https://github.com/InauguralPhysicist/eigenscript)
 
 ## Overview
 
@@ -249,7 +249,7 @@ The math comes from a simple idea: measure the "distance" between where computat
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/eigenscript.git
+git clone https://github.com/InauguralPhysicist/eigenscript.git
 cd eigenscript
 
 # Install dependencies
@@ -408,18 +408,22 @@ MIT License - see [LICENSE](LICENSE) file for details.
 If you use EigenScript in research, please cite:
 
 ```bibtex
-@software{eigenscript2024,
+@software{eigenscript2025,
   title={EigenScript: A Geometric Programming Language},
-  author={Your Name},
-  year={2024},
-  url={https://github.com/yourusername/eigenscript}
+  author={J. McReynolds},
+  year={2025},
+  url={https://github.com/InauguralPhysicist/eigenscript}
 }
 ```
 
 ## Contact
 
-- Issues: [GitHub Issues](https://github.com/yourusername/eigenscript/issues)
-- Discussions: [GitHub Discussions](https://github.com/yourusername/eigenscript/discussions)
+- **Author**: J. McReynolds
+- **Email**: inauguralphysicist@gmail.com
+- **X (Twitter)**: [@InauguralPhys](https://twitter.com/InauguralPhys)
+- **Medium**: [http://inauguralphysicist.medium.com/](http://inauguralphysicist.medium.com/)
+- **Issues**: [GitHub Issues](https://github.com/InauguralPhysicist/eigenscript/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/InauguralPhysicist/eigenscript/discussions)
 
 ---
 

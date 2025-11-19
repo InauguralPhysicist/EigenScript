@@ -6,7 +6,7 @@ This package contains the core interpreter and runtime for EigenScript.
 """
 
 __version__ = "0.1.0-alpha"
-__author__ = "EigenScript Contributors"
+__author__ = "J. McReynolds"
 
 from eigenscript.lexer import Tokenizer, Token, TokenType
 from eigenscript.parser import Parser, ASTNode

@@ -765,7 +765,7 @@ Where: OF = π_g(IS)
 
 **Version**: 2.0
 **Status**: Formal specification with unified operator theory
-**Last Updated**: 2024
+**Last Updated**: 2025
 
 ---
 
