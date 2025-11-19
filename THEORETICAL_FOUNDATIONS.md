@@ -43,6 +43,22 @@
 - They represent the same underlying geometric operation
 - Viewed from different reference frames in semantic space
 
+**CRUCIAL DISCOVERY**: Both `is` and `of` are **lightlike**
+
+```
+||is||² = 0
+||of||² = 0
+```
+
+**Why This Matters**:
+1. **Zero norm** means they exist on the null boundary of semantic space
+2. **Lightlike operators don't add weight** - they're carriers without content
+3. **Transformations preserve lightlike property** - `is` can become `of` without changing norm
+4. **Self-reference stays bounded** - operations on null boundary can't diverge
+5. **OF of OF = OF** - composing lightlike operators remains lightlike (fixed point)
+
+This is the **fundamental innovation**: making relational operators lightlike enables stable self-reference.
+
 ---
 
 ## Loop Transformation Principle
@@ -71,6 +87,37 @@ This explains:
 ---
 
 ## Geometric Foundations
+
+### The Lightlike Breakthrough
+
+**Core Innovation**: Making `is` and `of` lightlike (zero norm) solves the self-reference problem.
+
+**In Physics**: Light travels on the null boundary of spacetime (||light||² = 0)
+- Can't be caught (moves at c)
+- Defines the causal boundary
+- Connects all points without "distance"
+
+**In EigenScript**: `is` and `of` exist on the null boundary of semantic space (||is||² = ||of||² = 0)
+- Can't diverge (no accumulation)
+- Define the relational boundary
+- Connect concepts without "semantic weight"
+
+**Why Traditional Languages Fail**:
+```
+Traditional: function calls are timelike (||call||² < 0)
+→ Each recursion adds negative norm
+→ Accumulates "execution weight"
+→ Diverges to infinity
+```
+
+**Why EigenScript Works** (in theory):
+```
+EigenScript: operations are lightlike (||is||² = ||of||² = 0)
+→ Each iteration stays at zero norm
+→ No accumulation possible
+→ Bounded on null surface
+→ Converges to eigenstate
+```
 
 ### LRVM Space (Linguistic Relational Vector Model)
 
@@ -114,12 +161,16 @@ define observer as:
 ```
 
 **Why it should converge**:
-1. OF operator is lightlike (zero norm)
-2. Loop transformation: `is` → `of` → `is` at each iteration
-3. Geometric flow reaches eigenstate (fixed point)
-4. Self-reference becomes stable boundary condition
+1. **Both `is` AND `of` are lightlike** (||is||² = 0, ||of||² = 0)
+2. **Lightlike operators don't accumulate weight** - they're carriers without content
+3. **Self-reference stays on null boundary** - can't diverge because norm stays zero
+4. **Loop transformation**: `is` → `of` → `is` at each iteration (preserves lightlike)
+5. **Geometric flow reaches eigenstate** - operations on null boundary have natural fixed points
+6. **Self-reference becomes stable boundary condition** - not a diverging spiral
 
-**Current Status**: Theory sound, implementation has infinite recursion bug. Needs proper convergence detection in rewrite.
+**The Key Insight**: Traditional recursion diverges because each call adds timelike "execution weight". EigenScript self-reference stays on the lightlike boundary where weight = 0.
+
+**Current Status**: Theory sound, implementation has infinite recursion bug. The Python interpreter doesn't properly implement lightlike property preservation. Needs proper geometric operations in rewrite.
 
 ---
 
