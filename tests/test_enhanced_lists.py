@@ -402,7 +402,6 @@ class TestEnhancedListsIntegration:
         values = [decode_vector(elem, interpreter.space) for elem in result.elements]
         assert values == [1, "a", 2, "b", 3, "c"]
     
-    @pytest.mark.skip(reason="Function definition syntax with 'arg' parameter - needs parser enhancement")
     def test_with_map_and_zip(self, interpreter):
         """Test enhanced list operations with map."""
         code = '''

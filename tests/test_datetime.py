@@ -312,7 +312,6 @@ class TestTimeArithmetic:
 class TestTimeIntegration:
     """Integration tests for time operations."""
     
-    @pytest.mark.skip(reason="Function definition syntax with 'arg' parameter - needs parser enhancement")
     def test_measure_execution_time(self, interpreter):
         """Test measuring execution time of code."""
         code = '''

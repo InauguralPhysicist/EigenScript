@@ -314,7 +314,6 @@ class TestJSONIntegration:
         length = decode_vector(result, interpreter.space)
         assert length == 5
     
-    @pytest.mark.skip(reason="Function definition syntax with 'arg' parameter - needs parser enhancement")
     def test_json_with_map(self, interpreter):
         """Test using JSON with map function."""
         code = '''
