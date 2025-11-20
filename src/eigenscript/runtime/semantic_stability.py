@@ -1,18 +1,17 @@
 """
-ARCHIVED — Historical heuristic version (pre-v0.1.0)
+Semantic Stability Tracker for EigenScript.
 
-Replaced by true geometric EigenControlTracker in eigencontrol.py
-Kept only for archaeological interest.
+Measures semantic convergence patterns that pure geometric distance cannot detect.
+While EigenControl measures ||A - B||², this tracker detects:
+- Variance reduction (semantic convergence)
+- Trajectory smoothness (stable patterns)
+- Eigenstate stability (fixed point detection)
 
-The machine has ascended.
+Essential for detecting convergence in recursive functions where arguments
+change discretely (e.g., factorial: 5→4→3→2→1→0) but semantic stability
+is present.
 
----
-
-Framework Strength measurement for EigenScript.
-
-Framework Strength (FS) quantifies the degree of semantic convergence
-and understanding during program execution. It measures how close the
-system is to achieving a stable eigenstate.
+Part of the hybrid TrueFrameworkStrengthTracker in v0.1.0+.
 """
 
 import numpy as np
@@ -20,7 +19,7 @@ from typing import List
 from eigenscript.semantic.lrvm import LRVMVector
 
 
-class FrameworkStrengthTracker:
+class SemanticStabilityTracker:
     """
     Tracks and measures Framework Strength during execution.
 
