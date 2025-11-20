@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Comprehensive CI/CD pipeline with multi-Python version testing (3.8-3.12)
+- Comprehensive CI/CD pipeline with multi-Python version testing (3.9-3.12)
 - Code quality checks (black, flake8, mypy) in CI
 - Security scanning (safety, bandit) in CI
 - Coverage reporting with Codecov integration
@@ -16,12 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Critical security issue: Replaced bare `except:` clauses with `except Exception:`
-- Python 3.8 compatibility: Replaced `X | Y` union syntax with `Optional[X]`
+- Python compatibility: Replaced `X | Y` union syntax with `Optional[X]` for broader compatibility
 - F821 flake8 error: Fixed undefined name 'EigenList' in type hints
 - Code formatting: Applied black formatter across entire codebase (29 files)
 
 ### Changed
 - Improved type safety with TYPE_CHECKING imports
+- **Minimum Python version updated from 3.8 to 3.9** to align with numpy>=1.24.0 requirements
+  - Python 3.8 reached end-of-life in October 2024
+  - Updated CI/CD pipeline to test Python 3.9-3.12
+  - Updated all documentation to reflect Python 3.9+ requirement
 
 ## [0.1.0-alpha] - 2025-11-19
 
