@@ -24,7 +24,7 @@ EigenScript has reached a **production-ready core** with 578 passing tests, 84% 
 - ✅ 48 built-in functions
 - ✅ Framework Strength tracking
 - ✅ Interrogatives and predicates
-- ✅ CI/CD pipeline with multi-Python testing (3.8-3.12)
+- ✅ CI/CD pipeline with multi-Python testing (3.9-3.12)
 - ✅ Security fixes (bare except clauses resolved)
 - ✅ Code quality (black formatting applied)
 

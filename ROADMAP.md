@@ -48,7 +48,7 @@ EigenScript has achieved its core milestones:
 - Date/Time operations (3 functions)
 
 **Infrastructure** (100%)
-- GitHub Actions CI/CD with multi-Python testing (3.8-3.12)
+- GitHub Actions CI/CD with multi-Python testing (3.9-3.12)
 - Code quality checks (black, flake8, mypy)
 - Security scanning (safety, bandit)
 - Coverage reporting with Codecov

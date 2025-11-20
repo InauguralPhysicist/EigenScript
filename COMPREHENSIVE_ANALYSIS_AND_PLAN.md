@@ -125,7 +125,7 @@ except Exception as e:  # ✅ Catches only runtime errors
    - Risk: Potential runtime errors
    
 2. **Union type syntax** (2 errors in parser)
-   - Issue: Using Python 3.10+ `X | Y` syntax while targeting Python 3.8
+   - Issue: Using Python 3.10+ `X | Y` syntax while targeting Python 3.9
    - Fix: Use `Union[X, Y]` or update minimum Python version
 
 3. **Incompatible types** (5+ errors)
@@ -134,8 +134,8 @@ except Exception as e:  # ✅ Catches only runtime errors
 
 **ISSUE-TYPE-001: Python version inconsistency**
 - **Severity**: MAJOR
-- **pyproject.toml says**: `requires-python = ">=3.8"`
-- **mypy config says**: `python_version = "3.8"`
+- **pyproject.toml says**: `requires-python = ">=3.9"`
+- **mypy config says**: `python_version = "3.9"`
 - **Code uses**: Python 3.10+ features (`X | Y` union syntax)
 - **Recommendation**: Either:
   - Upgrade minimum to Python 3.10 (recommended)
@@ -355,7 +355,7 @@ No hardcoded credentials, API keys, passwords, or tokens found in codebase.
 
 **ISSUE-CONFIG-001: Python version inconsistency**
 - **File**: `pyproject.toml`
-- **Claims**: `requires-python = ">=3.8"`
+- **Claims**: `requires-python = ">=3.9"`
 - **Reality**: Code uses Python 3.10+ features
 - **Fix**: Update to `requires-python = ">=3.10"`
 

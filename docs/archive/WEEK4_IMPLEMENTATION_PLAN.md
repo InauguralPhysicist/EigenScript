@@ -768,7 +768,7 @@ Create comprehensive, step-by-step tutorials that guide users from complete begi
 - Expected outcome
 
 ## Installation (5 min)
-- Prerequisites (Python 3.8+)
+- Prerequisites (Python 3.9+)
 - Clone repository
 - Install dependencies
 - Verify installation
