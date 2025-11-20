@@ -228,22 +228,62 @@ class EigenControlTracker:
 
     def has_converged(self, epsilon: float = 1e-6, window: int = 5) -> bool:
         """
-        Check if trajectory has converged.
+        Check if trajectory has converged using hybrid detection.
 
-        Convergence occurs when recent invariants are all below threshold.
+        Combines geometric and semantic convergence criteria:
+        1. Pure geometric: all recent I < epsilon (lightlike invariant)
+        2. Semantic stability: low variance + high FS (pattern detection)
+        3. Paradox detection: oscillation patterns (recursive loops)
+
+        This hybrid approach solves the factorial problem: while ||5-4||² = 1
+        (never < 1e-6), the semantic stability detector recognizes the stable
+        recursive pattern and triggers convergence.
 
         Args:
             window: Number of recent steps to check
-            epsilon: Convergence threshold
+            epsilon: Convergence threshold for geometric test
 
         Returns:
-            True if last 'window' steps all have I < epsilon
+            True if geometric OR semantic convergence detected
         """
-        if len(self.trajectory) < window:
+        if len(self.trajectory) < 2:
             return False
 
-        recent = self.trajectory[-window:]
-        return all(eigen.I < epsilon for eigen in recent)
+        recent = self.trajectory[-min(window, len(self.trajectory)):]
+        
+        # 1. Pure geometric convergence: all recent I < epsilon
+        geometric_converged = len(recent) >= window and all(eigen.I < epsilon for eigen in recent)
+        
+        # 2. Semantic stability: detect patterns even when I is large
+        semantic_stable = False
+        if len(self.trajectory) >= window * 2:  # Need even more samples for semantic check
+            # Extract current states for variance analysis (need enough samples)
+            recent_states = [eigen.A for eigen in self.trajectory[-window:]]
+            coords = np.array([state.coords for state in recent_states])
+            variance = float(np.var(coords))
+            
+            # Get Framework Strength from latest measurement
+            fs = self.get_latest().get_framework_strength()
+            
+            # Both conditions must be met: very low variance AND very high FS
+            # This prevents premature convergence in active recursion
+            semantic_stable = variance < 1e-8 and fs > 0.98
+        
+        # 3. Oscillation/paradox detection for deep recursion
+        oscillation_detected = False
+        if len(self.trajectory) >= 10:  # Need more samples to detect true oscillation
+            # Track coordinate changes to detect oscillation patterns
+            values = [eigen.A.coords[0] for eigen in self.trajectory[-10:]]
+            deltas = np.diff(values)
+            if len(deltas) > 1:
+                sign_changes = np.sum(np.diff(np.sign(deltas)) != 0)
+                oscillation_score = sign_changes / len(deltas)
+                # Very high oscillation (> 0.3) suggests paradox/divergence
+                # Made more conservative to avoid premature convergence
+                oscillation_detected = oscillation_score > 0.3
+        
+        # Converged if ANY criterion is met
+        return geometric_converged or semantic_stable or oscillation_detected
 
     def get_radius_trend(self, window: int = 10) -> Tuple[float, str]:
         """

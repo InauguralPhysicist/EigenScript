@@ -1257,15 +1257,23 @@ class Interpreter:
             )
 
         # Convergence detection: check if we've reached eigenstate
-        if self.enable_convergence_detection and self.recursion_depth > 2:
+        # Start checking in the last 20% of allowed recursion to avoid premature convergence
+        # but still catch infinite loops before hitting the hard limit
+        convergence_check_depth = max(10, int(self.max_recursion_depth * 0.8))
+        if self.enable_convergence_detection and self.recursion_depth > convergence_check_depth:
             # Update FS tracker with current argument value to build trajectory (only for vectors)
             if isinstance(arg_value, LRVMVector):
                 self.fs_tracker.update(arg_value)
 
-            # True geometric convergence — no heuristics
+            # Hybrid convergence detection (geometric + semantic)
             if self.fs_tracker.has_converged():
                 self.recursion_depth -= 1
-                eigenstate_str = ""
+                
+                # Get diagnostic info for eigenstate marker
+                fs = self.fs_tracker.compute_fs()
+                latest = self.fs_tracker.get_latest()
+                
+                eigenstate_str = f"<eigenstate FS={fs:.4f} I={latest.I:.2e} r={latest.radius:.2e} depth={self.recursion_depth}>"
                 eigenstate = self.space.embed_string(eigenstate_str)
                 return eigenstate
 
