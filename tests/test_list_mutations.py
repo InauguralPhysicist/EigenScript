@@ -22,17 +22,19 @@ append of [my_list, 4]
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("my_list")
         assert isinstance(result, EigenList)
         assert len(result) == 4
-        
+
         # Check values
-        values = [decode_vector(elem, interpreter.space, interpreter.metric) 
-                  for elem in result.elements]
+        values = [
+            decode_vector(elem, interpreter.space, interpreter.metric)
+            for elem in result.elements
+        ]
         assert values == [1.0, 2.0, 3.0, 4.0]
 
     def test_append_to_empty_list(self):
@@ -45,14 +47,14 @@ append of [my_list, 42]
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("my_list")
         assert isinstance(result, EigenList)
         assert len(result) == 1
-        
+
         value = decode_vector(result.elements[0], interpreter.space, interpreter.metric)
         assert value == 42.0
 
@@ -68,16 +70,18 @@ append of [my_list, 4]
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("my_list")
         assert isinstance(result, EigenList)
         assert len(result) == 4
-        
-        values = [decode_vector(elem, interpreter.space, interpreter.metric) 
-                  for elem in result.elements]
+
+        values = [
+            decode_vector(elem, interpreter.space, interpreter.metric)
+            for elem in result.elements
+        ]
         assert values == [1.0, 2.0, 3.0, 4.0]
 
     def test_append_string_to_list(self):
@@ -90,16 +94,18 @@ append of [my_list, "world"]
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("my_list")
         assert isinstance(result, EigenList)
         assert len(result) == 2
-        
-        values = [decode_vector(elem, interpreter.space, interpreter.metric) 
-                  for elem in result.elements]
+
+        values = [
+            decode_vector(elem, interpreter.space, interpreter.metric)
+            for elem in result.elements
+        ]
         assert values == ["hello", "world"]
 
 
@@ -116,15 +122,15 @@ result is pop of my_list
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         # Check the popped value
         result = interpreter.environment.lookup("result")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 42.0
-        
+
         # Check the list is now empty
         my_list = interpreter.environment.lookup("my_list")
         assert isinstance(my_list, EigenList)
@@ -140,22 +146,24 @@ last is pop of my_list
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         # Check the popped value
         result = interpreter.environment.lookup("last")
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 5.0
-        
+
         # Check the list has 4 elements left
         my_list = interpreter.environment.lookup("my_list")
         assert isinstance(my_list, EigenList)
         assert len(my_list) == 4
-        
-        values = [decode_vector(elem, interpreter.space, interpreter.metric) 
-                  for elem in my_list.elements]
+
+        values = [
+            decode_vector(elem, interpreter.space, interpreter.metric)
+            for elem in my_list.elements
+        ]
         assert values == [1.0, 2.0, 3.0, 4.0]
 
     def test_pop_multiple_times(self):
@@ -170,19 +178,25 @@ c is pop of my_list
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         # Check the popped values (LIFO order)
-        a = decode_vector(interpreter.environment.lookup("a"), interpreter.space, interpreter.metric)
-        b = decode_vector(interpreter.environment.lookup("b"), interpreter.space, interpreter.metric)
-        c = decode_vector(interpreter.environment.lookup("c"), interpreter.space, interpreter.metric)
-        
+        a = decode_vector(
+            interpreter.environment.lookup("a"), interpreter.space, interpreter.metric
+        )
+        b = decode_vector(
+            interpreter.environment.lookup("b"), interpreter.space, interpreter.metric
+        )
+        c = decode_vector(
+            interpreter.environment.lookup("c"), interpreter.space, interpreter.metric
+        )
+
         assert a == 30.0
         assert b == 20.0
         assert c == 10.0
-        
+
         # List should be empty
         my_list = interpreter.environment.lookup("my_list")
         assert len(my_list) == 0
@@ -197,9 +211,9 @@ result is pop of my_list
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
-        
+
         with pytest.raises(RuntimeError, match="Cannot pop from empty list"):
             interpreter.evaluate(ast)
 
@@ -217,12 +231,15 @@ result is min of numbers
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
-        result = decode_vector(interpreter.environment.lookup("result"), 
-                              interpreter.space, interpreter.metric)
+
+        result = decode_vector(
+            interpreter.environment.lookup("result"),
+            interpreter.space,
+            interpreter.metric,
+        )
         assert result == 1.0
 
     def test_max_of_numbers(self):
@@ -235,12 +252,15 @@ result is max of numbers
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
-        result = decode_vector(interpreter.environment.lookup("result"), 
-                              interpreter.space, interpreter.metric)
+
+        result = decode_vector(
+            interpreter.environment.lookup("result"),
+            interpreter.space,
+            interpreter.metric,
+        )
         assert result == 9.0
 
     def test_min_of_single_element(self):
@@ -253,12 +273,15 @@ result is min of numbers
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
-        result = decode_vector(interpreter.environment.lookup("result"), 
-                              interpreter.space, interpreter.metric)
+
+        result = decode_vector(
+            interpreter.environment.lookup("result"),
+            interpreter.space,
+            interpreter.metric,
+        )
         assert result == 42.0
 
     def test_max_of_single_element(self):
@@ -271,12 +294,15 @@ result is max of numbers
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
-        result = decode_vector(interpreter.environment.lookup("result"), 
-                              interpreter.space, interpreter.metric)
+
+        result = decode_vector(
+            interpreter.environment.lookup("result"),
+            interpreter.space,
+            interpreter.metric,
+        )
         assert result == 42.0
 
     def test_min_max_with_negative_numbers(self):
@@ -290,15 +316,21 @@ max_result is max of numbers
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
-        min_result = decode_vector(interpreter.environment.lookup("min_result"), 
-                                   interpreter.space, interpreter.metric)
-        max_result = decode_vector(interpreter.environment.lookup("max_result"), 
-                                   interpreter.space, interpreter.metric)
-        
+
+        min_result = decode_vector(
+            interpreter.environment.lookup("min_result"),
+            interpreter.space,
+            interpreter.metric,
+        )
+        max_result = decode_vector(
+            interpreter.environment.lookup("max_result"),
+            interpreter.space,
+            interpreter.metric,
+        )
+
         assert min_result == -9.0
         assert max_result == -1.0
 
@@ -312,9 +344,9 @@ result is min of numbers
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
-        
+
         with pytest.raises(ValueError, match="min of empty list is undefined"):
             interpreter.evaluate(ast)
 
@@ -328,9 +360,9 @@ result is max of numbers
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
-        
+
         with pytest.raises(ValueError, match="max of empty list is undefined"):
             interpreter.evaluate(ast)
 
@@ -348,15 +380,17 @@ sorted_numbers is sort of numbers
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("sorted_numbers")
         assert isinstance(result, EigenList)
-        
-        values = [decode_vector(elem, interpreter.space, interpreter.metric) 
-                  for elem in result.elements]
+
+        values = [
+            decode_vector(elem, interpreter.space, interpreter.metric)
+            for elem in result.elements
+        ]
         assert values == [1.0, 2.0, 3.0, 5.0, 8.0, 9.0]
 
     def test_sort_empty_list(self):
@@ -369,10 +403,10 @@ sorted_empty is sort of empty
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("sorted_empty")
         assert isinstance(result, EigenList)
         assert len(result) == 0
@@ -387,14 +421,14 @@ sorted_single is sort of single
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("sorted_single")
         assert isinstance(result, EigenList)
         assert len(result) == 1
-        
+
         value = decode_vector(result.elements[0], interpreter.space, interpreter.metric)
         assert value == 42.0
 
@@ -408,13 +442,15 @@ sorted_numbers is sort of numbers
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("sorted_numbers")
-        values = [decode_vector(elem, interpreter.space, interpreter.metric) 
-                  for elem in result.elements]
+        values = [
+            decode_vector(elem, interpreter.space, interpreter.metric)
+            for elem in result.elements
+        ]
         assert values == [-9.0, -8.0, -5.0, 1.0, 2.0, 3.0]
 
     def test_sort_already_sorted(self):
@@ -427,13 +463,15 @@ sorted_numbers is sort of numbers
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("sorted_numbers")
-        values = [decode_vector(elem, interpreter.space, interpreter.metric) 
-                  for elem in result.elements]
+        values = [
+            decode_vector(elem, interpreter.space, interpreter.metric)
+            for elem in result.elements
+        ]
         assert values == [1.0, 2.0, 3.0, 4.0, 5.0]
 
     def test_sort_reverse_order(self):
@@ -446,13 +484,15 @@ sorted_numbers is sort of numbers
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result = interpreter.environment.lookup("sorted_numbers")
-        values = [decode_vector(elem, interpreter.space, interpreter.metric) 
-                  for elem in result.elements]
+        values = [
+            decode_vector(elem, interpreter.space, interpreter.metric)
+            for elem in result.elements
+        ]
         assert values == [1.0, 2.0, 3.0, 4.0, 5.0]
 
     def test_sort_does_not_mutate_original(self):
@@ -465,20 +505,24 @@ sorted_list is sort of original
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         # Check original list is unchanged
         original = interpreter.environment.lookup("original")
-        original_values = [decode_vector(elem, interpreter.space, interpreter.metric) 
-                          for elem in original.elements]
+        original_values = [
+            decode_vector(elem, interpreter.space, interpreter.metric)
+            for elem in original.elements
+        ]
         assert original_values == [3.0, 1.0, 2.0]
-        
+
         # Check sorted list is correct
         sorted_list = interpreter.environment.lookup("sorted_list")
-        sorted_values = [decode_vector(elem, interpreter.space, interpreter.metric) 
-                        for elem in sorted_list.elements]
+        sorted_values = [
+            decode_vector(elem, interpreter.space, interpreter.metric)
+            for elem in sorted_list.elements
+        ]
         assert sorted_values == [1.0, 2.0, 3.0]
 
 
@@ -496,15 +540,18 @@ result is pop of my_list
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         # Popped value should be 3
-        result = decode_vector(interpreter.environment.lookup("result"), 
-                              interpreter.space, interpreter.metric)
+        result = decode_vector(
+            interpreter.environment.lookup("result"),
+            interpreter.space,
+            interpreter.metric,
+        )
         assert result == 3.0
-        
+
         # List should have original 2 elements
         my_list = interpreter.environment.lookup("my_list")
         assert len(my_list) == 2
@@ -523,18 +570,22 @@ second is pop of stack
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
-        top = decode_vector(interpreter.environment.lookup("top"), 
-                           interpreter.space, interpreter.metric)
-        second = decode_vector(interpreter.environment.lookup("second"), 
-                              interpreter.space, interpreter.metric)
-        
+
+        top = decode_vector(
+            interpreter.environment.lookup("top"), interpreter.space, interpreter.metric
+        )
+        second = decode_vector(
+            interpreter.environment.lookup("second"),
+            interpreter.space,
+            interpreter.metric,
+        )
+
         assert top == 3.0
         assert second == 2.0
-        
+
         stack = interpreter.environment.lookup("stack")
         assert len(stack) == 1
         value = decode_vector(stack.elements[0], interpreter.space, interpreter.metric)

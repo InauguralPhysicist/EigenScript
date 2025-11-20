@@ -10,12 +10,12 @@ from eigenscript.builtins import decode_vector
 
 class TestHigherOrderFunctions:
     """Test map, filter, and reduce operations."""
-    
+
     @pytest.fixture
     def interpreter(self):
         """Create interpreter instance for testing."""
         return Interpreter()
-    
+
     def test_map_double(self, interpreter):
         """Test map with doubling function."""
         code = """
@@ -27,16 +27,18 @@ result is map of [double, numbers]
 """
         result = interpreter.run(code)
         result_var = interpreter.environment.lookup("result")
-        
+
         # Check that result is a list
         assert isinstance(result_var, EigenList)
         assert len(result_var.elements) == 5
-        
+
         # Decode elements and verify
-        values = [decode_vector(elem, interpreter.space, interpreter.metric) 
-                  for elem in result_var.elements]
+        values = [
+            decode_vector(elem, interpreter.space, interpreter.metric)
+            for elem in result_var.elements
+        ]
         assert values == [2, 4, 6, 8, 10]
-    
+
     def test_map_square(self, interpreter):
         """Test map with squaring function."""
         code = """
@@ -48,16 +50,20 @@ result is map of [square, numbers]
 """
         interpreter.run(code)
         result = interpreter.environment.lookup("result")
-        
+
         from eigenscript.evaluator.interpreter import EigenList
+
         assert isinstance(result, EigenList)
         assert len(result.elements) == 5
-        
+
         from eigenscript.builtins import decode_vector
-        values = [decode_vector(elem, interpreter.space, interpreter.metric) 
-                  for elem in result.elements]
+
+        values = [
+            decode_vector(elem, interpreter.space, interpreter.metric)
+            for elem in result.elements
+        ]
         assert values == [1, 4, 9, 16, 25]
-    
+
     def test_filter_positive(self, interpreter):
         """Test filter with positive number check."""
         code = """
@@ -69,16 +75,20 @@ result is filter of [is_positive, numbers]
 """
         interpreter.run(code)
         result = interpreter.environment.lookup("result")
-        
+
         from eigenscript.evaluator.interpreter import EigenList
+
         assert isinstance(result, EigenList)
         assert len(result.elements) == 3
-        
+
         from eigenscript.builtins import decode_vector
-        values = [decode_vector(elem, interpreter.space, interpreter.metric) 
-                  for elem in result.elements]
+
+        values = [
+            decode_vector(elem, interpreter.space, interpreter.metric)
+            for elem in result.elements
+        ]
         assert values == [1, 2, 3]
-    
+
     def test_filter_greater_than_5(self, interpreter):
         """Test filter with threshold check."""
         code = """
@@ -90,16 +100,20 @@ result is filter of [greater_than_5, numbers]
 """
         interpreter.run(code)
         result = interpreter.environment.lookup("result")
-        
+
         from eigenscript.evaluator.interpreter import EigenList
+
         assert isinstance(result, EigenList)
         assert len(result.elements) == 5
-        
+
         from eigenscript.builtins import decode_vector
-        values = [decode_vector(elem, interpreter.space, interpreter.metric) 
-                  for elem in result.elements]
+
+        values = [
+            decode_vector(elem, interpreter.space, interpreter.metric)
+            for elem in result.elements
+        ]
         assert values == [6, 7, 8, 9, 10]
-    
+
     def test_reduce_sum(self, interpreter):
         """Test reduce with addition."""
         code = """
@@ -113,11 +127,12 @@ result is reduce of [add, numbers, 0]
 """
         interpreter.run(code)
         result = interpreter.environment.lookup("result")
-        
+
         from eigenscript.builtins import decode_vector
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 15
-    
+
     def test_reduce_product(self, interpreter):
         """Test reduce with multiplication."""
         code = """
@@ -131,11 +146,12 @@ result is reduce of [multiply, numbers, 1]
 """
         interpreter.run(code)
         result = interpreter.environment.lookup("result")
-        
+
         from eigenscript.builtins import decode_vector
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 120
-    
+
     def test_reduce_max(self, interpreter):
         """Test reduce to find maximum."""
         code = """
@@ -152,11 +168,12 @@ result is reduce of [max_of_two, numbers, 0]
 """
         interpreter.run(code)
         result = interpreter.environment.lookup("result")
-        
+
         from eigenscript.builtins import decode_vector
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 9
-    
+
     def test_map_empty_list(self, interpreter):
         """Test map with empty list."""
         code = """
@@ -168,11 +185,12 @@ result is map of [double, numbers]
 """
         interpreter.run(code)
         result = interpreter.environment.lookup("result")
-        
+
         from eigenscript.evaluator.interpreter import EigenList
+
         assert isinstance(result, EigenList)
         assert len(result.elements) == 0
-    
+
     def test_filter_empty_list(self, interpreter):
         """Test filter with empty list."""
         code = """
@@ -184,11 +202,12 @@ result is filter of [is_positive, numbers]
 """
         interpreter.run(code)
         result = interpreter.environment.lookup("result")
-        
+
         from eigenscript.evaluator.interpreter import EigenList
+
         assert isinstance(result, EigenList)
         assert len(result.elements) == 0
-    
+
     def test_filter_none_match(self, interpreter):
         """Test filter where no elements match."""
         code = """
@@ -200,11 +219,12 @@ result is filter of [greater_than_100, numbers]
 """
         interpreter.run(code)
         result = interpreter.environment.lookup("result")
-        
+
         from eigenscript.evaluator.interpreter import EigenList
+
         assert isinstance(result, EigenList)
         assert len(result.elements) == 0
-    
+
     def test_chained_operations(self, interpreter):
         """Test chaining map, filter, and reduce together."""
         code = """
@@ -226,14 +246,15 @@ sum is reduce of [add, doubled, 0]
 """
         interpreter.run(code)
         result = interpreter.environment.lookup("sum")
-        
+
         # positives: [1, 2, 3]
         # doubled: [2, 4, 6]
         # sum: 12
         from eigenscript.builtins import decode_vector
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 12
-    
+
     def test_map_with_builtin(self, interpreter):
         """Test map with a builtin function."""
         code = """
@@ -245,11 +266,12 @@ result is map of [make_string, numbers]
 """
         interpreter.run(code)
         result = interpreter.environment.lookup("result")
-        
+
         from eigenscript.evaluator.interpreter import EigenList
+
         assert isinstance(result, EigenList)
         assert len(result.elements) == 3
-    
+
     def test_map_error_not_function(self, interpreter):
         """Test map with non-function argument."""
         code = """
@@ -259,7 +281,7 @@ result is map of [not_a_function, numbers]
 """
         with pytest.raises(TypeError, match="First argument to map must be a function"):
             interpreter.run(code)
-    
+
     def test_map_error_not_list(self, interpreter):
         """Test map with non-list argument."""
         code = """
@@ -271,7 +293,7 @@ result is map of [double, not_a_list]
 """
         with pytest.raises(TypeError, match="Second argument to map must be a list"):
             interpreter.run(code)
-    
+
     def test_reduce_error_wrong_arg_count(self, interpreter):
         """Test reduce with wrong number of arguments."""
         code = """

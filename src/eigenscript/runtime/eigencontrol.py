@@ -16,7 +16,7 @@ Key Insight: Convergence occurs when I → 0, which makes κ → ∞
 """
 
 import numpy as np
-from typing import Tuple
+from typing import Tuple, List
 from eigenscript.semantic.lrvm import LRVMVector
 
 
@@ -82,7 +82,7 @@ class EigenControl:
         if self.radius > 1e-10:
             self.curvature = 1.0 / self.radius
         else:
-            self.curvature = float('inf')  # Perfectly conditioned
+            self.curvature = float("inf")  # Perfectly conditioned
         self.kappa = self.curvature  # Alias
 
     def has_converged(self, epsilon: float = 1e-6) -> bool:
@@ -107,11 +107,11 @@ class EigenControl:
             "well-conditioned", "moderately-conditioned", or "ill-conditioned"
         """
         if np.isinf(self.curvature) or self.curvature > 1e6:
-            return "well-conditioned"      # κ → ∞, tight problem
+            return "well-conditioned"  # κ → ∞, tight problem
         elif self.curvature > 1.0:
             return "moderately-conditioned"  # κ > 1, reasonable
         else:
-            return "ill-conditioned"        # κ < 1, flat problem
+            return "ill-conditioned"  # κ < 1, flat problem
 
     def get_framework_strength(self) -> float:
         """
@@ -137,11 +137,11 @@ class EigenControl:
             Dictionary with scaling relationships
         """
         return {
-            'invariant': f"I = {self.I:.4e}",
-            'radius': f"r ∝ I^(1/2) = {self.radius:.4e}",
-            'surface_area': f"S ∝ I = {self.surface_area:.4e}",
-            'volume': f"V ∝ I^(3/2) = {self.volume:.4e}",
-            'curvature': f"κ ∝ I^(-1/2) = {self.curvature:.4e}",
+            "invariant": f"I = {self.I:.4e}",
+            "radius": f"r ∝ I^(1/2) = {self.radius:.4e}",
+            "surface_area": f"S ∝ I = {self.surface_area:.4e}",
+            "volume": f"V ∝ I^(3/2) = {self.volume:.4e}",
+            "curvature": f"κ ∝ I^(-1/2) = {self.curvature:.4e}",
         }
 
     def __repr__(self) -> str:
@@ -176,7 +176,7 @@ class EigenControlTracker:
 
     def __init__(self):
         """Initialize empty trajectory."""
-        self.trajectory: list[EigenControl] = []
+        self.trajectory: List[EigenControl] = []
 
     def update(self, current: LRVMVector, target: LRVMVector) -> EigenControl:
         """
@@ -231,7 +231,7 @@ class EigenControlTracker:
         if len(self.trajectory) < 2:
             return 0.0, "stable"
 
-        recent = self.trajectory[-min(window, len(self.trajectory)):]
+        recent = self.trajectory[-min(window, len(self.trajectory)) :]
         radii = [eigen.radius for eigen in recent]
 
         # Compute average change
@@ -242,9 +242,9 @@ class EigenControlTracker:
         if avg_change < -1e-6:
             classification = "contracting"  # Converging
         elif avg_change > 1e-6:
-            classification = "expanding"    # Diverging
+            classification = "expanding"  # Diverging
         else:
-            classification = "stable"       # Equilibrium
+            classification = "stable"  # Equilibrium
 
         return avg_change, classification
 
@@ -261,9 +261,11 @@ class EigenControlTracker:
         if len(self.trajectory) < 2:
             return 0.0, "stable"
 
-        recent = self.trajectory[-min(window, len(self.trajectory)):]
+        recent = self.trajectory[-min(window, len(self.trajectory)) :]
         # Filter out infinite curvatures for trend analysis
-        curvatures = [eigen.curvature for eigen in recent if not np.isinf(eigen.curvature)]
+        curvatures = [
+            eigen.curvature for eigen in recent if not np.isinf(eigen.curvature)
+        ]
 
         if len(curvatures) < 2:
             return 0.0, "stable"
@@ -278,7 +280,7 @@ class EigenControlTracker:
         elif avg_change < -1e-3:
             classification = "decreasing"  # Worse conditioning
         else:
-            classification = "stable"      # Steady
+            classification = "stable"  # Steady
 
         return avg_change, classification
 
@@ -297,15 +299,15 @@ class EigenControlTracker:
         curvature_change, curvature_trend = self.get_curvature_trend()
 
         return {
-            'steps': len(self.trajectory),
-            'current_I': latest.I,
-            'current_r': latest.radius,
-            'current_kappa': latest.curvature,
-            'converged': self.has_converged(),
-            'radius_trend': radius_trend,
-            'curvature_trend': curvature_trend,
-            'conditioning': latest.get_conditioning(),
-            'framework_strength': latest.get_framework_strength(),
+            "steps": len(self.trajectory),
+            "current_I": latest.I,
+            "current_r": latest.radius,
+            "current_kappa": latest.curvature,
+            "converged": self.has_converged(),
+            "radius_trend": radius_trend,
+            "curvature_trend": curvature_trend,
+            "conditioning": latest.get_conditioning(),
+            "framework_strength": latest.get_framework_strength(),
         }
 
     def __repr__(self) -> str:

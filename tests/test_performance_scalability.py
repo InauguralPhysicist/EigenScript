@@ -15,24 +15,24 @@ import pytest
 def run_eigenscript_code(code: str, timeout: int = 60) -> tuple[int, str, str]:
     """
     Run EigenScript code and return exit code, stdout, stderr.
-    
+
     Args:
         code: EigenScript source code
         timeout: Maximum execution time in seconds
-        
+
     Returns:
         Tuple of (exit_code, stdout, stderr)
     """
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.eigs', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".eigs", delete=False) as f:
         f.write(code)
         temp_file = f.name
-    
+
     try:
         result = subprocess.run(
             ["python", "-m", "eigenscript", temp_file],
             capture_output=True,
             text=True,
-            timeout=timeout
+            timeout=timeout,
         )
         return result.returncode, result.stdout, result.stderr
     finally:
@@ -41,7 +41,7 @@ def run_eigenscript_code(code: str, timeout: int = 60) -> tuple[int, str, str]:
 
 class TestFactorialScalability:
     """Test factorial computation with various input sizes."""
-    
+
     def test_factorial_small(self):
         """Test factorial(5) - baseline test."""
         code = """
@@ -59,7 +59,7 @@ print of result
         exit_code, stdout, stderr = run_eigenscript_code(code, timeout=5)
         assert exit_code == 0, f"Failed: {stderr}"
         assert "120" in stdout
-    
+
     def test_factorial_limit_documented(self):
         """Document known limit on recursive factorial depth."""
         # Note: Recursive factorial appears to have practical limits around n=5-6
@@ -80,14 +80,14 @@ print of result
         exit_code, stdout, stderr = run_eigenscript_code(code, timeout=5)
         assert exit_code == 0
         assert "120" in stdout
-        
+
         # Larger values may return null due to computation depth limits
         # This is a known limitation of the current implementation
 
 
 class TestFibonacciScalability:
     """Test Fibonacci computation with various input sizes."""
-    
+
     def test_fibonacci_small(self):
         """Test fibonacci(5) - baseline test."""
         code = """
@@ -111,7 +111,7 @@ print of result
 
 class TestListScalability:
     """Test list operations with various sizes."""
-    
+
     def test_list_creation_small(self):
         """Test creating and summing a list of 100 elements."""
         code = """
@@ -134,7 +134,7 @@ print of sum
         assert exit_code == 0, f"Failed: {stderr}"
         # Sum of 0..99 = 4950
         assert "4950" in stdout
-    
+
     def test_list_creation_medium(self):
         """Test creating and summing a list of 1000 elements."""
         code = """
@@ -161,7 +161,7 @@ print of sum
 
 class TestRecursionDepth:
     """Test recursion depth limits."""
-    
+
     def test_recursion_depth_5(self):
         """Test recursion with depth 5 - baseline."""
         code = """
@@ -179,10 +179,10 @@ print of result
         exit_code, stdout, stderr = run_eigenscript_code(code, timeout=10)
         assert exit_code == 0, f"Failed: {stderr}"
         assert "5" in stdout
-    
+
     def test_recursion_depth_limits_documented(self):
         """Document known recursion depth limitations.
-        
+
         EigenScript's geometric semantic tracking appears to have practical
         limits on recursion depth. This is a known characteristic of the
         current tree-walking interpreter with LRVM semantic space tracking.
@@ -195,7 +195,7 @@ print of result
 
 class TestPerformanceDocumentation:
     """Document known performance characteristics."""
-    
+
     def test_performance_characteristics_documented(self):
         """Verify that performance characteristics are known and documented."""
         # This test documents what we've learned from other tests:
@@ -204,5 +204,5 @@ class TestPerformanceDocumentation:
         # 3. Exponential algorithms (naive fibonacci) are slow
         # 4. Deep recursion may hit limits around 500-1000 calls
         # 5. List operations scale reasonably for < 1000 elements
-        
+
         assert True  # Meta-test to document findings

@@ -26,11 +26,14 @@ class Function:
     Functions are timelike transformations stored with their definition
     and lexical closure.
     """
+
     name: str
     parameters: List[str]
     body: List[ASTNode]
     closure: "Environment"  # Captured environment
-    interpreter: Optional["UnifiedInterpreter"] = None  # Reference to interpreter for higher-order functions
+    interpreter: Optional["UnifiedInterpreter"] = (
+        None  # Reference to interpreter for higher-order functions
+    )
 
     def __repr__(self) -> str:
         return f"Function({self.name!r}, params={self.parameters})"
@@ -44,6 +47,7 @@ class EigenList:
     Lists are sequences of LRVM vectors or other EigenLists, allowing
     dynamic collections while maintaining geometric consistency.
     """
+
     elements: List[Union[LRVMVector, "EigenList"]]
 
     def __repr__(self) -> str:
@@ -51,23 +55,23 @@ class EigenList:
 
     def __len__(self) -> int:
         return len(self.elements)
-    
+
     def append(self, element: Union[LRVMVector, "EigenList"]) -> None:
         """
         Append an element to the end of the list.
-        
+
         Args:
             element: LRVM vector or EigenList to append
         """
         self.elements.append(element)
-    
+
     def pop(self) -> Union[LRVMVector, "EigenList"]:
         """
         Remove and return the last element from the list.
-        
+
         Returns:
             The last element (LRVM vector or EigenList)
-            
+
         Raises:
             IndexError: If the list is empty
         """
@@ -82,6 +86,7 @@ class ReturnValue(Exception):
 
     Raised when a RETURN statement is executed, carrying the return value.
     """
+
     def __init__(self, value: Union[LRVMVector, "EigenList"]):
         self.value = value
         super().__init__()
@@ -108,10 +113,14 @@ class Environment:
         Args:
             parent: Parent environment for nested scopes
         """
-        self.bindings: Dict[str, Union[LRVMVector, Function, BuiltinFunction, EigenList]] = {}
+        self.bindings: Dict[
+            str, Union[LRVMVector, Function, BuiltinFunction, EigenList]
+        ] = {}
         self.parent = parent
 
-    def bind(self, name: str, value: Union[LRVMVector, Function, BuiltinFunction, EigenList]) -> None:
+    def bind(
+        self, name: str, value: Union[LRVMVector, Function, BuiltinFunction, EigenList]
+    ) -> None:
         """
         Create an immutable binding.
 
@@ -124,7 +133,9 @@ class Environment:
         """
         self.bindings[name] = value
 
-    def lookup(self, name: str) -> Union[LRVMVector, Function, BuiltinFunction, EigenList]:
+    def lookup(
+        self, name: str
+    ) -> Union[LRVMVector, Function, BuiltinFunction, EigenList]:
         """
         Resolve a variable to its value.
 
@@ -202,7 +213,7 @@ class Interpreter:
 
         # Special lightlike OF vector
         self._of_vector = self._create_of_vector()
-        
+
         # Load built-in functions into environment
         builtins = get_builtins(self.space)
         for name, builtin_func in builtins.items():
@@ -217,7 +228,7 @@ class Interpreter:
         For different metric signatures:
         - Minkowski (-,+,+,+): Use (1,1,0,...) where -1²+1²=0 (lightlike)
         - Euclidean (+,+,+,+): Only zero vector has norm 0
-        
+
         The choice of lightlike vector is geometrically correct for each metric type.
         In Euclidean space, the zero vector is the unique lightlike vector.
 
@@ -240,16 +251,16 @@ class Interpreter:
     def run(self, source: str) -> Union[LRVMVector, EigenList]:
         """
         Convenience method to parse and evaluate source code.
-        
+
         Args:
             source: EigenScript source code string
-            
+
         Returns:
             Result of evaluating the program
         """
         from eigenscript.lexer import Tokenizer
         from eigenscript.parser import Parser
-        
+
         tokenizer = Tokenizer(source)
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
@@ -396,7 +407,7 @@ class Interpreter:
         # Special handling for AND/OR: evaluate left first for short-circuit
         # Initialize right to None for type checker
         right: Optional[Value] = None
-        
+
         if node.operator in ("and", "or"):
             left = self.evaluate(node.left)
             # Right will be evaluated conditionally in the operator handlers
@@ -404,17 +415,23 @@ class Interpreter:
             # For all other operators, evaluate both operands
             left = self.evaluate(node.left)
             right = self.evaluate(node.right)
-            
+
             # Ensure both operands are vectors (not lists) for arithmetic/comparison operations
             # Note: equality operators (=, !=) allow lists for list comparison
             if node.operator in ("+", "-", "*", "/", "%", "<", ">", "<=", ">="):
                 if isinstance(left, EigenList) or isinstance(right, EigenList):
                     # Special case: string concatenation with +
-                    if node.operator == "+" and isinstance(left, LRVMVector) and isinstance(right, LRVMVector):
+                    if (
+                        node.operator == "+"
+                        and isinstance(left, LRVMVector)
+                        and isinstance(right, LRVMVector)
+                    ):
                         # Will be handled below in string concatenation
                         pass
                     else:
-                        raise TypeError(f"Operator '{node.operator}' requires vector operands, not lists")
+                        raise TypeError(
+                            f"Operator '{node.operator}' requires vector operands, not lists"
+                        )
 
         if node.operator == "+":
             # right must be defined for arithmetic operators
@@ -424,12 +441,12 @@ class Interpreter:
             if isinstance(left, LRVMVector) and isinstance(right, LRVMVector):
                 left_str = left.metadata.get("string_value")
                 right_str = right.metadata.get("string_value")
-                
+
                 if left_str is not None and right_str is not None:
                     # String concatenation: combine strings and re-embed
                     result_str = left_str + right_str
                     return self.space.embed_string(result_str)
-            
+
             # Numeric addition: additive equilibrium composition
             # ‖a+b‖² = ‖a‖² + ‖b‖² + 2(a^T g b)
             # At this point both must be LRVMVector due to type check above
@@ -469,7 +486,7 @@ class Interpreter:
             assert right is not None, "Right operand must be evaluated for ="
             # Equality: IS operator (equilibrium test)
             # Returns 1 if equal, 0 otherwise (as embedded scalar)
-            
+
             # Handle list equality
             if isinstance(left, EigenList) and isinstance(right, EigenList):
                 # Lists are equal if they have same length and all elements are equal
@@ -480,7 +497,9 @@ class Interpreter:
                     elem_left = left.elements[i]
                     elem_right = right.elements[i]
                     # Both must be vectors for comparison
-                    if isinstance(elem_left, EigenList) or isinstance(elem_right, EigenList):
+                    if isinstance(elem_left, EigenList) or isinstance(
+                        elem_right, EigenList
+                    ):
                         # Nested lists not supported for equality yet
                         return self.space.embed_scalar(0.0)
                     if not self.space.is_operator(elem_left, elem_right, self.metric.g):
@@ -540,7 +559,7 @@ class Interpreter:
             # right must be defined for equality operators
             assert right is not None, "Right operand must be evaluated for !="
             # Not equal: inverse equality equilibrium
-            
+
             # Handle list inequality
             if isinstance(left, EigenList) and isinstance(right, EigenList):
                 # Lists are not equal if they have different length or any element differs
@@ -551,7 +570,9 @@ class Interpreter:
                     elem_left = left.elements[i]
                     elem_right = right.elements[i]
                     # Both must be vectors for comparison
-                    if isinstance(elem_left, EigenList) or isinstance(elem_right, EigenList):
+                    if isinstance(elem_left, EigenList) or isinstance(
+                        elem_right, EigenList
+                    ):
                         # Nested lists not supported for equality yet
                         return self.space.embed_scalar(1.0)
                     if not self.space.is_operator(elem_left, elem_right, self.metric.g):
@@ -581,19 +602,23 @@ class Interpreter:
             # Logical AND: conjunction equilibrium with short-circuit evaluation
             # Evaluate left first
             if isinstance(left, EigenList):
-                raise TypeError("Logical operator 'and' requires vector operands, not lists")
+                raise TypeError(
+                    "Logical operator 'and' requires vector operands, not lists"
+                )
             left_val = left.coords[0]
-            
+
             # Short-circuit: if left is false, return false without evaluating right
             if abs(left_val) < 1e-10:
                 return self.space.embed_scalar(0.0)
-            
+
             # Left is true, evaluate right
             right = self.evaluate(node.right)
             if isinstance(right, EigenList):
-                raise TypeError("Logical operator 'and' requires vector operands, not lists")
+                raise TypeError(
+                    "Logical operator 'and' requires vector operands, not lists"
+                )
             right_val = right.coords[0]
-            
+
             # Return true only if right is also true
             result = 1.0 if abs(right_val) > 1e-10 else 0.0
             return self.space.embed_scalar(result)
@@ -602,19 +627,23 @@ class Interpreter:
             # Logical OR: disjunction equilibrium with short-circuit evaluation
             # Evaluate left first
             if isinstance(left, EigenList):
-                raise TypeError("Logical operator 'or' requires vector operands, not lists")
+                raise TypeError(
+                    "Logical operator 'or' requires vector operands, not lists"
+                )
             left_val = left.coords[0]
-            
+
             # Short-circuit: if left is true, return true without evaluating right
             if abs(left_val) > 1e-10:
                 return self.space.embed_scalar(1.0)
-            
+
             # Left is false, evaluate right
             right = self.evaluate(node.right)
             if isinstance(right, EigenList):
-                raise TypeError("Logical operator 'or' requires vector operands, not lists")
+                raise TypeError(
+                    "Logical operator 'or' requires vector operands, not lists"
+                )
             right_val = right.coords[0]
-            
+
             # Return true if right is true
             result = 1.0 if abs(right_val) > 1e-10 else 0.0
             return self.space.embed_scalar(result)
@@ -638,8 +667,10 @@ class Interpreter:
         if node.operator == "not":
             # Ensure operand is a vector, not a list
             if isinstance(operand, EigenList):
-                raise TypeError("Unary operator 'not' requires vector operand, not list")
-            
+                raise TypeError(
+                    "Unary operator 'not' requires vector operand, not list"
+                )
+
             # Get the boolean value (first coordinate)
             value = operand.coords[0]
 
@@ -736,10 +767,12 @@ class Interpreter:
         # Create function object with current environment as closure
         func = Function(
             name=node.name,
-            parameters=node.parameters if node.parameters else ["n"],  # Default parameter name
+            parameters=(
+                node.parameters if node.parameters else ["n"]
+            ),  # Default parameter name
             body=node.body,
             closure=self.environment,
-            interpreter=self  # Store interpreter reference for higher-order functions
+            interpreter=self,  # Store interpreter reference for higher-order functions
         )
 
         # Bind function in environment
@@ -793,7 +826,7 @@ class Interpreter:
             elem_value = self.evaluate(elem)
             # Store values directly - supports both vectors and nested lists
             evaluated_elements.append(elem_value)
-        
+
         return EigenList(evaluated_elements)
 
     def _eval_list_comprehension(self, node: "ListComprehension") -> EigenList:
@@ -806,53 +839,57 @@ class Interpreter:
         - The comprehension transforms each element in semantic spacetime
         - Optional filter creates a constraint manifold
         - Result is a new trajectory through LRVM space
-        
+
         Example:
             [x * 2 for x in numbers]
             [x for x in numbers if x > 0]
         """
         # Evaluate the iterable expression
         iterable_value = self.evaluate(node.iterable)
-        
+
         # Ensure it's a list
         if not isinstance(iterable_value, EigenList):
-            raise TypeError(f"List comprehension requires iterable to be a list, got {type(iterable_value).__name__}")
-        
+            raise TypeError(
+                f"List comprehension requires iterable to be a list, got {type(iterable_value).__name__}"
+            )
+
         # Result accumulator
         result_elements = []
-        
+
         # Create a new environment for the loop variable (lexical scope)
         old_env = self.environment
         self.environment = Environment(parent=old_env)
-        
+
         try:
             # Iterate over each element in the iterable
             for element in iterable_value.elements:
                 # Bind loop variable to current element
                 self.environment.bind(node.variable, element)
-                
+
                 # Evaluate optional filter condition
                 if node.condition is not None:
                     condition_value = self.evaluate(node.condition)
-                    
+
                     # Condition must be a vector (boolean check via first coordinate)
                     if isinstance(condition_value, EigenList):
-                        raise TypeError("List comprehension condition requires vector, not list")
-                    
+                        raise TypeError(
+                            "List comprehension condition requires vector, not list"
+                        )
+
                     # Check if condition is true (using same logic as conditionals)
                     # For comparison results, first coordinate is 0.0 (false) or 1.0 (true)
                     if abs(condition_value.coords[0]) <= 1e-10:
                         continue  # Skip this element (filter out)
-                
+
                 # Evaluate the expression for this element
                 expr_value = self.evaluate(node.expression)
-                
+
                 # Collect the result
                 result_elements.append(expr_value)
         finally:
             # Restore original environment
             self.environment = old_env
-        
+
         return EigenList(result_elements)
 
     def _eval_index(self, node: Index) -> Value:
@@ -878,10 +915,13 @@ class Interpreter:
 
         # Decode the index to an integer
         from eigenscript.builtins import decode_vector
+
         decoded_index = decode_vector(index_value, self.space, self.metric)
 
         if not isinstance(decoded_index, (int, float)):
-            raise TypeError(f"Index must be a number, got {type(decoded_index).__name__}")
+            raise TypeError(
+                f"Index must be a number, got {type(decoded_index).__name__}"
+            )
 
         index = int(decoded_index)
 
@@ -889,23 +929,30 @@ class Interpreter:
         if isinstance(indexed_value, EigenList):
             # Check bounds
             if index < 0 or index >= len(indexed_value.elements):
-                raise IndexError(f"List index {index} out of range (list has {len(indexed_value.elements)} elements)")
+                raise IndexError(
+                    f"List index {index} out of range (list has {len(indexed_value.elements)} elements)"
+                )
 
             # Return the element
             return indexed_value.elements[index]
-        
+
         # Check if indexed_value is a string (has string_value metadata)
-        elif isinstance(indexed_value, LRVMVector) and "string_value" in indexed_value.metadata:
+        elif (
+            isinstance(indexed_value, LRVMVector)
+            and "string_value" in indexed_value.metadata
+        ):
             string_val = indexed_value.metadata["string_value"]
-            
+
             # Check bounds
             if index < 0 or index >= len(string_val):
-                raise IndexError(f"String index {index} out of range (string has {len(string_val)} characters)")
-            
+                raise IndexError(
+                    f"String index {index} out of range (string has {len(string_val)} characters)"
+                )
+
             # Return the character at index as a new string
             char = string_val[index]
             return self.space.embed_string(char)
-        
+
         else:
             raise TypeError(f"Cannot index into non-list/non-string type")
 
@@ -930,7 +977,7 @@ class Interpreter:
 
         # Evaluate start and end indices
         from eigenscript.builtins import decode_vector
-        
+
         start_index = None
         end_index = None
 
@@ -940,7 +987,9 @@ class Interpreter:
                 raise TypeError("Slice index must be a number, not a list")
             decoded_start = decode_vector(start_val, self.space, self.metric)
             if not isinstance(decoded_start, (int, float)):
-                raise TypeError(f"Slice start must be a number, got {type(decoded_start).__name__}")
+                raise TypeError(
+                    f"Slice start must be a number, got {type(decoded_start).__name__}"
+                )
             start_index = int(decoded_start)
 
         if node.end is not None:
@@ -949,7 +998,9 @@ class Interpreter:
                 raise TypeError("Slice index must be a number, not a list")
             decoded_end = decode_vector(end_val, self.space, self.metric)
             if not isinstance(decoded_end, (int, float)):
-                raise TypeError(f"Slice end must be a number, got {type(decoded_end).__name__}")
+                raise TypeError(
+                    f"Slice end must be a number, got {type(decoded_end).__name__}"
+                )
             end_index = int(decoded_end)
 
         # Handle list slicing
@@ -958,16 +1009,21 @@ class Interpreter:
             sliced_elements = sliced_value.elements[start_index:end_index]
             return EigenList(sliced_elements)
         # Handle string slicing
-        elif isinstance(sliced_value, LRVMVector) and "string_value" in sliced_value.metadata:
+        elif (
+            isinstance(sliced_value, LRVMVector)
+            and "string_value" in sliced_value.metadata
+        ):
             string_val = sliced_value.metadata["string_value"]
-            
+
             # Apply Python slicing rules
             sliced_str = string_val[start_index:end_index]
             return self.space.embed_string(sliced_str)
         else:
             raise TypeError(f"Cannot slice non-list/non-string type")
 
-    def _eval_identifier(self, node: Identifier) -> Union[Value, Function, BuiltinFunction]:
+    def _eval_identifier(
+        self, node: Identifier
+    ) -> Union[Value, Function, BuiltinFunction]:
         """
         Evaluate an identifier (variable lookup or semantic predicate).
 
@@ -1015,6 +1071,7 @@ class Interpreter:
                 recent = self.fs_tracker.trajectory[-2:]
                 # Compute radii
                 from eigenscript.runtime.eigencontrol import EigenControl
+
                 r1 = np.sqrt(np.dot(recent[0].coords, recent[0].coords))
                 r2 = np.sqrt(np.dot(recent[1].coords, recent[1].coords))
                 result = 1.0 if r2 < r1 else 0.0
@@ -1152,7 +1209,7 @@ class Interpreter:
         else:
             raise RuntimeError(f"Unknown interrogative: {interrogative}")
 
-    def _eval_block(self, statements: list[ASTNode]) -> Value:
+    def _eval_block(self, statements: List[ASTNode]) -> Value:
         """
         Evaluate a block of statements.
 
@@ -1239,7 +1296,9 @@ class Interpreter:
                 # Track sign changes in coordinate deltas to detect paradoxical loops
                 if trajectory_len >= 5:
                     # Compute deltas from first coordinate of trajectory
-                    values = [state.coords[0] for state in self.fs_tracker.trajectory[-5:]]
+                    values = [
+                        state.coords[0] for state in self.fs_tracker.trajectory[-5:]
+                    ]
                     deltas = np.diff(values)
 
                     if len(deltas) > 1:
@@ -1273,7 +1332,7 @@ class Interpreter:
             param_name = "n"  # Default parameter name
 
         func_env.bind(param_name, arg_value)
-        
+
         # Also bind under 'arg' for compatibility with tests that use 'arg'
         # This allows functions to use either 'n' or 'arg' as the implicit parameter
         if param_name == "n":
@@ -1333,7 +1392,9 @@ class Interpreter:
         """
         return self.fs_tracker.has_converged(threshold)
 
-    def get_spacetime_signature(self, window: int = 10, epsilon: float = 1e-6) -> tuple[float, str]:
+    def get_spacetime_signature(
+        self, window: int = 10, epsilon: float = 1e-6
+    ) -> tuple[float, str]:
         """
         Compute spacetime signature S² - C² inspired by Eigen-Geometric-Control.
 
@@ -1370,7 +1431,9 @@ class Interpreter:
         recent_states = self.fs_tracker.trajectory[-recent_count:]
 
         # Extract coordinate arrays (filter out any non-vectors)
-        valid_states = [state for state in recent_states if isinstance(state, LRVMVector)]
+        valid_states = [
+            state for state in recent_states if isinstance(state, LRVMVector)
+        ]
         if len(valid_states) < 2:
             return 0.0, "lightlike"
         coords_array = np.array([state.coords for state in valid_states])
@@ -1379,18 +1442,18 @@ class Interpreter:
         variances = np.var(coords_array, axis=0)
 
         # Count stable vs changing dimensions
-        S = int(np.sum(variances < epsilon))      # Stable count
-        C = int(np.sum(variances >= epsilon))     # Changing count
+        S = int(np.sum(variances < epsilon))  # Stable count
+        C = int(np.sum(variances >= epsilon))  # Changing count
 
         # Compute spacetime signature
         signature = S**2 - C**2
 
         # Classify
         if signature > 0:
-            classification = "timelike"     # Converged, stable
+            classification = "timelike"  # Converged, stable
         elif signature == 0:
-            classification = "lightlike"    # Boundary state
+            classification = "lightlike"  # Boundary state
         else:  # signature < 0
-            classification = "spacelike"    # Exploring, unstable
+            classification = "spacelike"  # Exploring, unstable
 
         return float(signature), classification

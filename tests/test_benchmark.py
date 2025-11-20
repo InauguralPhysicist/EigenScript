@@ -227,9 +227,7 @@ class TestCompareBenchmarks:
 
     def test_single_result(self):
         """Test comparison with single result."""
-        results = {
-            "test1": BenchmarkResult(execution_time=0.5, peak_memory=1024)
-        }
+        results = {"test1": BenchmarkResult(execution_time=0.5, peak_memory=1024)}
         output = compare_benchmarks(results)
         assert "Benchmark Comparison" in output
         assert "test1" in output
@@ -285,6 +283,15 @@ class TestCompareBenchmarks:
         output = compare_benchmarks(results)
         lines = output.split("\n")
         # Find the data lines (skip headers)
-        data_lines = [l for l in lines if l and not l.startswith("=") and not l.startswith("-") and "Name" not in l and "Benchmark" not in l and "Fastest" not in l]
+        data_lines = [
+            l
+            for l in lines
+            if l
+            and not l.startswith("=")
+            and not l.startswith("-")
+            and "Name" not in l
+            and "Benchmark" not in l
+            and "Fastest" not in l
+        ]
         # First result should be 'a' (fastest)
         assert "a" in data_lines[0]

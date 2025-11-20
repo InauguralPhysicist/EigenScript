@@ -6,6 +6,7 @@ It is used to compute norms, distances, and contractions (the OF operator).
 """
 
 import numpy as np
+from typing import List
 from eigenscript.semantic.lrvm import LRVMVector
 
 
@@ -173,7 +174,7 @@ class MetricTensor:
         return v1.distance(v2, self.g)
 
     def parallel_transport(
-        self, vector: LRVMVector, path: list[LRVMVector]
+        self, vector: LRVMVector, path: List[LRVMVector]
     ) -> LRVMVector:
         """
         Parallel transport a vector along a geodesic path.
@@ -191,11 +192,11 @@ class MetricTensor:
         Note:
             For flat metrics (Euclidean, Minkowski), parallel transport is trivial -
             the vector remains unchanged along any path. This is geometrically correct.
-            
+
             Curved metrics (e.g., Schwarzschild, FLRW) are not currently supported
             and would require implementing the parallel transport equation with
             Christoffel symbols. This is planned for Phase 6+ as an advanced feature.
-            
+
         Supported metrics:
             - euclidean: Flat positive-definite metric (production)
             - minkowski: Flat Lorentzian metric (research/experimental)
@@ -211,7 +212,7 @@ class MetricTensor:
 
     def geodesic(
         self, start: LRVMVector, end: LRVMVector, steps: int = 10
-    ) -> list[LRVMVector]:
+    ) -> List[LRVMVector]:
         """
         Compute geodesic (shortest path) between two points.
 

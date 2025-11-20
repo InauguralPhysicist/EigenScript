@@ -21,10 +21,10 @@ class TestNotOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 0.0
 
@@ -35,10 +35,10 @@ class TestNotOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -49,10 +49,10 @@ class TestNotOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -63,10 +63,10 @@ class TestNotOperator:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 0.0
 
@@ -87,10 +87,10 @@ else:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result_vector = interpreter.environment.lookup("result")
         value = decode_vector(result_vector, interpreter.space, interpreter.metric)
         assert value == 100
@@ -108,10 +108,10 @@ else:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result_vector = interpreter.environment.lookup("result")
         value = decode_vector(result_vector, interpreter.space, interpreter.metric)
         assert value == 200
@@ -127,10 +127,10 @@ class TestDoubleNegation:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -141,10 +141,10 @@ class TestDoubleNegation:
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 0.0
 
@@ -162,10 +162,10 @@ not (len of numbers = 3)
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -179,10 +179,10 @@ not (values[0] = 20)
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         result = interpreter.evaluate(ast)
-        
+
         value = decode_vector(result, interpreter.space, interpreter.metric)
         assert value == 1.0
 
@@ -200,10 +200,10 @@ result is not (x = 100)
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         result_vector = interpreter.environment.lookup("result")
         value = decode_vector(result_vector, interpreter.space, interpreter.metric)
         assert value == 1.0
@@ -221,10 +221,10 @@ loop while not (i > 2):
         tokens = tokenizer.tokenize()
         parser = Parser(tokens)
         ast = parser.parse()
-        
+
         interpreter = Interpreter()
         interpreter.evaluate(ast)
-        
+
         count_vector = interpreter.environment.lookup("count")
         value = decode_vector(count_vector, interpreter.space, interpreter.metric)
         assert value == 3

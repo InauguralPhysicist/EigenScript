@@ -196,7 +196,9 @@ class Tokenizer:
                 continue
 
             # Numbers
-            if char.isdigit() or (char == "-" and self.peek_char() and self.peek_char().isdigit()):
+            if char.isdigit() or (
+                char == "-" and self.peek_char() and self.peek_char().isdigit()
+            ):
                 self.tokens.append(self.read_number())
                 continue
 
@@ -216,65 +218,101 @@ class Tokenizer:
 
             if char == ":":
                 self.advance()
-                self.tokens.append(Token(TokenType.COLON, line=start_line, column=start_col))
+                self.tokens.append(
+                    Token(TokenType.COLON, line=start_line, column=start_col)
+                )
             elif char == ",":
                 self.advance()
-                self.tokens.append(Token(TokenType.COMMA, line=start_line, column=start_col))
+                self.tokens.append(
+                    Token(TokenType.COMMA, line=start_line, column=start_col)
+                )
             elif char == "(":
                 self.advance()
-                self.tokens.append(Token(TokenType.LPAREN, line=start_line, column=start_col))
+                self.tokens.append(
+                    Token(TokenType.LPAREN, line=start_line, column=start_col)
+                )
             elif char == ")":
                 self.advance()
-                self.tokens.append(Token(TokenType.RPAREN, line=start_line, column=start_col))
+                self.tokens.append(
+                    Token(TokenType.RPAREN, line=start_line, column=start_col)
+                )
             elif char == "[":
                 self.advance()
-                self.tokens.append(Token(TokenType.LBRACKET, line=start_line, column=start_col))
+                self.tokens.append(
+                    Token(TokenType.LBRACKET, line=start_line, column=start_col)
+                )
             elif char == "]":
                 self.advance()
-                self.tokens.append(Token(TokenType.RBRACKET, line=start_line, column=start_col))
+                self.tokens.append(
+                    Token(TokenType.RBRACKET, line=start_line, column=start_col)
+                )
             # Arithmetic operators
             elif char == "+":
                 self.advance()
-                self.tokens.append(Token(TokenType.PLUS, line=start_line, column=start_col))
+                self.tokens.append(
+                    Token(TokenType.PLUS, line=start_line, column=start_col)
+                )
             elif char == "-" and not (self.peek_char() and self.peek_char().isdigit()):
                 # Only treat as operator if not start of negative number
                 self.advance()
-                self.tokens.append(Token(TokenType.MINUS, line=start_line, column=start_col))
+                self.tokens.append(
+                    Token(TokenType.MINUS, line=start_line, column=start_col)
+                )
             elif char == "*":
                 self.advance()
-                self.tokens.append(Token(TokenType.MULTIPLY, line=start_line, column=start_col))
+                self.tokens.append(
+                    Token(TokenType.MULTIPLY, line=start_line, column=start_col)
+                )
             elif char == "/":
                 self.advance()
-                self.tokens.append(Token(TokenType.DIVIDE, line=start_line, column=start_col))
+                self.tokens.append(
+                    Token(TokenType.DIVIDE, line=start_line, column=start_col)
+                )
             elif char == "%":
                 self.advance()
-                self.tokens.append(Token(TokenType.MODULO, line=start_line, column=start_col))
+                self.tokens.append(
+                    Token(TokenType.MODULO, line=start_line, column=start_col)
+                )
             elif char == "!":
                 self.advance()
                 if self.current_char() == "=":
                     self.advance()
-                    self.tokens.append(Token(TokenType.NOT_EQUAL, line=start_line, column=start_col))
+                    self.tokens.append(
+                        Token(TokenType.NOT_EQUAL, line=start_line, column=start_col)
+                    )
                 else:
                     raise SyntaxError(
                         f"Unexpected character '!' at line {start_line}, column {start_col}. Did you mean 'not' or '!='?"
                     )
             elif char == "=":
                 self.advance()
-                self.tokens.append(Token(TokenType.EQUALS, line=start_line, column=start_col))
+                self.tokens.append(
+                    Token(TokenType.EQUALS, line=start_line, column=start_col)
+                )
             elif char == "<":
                 self.advance()
                 if self.current_char() == "=":
                     self.advance()
-                    self.tokens.append(Token(TokenType.LESS_EQUAL, line=start_line, column=start_col))
+                    self.tokens.append(
+                        Token(TokenType.LESS_EQUAL, line=start_line, column=start_col)
+                    )
                 else:
-                    self.tokens.append(Token(TokenType.LESS_THAN, line=start_line, column=start_col))
+                    self.tokens.append(
+                        Token(TokenType.LESS_THAN, line=start_line, column=start_col)
+                    )
             elif char == ">":
                 self.advance()
                 if self.current_char() == "=":
                     self.advance()
-                    self.tokens.append(Token(TokenType.GREATER_EQUAL, line=start_line, column=start_col))
+                    self.tokens.append(
+                        Token(
+                            TokenType.GREATER_EQUAL, line=start_line, column=start_col
+                        )
+                    )
                 else:
-                    self.tokens.append(Token(TokenType.GREATER_THAN, line=start_line, column=start_col))
+                    self.tokens.append(
+                        Token(TokenType.GREATER_THAN, line=start_line, column=start_col)
+                    )
             else:
                 raise SyntaxError(
                     f"Unexpected character '{char}' at line {self.line}, column {self.column}"
@@ -283,7 +321,9 @@ class Tokenizer:
         # Close any remaining indentation levels
         while len(self.indent_stack) > 1:
             self.indent_stack.pop()
-            self.tokens.append(Token(TokenType.DEDENT, line=self.line, column=self.column))
+            self.tokens.append(
+                Token(TokenType.DEDENT, line=self.line, column=self.column)
+            )
 
         # Add EOF token
         self.tokens.append(Token(TokenType.EOF, line=self.line, column=self.column))
@@ -349,7 +389,11 @@ class Tokenizer:
             num_str += self.advance()
 
         # Check for decimal point
-        if self.current_char() == "." and self.peek_char() and self.peek_char().isdigit():
+        if (
+            self.current_char() == "."
+            and self.peek_char()
+            and self.peek_char().isdigit()
+        ):
             num_str += self.advance()  # Add the '.'
             while self.current_char() and self.current_char().isdigit():
                 num_str += self.advance()
@@ -384,7 +428,9 @@ class Tokenizer:
                 self.advance()
                 next_char = self.current_char()
                 if next_char is None:
-                    raise SyntaxError(f"Unterminated string at line {start_line}, column {start_col}")
+                    raise SyntaxError(
+                        f"Unterminated string at line {start_line}, column {start_col}"
+                    )
 
                 # Common escape sequences
                 escape_map = {
@@ -402,7 +448,9 @@ class Tokenizer:
 
         # Consume closing quote
         if self.current_char() != quote_char:
-            raise SyntaxError(f"Unterminated string at line {start_line}, column {start_col}")
+            raise SyntaxError(
+                f"Unterminated string at line {start_line}, column {start_col}"
+            )
         self.advance()
 
         return Token(TokenType.STRING, value, start_line, start_col)
@@ -430,7 +478,9 @@ class Tokenizer:
         # Check if it's a keyword
         identifier_lower = identifier.lower()
         if identifier_lower in self.KEYWORDS:
-            return Token(self.KEYWORDS[identifier_lower], line=start_line, column=start_col)
+            return Token(
+                self.KEYWORDS[identifier_lower], line=start_line, column=start_col
+            )
 
         # It's a regular identifier
         return Token(TokenType.IDENTIFIER, identifier, start_line, start_col)
