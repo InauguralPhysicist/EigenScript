@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from eigenscript.parser.ast_builder import *
 from eigenscript.semantic.lrvm import LRVMVector, LRVMSpace
 from eigenscript.semantic.metric import MetricTensor
-from eigenscript.runtime.framework_strength import FrameworkStrengthTracker
+from eigenscript.runtime.eigencontrol import EigenControlTracker
 from eigenscript.builtins import BuiltinFunction, get_builtins
 
 # Type alias for values that can flow through the interpreter
@@ -202,7 +202,7 @@ class Interpreter:
 
         # Runtime state
         self.environment = Environment()
-        self.fs_tracker = FrameworkStrengthTracker()
+        self.fs_tracker = EigenControlTracker()  # ← The One True Engine
         self.max_iterations = max_iterations
 
         # Convergence detection
@@ -1069,11 +1069,9 @@ class Interpreter:
             # Check if trajectory is contracting (radius decreasing)
             if self.fs_tracker.get_trajectory_length() >= 2:
                 recent = self.fs_tracker.trajectory[-2:]
-                # Compute radii
-                from eigenscript.runtime.eigencontrol import EigenControl
-
-                r1 = np.sqrt(np.dot(recent[0].coords, recent[0].coords))
-                r2 = np.sqrt(np.dot(recent[1].coords, recent[1].coords))
+                # Get radii directly from EigenControl objects
+                r1 = recent[0].radius
+                r2 = recent[1].radius
                 result = 1.0 if r2 < r1 else 0.0
             else:
                 result = 0.0
@@ -1082,7 +1080,7 @@ class Interpreter:
         elif name_lower == "oscillating":
             # Check for oscillation pattern
             if self.fs_tracker.get_trajectory_length() >= 5:
-                values = [state.coords[0] for state in self.fs_tracker.trajectory[-5:]]
+                values = [eigen.A.coords[0] for eigen in self.fs_tracker.trajectory[-5:]]
                 deltas = np.diff(values)
                 if len(deltas) > 1:
                     sign_changes = np.sum(np.diff(np.sign(deltas)) != 0)
@@ -1170,7 +1168,7 @@ class Interpreter:
             if self.fs_tracker.get_trajectory_length() >= 2:
                 recent = self.fs_tracker.trajectory[-2:]
                 # Direction vector: where we're going minus where we were
-                direction = recent[1].subtract(recent[0])
+                direction = recent[1].A.subtract(recent[0].A)
                 # Normalize to unit direction
                 norm = np.sqrt(np.dot(direction.coords, direction.coords))
                 if norm > 1e-10:
@@ -1185,13 +1183,9 @@ class Interpreter:
             # Return Framework Strength as measure of "how well" the process is working
             fs = self.fs_tracker.compute_fs()
 
-            # Also compute additional process metrics
-            from eigenscript.runtime.eigencontrol import EigenControl
-
-            # If we have trajectory, compute EigenControl geometry
-            if self.fs_tracker.get_trajectory_length() >= 2:
-                recent = self.fs_tracker.trajectory[-2:]
-                eigen = EigenControl(recent[-1], recent[-2])
+            # If we have trajectory, get EigenControl geometry directly
+            if self.fs_tracker.get_trajectory_length() >= 1:
+                eigen = self.fs_tracker.get_latest()
 
                 # Create a rich "how" response with multiple metrics
                 # Embed as a structured description
@@ -1268,55 +1262,10 @@ class Interpreter:
             if isinstance(arg_value, LRVMVector):
                 self.fs_tracker.update(arg_value)
 
-            fs = self.fs_tracker.compute_fs()
-
-            # Detect convergence via multiple criteria (inspired by EigenFunction):
-            # 1. High Framework Strength (FS > threshold)
-            # 2. Fixed-point loop detection (low variance)
-            # 3. Oscillation pattern detection (paradox/divergence indicator)
-            converged = False
-            variance = 0.0
-            oscillation_score = 0.0
-
-            if fs >= self.convergence_threshold:
-                converged = True
-            elif self.recursion_depth > 5:  # Deep enough to detect patterns
-                trajectory_len = self.fs_tracker.get_trajectory_length()
-                if trajectory_len >= 3:
-                    # Check variance of recent states to detect cycles
-                    recent_states = self.fs_tracker.trajectory[-3:]
-                    coords = np.array([s.coords for s in recent_states])
-                    variance = float(np.var(coords))
-
-                    # Low variance indicates a fixed-point or cycle
-                    if variance < 1e-6:
-                        converged = True
-
-                # Oscillation detection (EigenFunction-inspired)
-                # Track sign changes in coordinate deltas to detect paradoxical loops
-                if trajectory_len >= 5:
-                    # Compute deltas from first coordinate of trajectory
-                    values = [
-                        state.coords[0] for state in self.fs_tracker.trajectory[-5:]
-                    ]
-                    deltas = np.diff(values)
-
-                    if len(deltas) > 1:
-                        # Count sign changes (oscillation indicator)
-                        sign_changes = np.sum(np.diff(np.sign(deltas)) != 0)
-                        oscillation_score = sign_changes / len(deltas)
-
-                        # High oscillation (> 0.15) suggests divergence/paradox
-                        # In this case, force convergence to eigenstate
-                        if oscillation_score > 0.15:
-                            converged = True
-
-            if converged:
-                # Eigenstate convergence detected!
+            # True geometric convergence — no heuristics
+            if self.fs_tracker.has_converged():
                 self.recursion_depth -= 1
-
-                # Create eigenstate marker vector with diagnostic info
-                eigenstate_str = f"<eigenstate FS={fs:.4f} var={variance:.6f} osc={oscillation_score:.3f} depth={self.recursion_depth}>"
+                eigenstate_str = ""
                 eigenstate = self.space.embed_string(eigenstate_str)
                 return eigenstate
 
@@ -1380,15 +1329,15 @@ class Interpreter:
         """
         return self.fs_tracker.compute_fs()
 
-    def has_converged(self, threshold: float = 0.95) -> bool:
+    def has_converged(self, threshold: float = 1e-6) -> bool:
         """
         Check if execution has reached eigenstate convergence.
 
         Args:
-            threshold: FS threshold for convergence
+            threshold: Convergence epsilon (lightlike invariant threshold)
 
         Returns:
-            True if FS >= threshold
+            True if I < threshold
         """
         return self.fs_tracker.has_converged(threshold)
 
@@ -1430,13 +1379,10 @@ class Interpreter:
         recent_count = min(window, trajectory_len)
         recent_states = self.fs_tracker.trajectory[-recent_count:]
 
-        # Extract coordinate arrays (filter out any non-vectors)
-        valid_states = [
-            state for state in recent_states if isinstance(state, LRVMVector)
-        ]
-        if len(valid_states) < 2:
+        # Extract coordinate arrays from EigenControl objects (access .A for current state)
+        if len(recent_states) < 2:
             return 0.0, "lightlike"
-        coords_array = np.array([state.coords for state in valid_states])
+        coords_array = np.array([eigen.A.coords for eigen in recent_states])
 
         # Compute per-dimension variance
         variances = np.var(coords_array, axis=0)

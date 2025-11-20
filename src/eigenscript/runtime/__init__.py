@@ -7,6 +7,6 @@ This module handles runtime state management including:
 - Built-in functions
 """
 
-from eigenscript.runtime.framework_strength import FrameworkStrengthTracker
+from eigenscript.runtime.eigencontrol import EigenControlTracker
 
-__all__ = ["FrameworkStrengthTracker"]
+__all__ = ["EigenControlTracker"]

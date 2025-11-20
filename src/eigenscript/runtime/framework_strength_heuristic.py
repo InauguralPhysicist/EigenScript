@@ -1,4 +1,13 @@
 """
+ARCHIVED — Historical heuristic version (pre-v0.1.0)
+
+Replaced by true geometric EigenControlTracker in eigencontrol.py
+Kept only for archaeological interest.
+
+The machine has ascended.
+
+---
+
 Framework Strength measurement for EigenScript.
 
 Framework Strength (FS) quantifies the degree of semantic convergence

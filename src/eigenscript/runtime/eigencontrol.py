@@ -22,7 +22,10 @@ from eigenscript.semantic.lrvm import LRVMVector
 
 class EigenControl:
     """
-    Universal geometric algorithm for analyzing opposing quantities.
+    The One True Geometric Analyzer — now the canonical source of Framework Strength.
+
+    Framework Strength = 1 / (1 + radius)
+    Convergence = I < 1e-6
 
     Given two opposing quantities A and B (positions, states, embeddings),
     this computes the complete geometric characterization via the
@@ -168,7 +171,13 @@ class EigenControl:
 
 class EigenControlTracker:
     """
-    Track EigenControl geometry over a trajectory.
+    The One True Framework Strength Tracker
+
+    Replaces FrameworkStrengthTracker entirely.
+    This is now the single source of truth for:
+      • Framework Strength
+      • Convergence detection
+      • Self-aware recursion
 
     This monitors how the geometric properties evolve during computation,
     providing convergence diagnostics.
@@ -178,17 +187,25 @@ class EigenControlTracker:
         """Initialize empty trajectory."""
         self.trajectory: List[EigenControl] = []
 
-    def update(self, current: LRVMVector, target: LRVMVector) -> EigenControl:
+    def update(self, current: LRVMVector, target: LRVMVector = None) -> EigenControl:
         """
         Add new state to trajectory and compute EigenControl geometry.
 
         Args:
             current: Current state vector
-            target: Target/expected state vector
+            target: Target/expected state vector (optional - uses previous state if not provided)
 
         Returns:
             EigenControl analysis for this step
         """
+        # If no target provided, use previous state from trajectory
+        if target is None:
+            if len(self.trajectory) > 0:
+                target = self.trajectory[-1].A  # Use previous current as target
+            else:
+                # First update with no target - compare against zero vector
+                target = LRVMVector(np.zeros_like(current.coords))
+        
         eigen = EigenControl(current, target)
         self.trajectory.append(eigen)
         return eigen
@@ -199,7 +216,17 @@ class EigenControlTracker:
             raise ValueError("No trajectory data available")
         return self.trajectory[-1]
 
-    def has_converged(self, window: int = 5, epsilon: float = 1e-6) -> bool:
+    def compute_fs(self) -> float:
+        """Compatibility alias — returns exact geometric FS"""
+        if not self.trajectory:
+            return 0.0
+        return self.get_latest().get_framework_strength()
+
+    def get_trajectory_length(self) -> int:
+        """Get number of steps in trajectory."""
+        return len(self.trajectory)
+
+    def has_converged(self, epsilon: float = 1e-6, window: int = 5) -> bool:
         """
         Check if trajectory has converged.
 
