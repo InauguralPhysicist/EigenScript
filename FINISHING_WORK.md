@@ -5,7 +5,7 @@
 
 ---
 
-## ✅ COMPLETED (2/8)
+## ✅ COMPLETED (3/8)
 
 ### 1. Memory Management ✅
 **Commit**: 4910f0c
@@ -45,31 +45,43 @@
 
 ---
 
-## 📋 TODO (6/8 remaining)
-
-### 3. Complete While Loops
+### 3. Complete While Loops ✅
+**Commit**: 20fc7f3
 **Priority**: HIGH
-**Status**: TODO
 
-**Investigation needed**:
-- Check `_generate_loop()` method (line ~680 in original)
-- What's incomplete? README says "While loops (currently only via Python interpreter)"
-- Test loop examples from `examples/compiler/`
+**Changes**:
+- Add `loop_end_stack` to track nested loop context
+- Update `_generate_loop()` to push/pop loop_end blocks
+- Add Break case to `_generate()` dispatcher
+- Implement `_generate_break()` method with error checking
+- Update loop body termination to check for Break statements
 
-**Likely needed**:
-- Loop condition re-evaluation
-- Break statement handling
-- Continue statement (if supported)
-- Variable updates in loop body
+**Impact**:
+- ✅ While loops now fully functional
+- ✅ Break statements work correctly
+- ✅ Nested loops supported
+- ✅ Error checking: "break outside loop"
+
+**Examples working**:
+```eigenscript
+loop while not converged:
+    x is x + 1
+    if diverging:
+        break
+```
+
+**Code**: ~26 lines added
 
 ---
 
+## 📋 TODO (5/8 remaining)
+
 ### 4. Better Error Messages
 **Priority**: MEDIUM
-**Status**: TODO
+**Status**: NEXT
 
 **Current**: Generic "Code generation for X not implemented"
-**Need**: Source locations, helpful hints
+**Need**: Source locations, helpful hints, context
 
 **Example improvement**:
 ```python
@@ -78,6 +90,13 @@ raise CompilerError(
     hint="Supported operators: +, -, *, /, <, >, ==, !="
 )
 ```
+
+**Tasks**:
+- Add CompilerError exception class
+- Track source locations in error messages
+- Add helpful hints for common errors
+- Better undefined variable errors
+- Type mismatch errors
 
 ---
 
@@ -143,10 +162,11 @@ y is why is x   # NOW convert x to EigenValue (on-demand)
 - Sum(100): **3-6x faster** ✅
 - Fibonacci(25): **6-7x slower** ❌
 
-### After Memory + Stack (Current):
+### After Memory + Stack + Loops (Current):
 - Factorial(10): **5-10x faster** (estimated)
 - Sum(100): **5-8x faster** (estimated)
 - Fibonacci(25): **2-3x faster** 🚀 (estimated)
+- Convergent loops: **Now possible!** 🎉
 
 ### After Full Optimization (Goal):
 - All workloads: **5-20x faster** than Python
@@ -157,8 +177,12 @@ y is why is x   # NOW convert x to EigenValue (on-demand)
 ## Implementation Summary
 
 **Original compiler**: ~750 lines (by user)
-**Improvements added**: ~120 lines (memory + stack)
-**Total effort**: 2 major features completed
+**Improvements added**: ~160 lines total
+- Memory: ~40 lines
+- Stack: ~66 lines
+- Loops/Break: ~26 lines
+- Error handling: TBD
+- Optimization: TBD
 
 **What user built**:
 - ✅ LLVM IR generation
@@ -171,12 +195,13 @@ y is why is x   # NOW convert x to EigenValue (on-demand)
 **What I'm finishing**:
 - ✅ Memory management
 - ✅ Stack allocation
-- ⏳ While loops
-- ⏳ Error handling
+- ✅ While loops + break
+- 🚧 Error handling (NEXT)
 - ⏳ Optimization tuning
+- ⏳ Advanced features
 
 ---
 
 **Last Updated**: 2025-11-21
-**Status**: 2/8 complete, 6 remaining
-**Next**: Investigate while loops
+**Status**: 3/8 complete, 5 remaining
+**Next**: Better error messages
