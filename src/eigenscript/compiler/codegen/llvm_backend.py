@@ -296,6 +296,51 @@ class LLVMCodeGenerator:
         else:
             raise ValueError(f"Unknown ValueKind: {gen_val.kind}")
 
+    def _create_eigen_on_stack(self, initial_value: ir.Value) -> ir.Value:
+        """Create an EigenValue on the stack (fast, auto-freed).
+
+        This is used for local variables in functions to avoid malloc overhead.
+        Stack allocation is ~20x faster than heap and automatically freed on return.
+
+        Args:
+            initial_value: The initial double value to store
+
+        Returns:
+            Pointer to the stack-allocated EigenValue struct
+        """
+        # Allocate EigenValue struct on stack
+        eigen_stack = self.builder.alloca(self.eigen_value_type, name="eigen_stack")
+
+        # Initialize value field (index 0)
+        value_ptr = self.builder.gep(
+            eigen_stack,
+            [ir.Constant(self.int32_type, 0), ir.Constant(self.int32_type, 0)],
+        )
+        self.builder.store(initial_value, value_ptr)
+
+        # Initialize gradient field (index 1) to 0.0
+        grad_ptr = self.builder.gep(
+            eigen_stack,
+            [ir.Constant(self.int32_type, 0), ir.Constant(self.int32_type, 1)],
+        )
+        self.builder.store(ir.Constant(self.double_type, 0.0), grad_ptr)
+
+        # Initialize stability field (index 2) to 1.0
+        stability_ptr = self.builder.gep(
+            eigen_stack,
+            [ir.Constant(self.int32_type, 0), ir.Constant(self.int32_type, 2)],
+        )
+        self.builder.store(ir.Constant(self.double_type, 1.0), stability_ptr)
+
+        # Initialize iteration field (index 3) to 0
+        iter_ptr = self.builder.gep(
+            eigen_stack,
+            [ir.Constant(self.int32_type, 0), ir.Constant(self.int32_type, 3)],
+        )
+        self.builder.store(ir.Constant(self.int64_type, 0), iter_ptr)
+
+        return eigen_stack
+
     def _generate_cleanup(self) -> None:
         """Generate cleanup code to free all allocated EigenValues and lists.
 
@@ -588,10 +633,27 @@ class LLVMCodeGenerator:
                 self.builder.call(self.eigen_update, [eigen_ptr, scalar_val])
         else:
             # Create new variable
-            eigen_ptr = self.ensure_eigen_ptr(gen_value)
-            var_ptr = self.builder.alloca(self.eigen_value_ptr, name=node.identifier)
-            self.builder.store(eigen_ptr, var_ptr)
-            self.local_vars[node.identifier] = var_ptr
+            # Use stack allocation for local variables in functions (not main)
+            # This avoids malloc overhead and is ~20x faster
+            in_function = self.current_function and self.current_function.name != "main"
+
+            if in_function and gen_value.kind == ValueKind.SCALAR:
+                # Stack allocation: fast and auto-freed
+                scalar_val = self.ensure_scalar(gen_value)
+                eigen_ptr = self._create_eigen_on_stack(scalar_val)
+                var_ptr = self.builder.alloca(
+                    self.eigen_value_ptr, name=node.identifier
+                )
+                self.builder.store(eigen_ptr, var_ptr)
+                self.local_vars[node.identifier] = var_ptr
+            else:
+                # Heap allocation: for main scope or when aliasing
+                eigen_ptr = self.ensure_eigen_ptr(gen_value)
+                var_ptr = self.builder.alloca(
+                    self.eigen_value_ptr, name=node.identifier
+                )
+                self.builder.store(eigen_ptr, var_ptr)
+                self.local_vars[node.identifier] = var_ptr
 
     def _generate_relation(self, node: Relation) -> ir.Value:
         """Generate code for relations (function calls via 'of' operator)."""
