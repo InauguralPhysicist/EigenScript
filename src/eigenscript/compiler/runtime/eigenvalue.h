@@ -90,6 +90,9 @@ void eigen_list_set(EigenList* list, int64_t index, double value);
 // Get list length
 int64_t eigen_list_length(EigenList* list);
 
+// Append element to end of list
+void eigen_list_append(EigenList* list, double value);
+
 // Cleanup
 void eigen_list_destroy(EigenList* list);
 

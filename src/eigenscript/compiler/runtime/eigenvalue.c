@@ -254,6 +254,32 @@ int64_t eigen_list_length(EigenList* list) {
     return list ? list->length : 0;
 }
 
+void eigen_list_append(EigenList* list, double value) {
+    if (!list) {
+        fprintf(stderr, "Cannot append to NULL list\n");
+        return;
+    }
+
+    // Check if we need to grow the array
+    if (list->length >= list->capacity) {
+        // Double the capacity (or start with 8 if capacity is 0)
+        int64_t new_capacity = list->capacity == 0 ? 8 : list->capacity * 2;
+        double* new_data = (double*)realloc(list->data, new_capacity * sizeof(double));
+
+        if (!new_data) {
+            fprintf(stderr, "Failed to grow list capacity\n");
+            return;
+        }
+
+        list->data = new_data;
+        list->capacity = new_capacity;
+    }
+
+    // Add the element
+    list->data[list->length] = value;
+    list->length++;
+}
+
 void eigen_list_destroy(EigenList* list) {
     if (list) {
         if (list->data) {
