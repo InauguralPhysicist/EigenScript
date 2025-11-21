@@ -104,6 +104,10 @@ class LLVMCodeGenerator:
         self.current_function: Optional[ir.Function] = None
         self.builder: Optional[ir.IRBuilder] = None
 
+        # Cleanup tracking (for memory management)
+        self.allocated_eigenvalues: list[ir.Value] = []
+        self.allocated_lists: list[ir.Value] = []
+
         # Initialize runtime functions
         self._declare_runtime_functions()
 
@@ -232,6 +236,19 @@ class LLVMCodeGenerator:
             self.module, eigen_list_length_type, name="eigen_list_length"
         )
 
+        # Cleanup functions (memory management)
+        # eigen_destroy(eigen*) -> void
+        eigen_destroy_type = ir.FunctionType(self.void_type, [self.eigen_value_ptr])
+        self.eigen_destroy = ir.Function(
+            self.module, eigen_destroy_type, name="eigen_destroy"
+        )
+
+        # eigen_list_destroy(list*) -> void
+        eigen_list_destroy_type = ir.FunctionType(self.void_type, [self.eigen_list_ptr])
+        self.eigen_list_destroy = ir.Function(
+            self.module, eigen_list_destroy_type, name="eigen_list_destroy"
+        )
+
     def ensure_scalar(self, gen_val: Union[GeneratedValue, ir.Value]) -> ir.Value:
         """Convert a GeneratedValue to a scalar double.
 
@@ -262,11 +279,15 @@ class LLVMCodeGenerator:
         """
         # Backward compatibility: if passed raw ir.Value, assume it's a scalar
         if isinstance(gen_val, ir.Value):
-            return self.builder.call(self.eigen_create, [gen_val])
+            eigen_ptr = self.builder.call(self.eigen_create, [gen_val])
+            self.allocated_eigenvalues.append(eigen_ptr)  # Track for cleanup
+            return eigen_ptr
 
         if gen_val.kind == ValueKind.SCALAR:
             # Wrap scalar in new EigenValue
-            return self.builder.call(self.eigen_create, [gen_val.value])
+            eigen_ptr = self.builder.call(self.eigen_create, [gen_val.value])
+            self.allocated_eigenvalues.append(eigen_ptr)  # Track for cleanup
+            return eigen_ptr
         elif gen_val.kind == ValueKind.EIGEN_PTR:
             # Already a pointer, return directly (this enables aliasing!)
             return gen_val.value
@@ -274,6 +295,19 @@ class LLVMCodeGenerator:
             raise TypeError("Cannot convert list to EigenValue")
         else:
             raise ValueError(f"Unknown ValueKind: {gen_val.kind}")
+
+    def _generate_cleanup(self) -> None:
+        """Generate cleanup code to free all allocated EigenValues and lists.
+
+        This should be called before any return statement to prevent memory leaks.
+        """
+        # Free all tracked EigenValue pointers
+        for eigen_ptr in self.allocated_eigenvalues:
+            self.builder.call(self.eigen_destroy, [eigen_ptr])
+
+        # Free all tracked EigenList pointers
+        for list_ptr in self.allocated_lists:
+            self.builder.call(self.eigen_list_destroy, [list_ptr])
 
     def compile(self, ast_nodes: list[ASTNode]) -> str:
         """Compile a list of AST nodes to LLVM IR."""
@@ -288,6 +322,9 @@ class LLVMCodeGenerator:
         # Generate code for each statement
         for node in ast_nodes:
             self._generate(node)
+
+        # Cleanup: free all allocated memory before return
+        self._generate_cleanup()
 
         # Return 0 from main
         self.builder.ret(ir.Constant(self.int32_type, 0))
@@ -796,6 +833,7 @@ class LLVMCodeGenerator:
         length = len(node.elements)
         length_val = ir.Constant(self.int64_type, length)
         list_ptr = self.builder.call(self.eigen_list_create, [length_val])
+        self.allocated_lists.append(list_ptr)  # Track for cleanup
 
         # Set each element
         for i, elem in enumerate(node.elements):
