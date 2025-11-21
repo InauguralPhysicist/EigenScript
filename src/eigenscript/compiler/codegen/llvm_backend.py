@@ -140,10 +140,12 @@ class LLVMCodeGenerator:
         # printf for debugging
         printf_type = ir.FunctionType(self.int32_type, [self.string_type], var_arg=True)
         self.printf = ir.Function(self.module, printf_type, name="printf")
+        self.printf.attributes.add("nounwind")
 
         # malloc for dynamic allocation
         malloc_type = ir.FunctionType(self.string_type, [self.int64_type])
         self.malloc = ir.Function(self.module, malloc_type, name="malloc")
+        self.malloc.attributes.add("nounwind")
 
         # Runtime functions for geometric tracking
         # eigen_create(value) -> EigenValue*
@@ -151,6 +153,7 @@ class LLVMCodeGenerator:
         self.eigen_create = ir.Function(
             self.module, eigen_create_type, name="eigen_create"
         )
+        self.eigen_create.attributes.add("nounwind")
 
         # eigen_update(eigen*, new_value) -> void
         eigen_update_type = ir.FunctionType(
@@ -159,12 +162,15 @@ class LLVMCodeGenerator:
         self.eigen_update = ir.Function(
             self.module, eigen_update_type, name="eigen_update"
         )
+        self.eigen_update.attributes.add("nounwind")
 
         # eigen_get_value(eigen*) -> double
         eigen_get_value_type = ir.FunctionType(self.double_type, [self.eigen_value_ptr])
         self.eigen_get_value = ir.Function(
             self.module, eigen_get_value_type, name="eigen_get_value"
         )
+        self.eigen_get_value.attributes.add("nounwind")
+        self.eigen_get_value.attributes.add("readonly")
 
         # eigen_get_gradient(eigen*) -> double (for 'why')
         eigen_get_gradient_type = ir.FunctionType(
@@ -173,6 +179,8 @@ class LLVMCodeGenerator:
         self.eigen_get_gradient = ir.Function(
             self.module, eigen_get_gradient_type, name="eigen_get_gradient"
         )
+        self.eigen_get_gradient.attributes.add("nounwind")
+        self.eigen_get_gradient.attributes.add("readonly")
 
         # eigen_get_stability(eigen*) -> double (for 'how')
         eigen_get_stability_type = ir.FunctionType(
@@ -181,6 +189,8 @@ class LLVMCodeGenerator:
         self.eigen_get_stability = ir.Function(
             self.module, eigen_get_stability_type, name="eigen_get_stability"
         )
+        self.eigen_get_stability.attributes.add("nounwind")
+        self.eigen_get_stability.attributes.add("readonly")
 
         # eigen_get_iteration(eigen*) -> i64 (for 'when')
         eigen_get_iteration_type = ir.FunctionType(
@@ -189,6 +199,8 @@ class LLVMCodeGenerator:
         self.eigen_get_iteration = ir.Function(
             self.module, eigen_get_iteration_type, name="eigen_get_iteration"
         )
+        self.eigen_get_iteration.attributes.add("nounwind")
+        self.eigen_get_iteration.attributes.add("readonly")
 
         # eigen_check_converged(eigen*) -> bool
         eigen_check_converged_type = ir.FunctionType(
@@ -197,6 +209,8 @@ class LLVMCodeGenerator:
         self.eigen_check_converged = ir.Function(
             self.module, eigen_check_converged_type, name="eigen_check_converged"
         )
+        self.eigen_check_converged.attributes.add("nounwind")
+        self.eigen_check_converged.attributes.add("readonly")
 
         # eigen_check_diverging(eigen*) -> bool
         eigen_check_diverging_type = ir.FunctionType(
@@ -205,6 +219,8 @@ class LLVMCodeGenerator:
         self.eigen_check_diverging = ir.Function(
             self.module, eigen_check_diverging_type, name="eigen_check_diverging"
         )
+        self.eigen_check_diverging.attributes.add("nounwind")
+        self.eigen_check_diverging.attributes.add("readonly")
 
         # eigen_check_oscillating(eigen*) -> bool
         eigen_check_oscillating_type = ir.FunctionType(
@@ -213,6 +229,8 @@ class LLVMCodeGenerator:
         self.eigen_check_oscillating = ir.Function(
             self.module, eigen_check_oscillating_type, name="eigen_check_oscillating"
         )
+        self.eigen_check_oscillating.attributes.add("nounwind")
+        self.eigen_check_oscillating.attributes.add("readonly")
 
         # eigen_check_stable(eigen*) -> bool
         eigen_check_stable_type = ir.FunctionType(
@@ -221,6 +239,8 @@ class LLVMCodeGenerator:
         self.eigen_check_stable = ir.Function(
             self.module, eigen_check_stable_type, name="eigen_check_stable"
         )
+        self.eigen_check_stable.attributes.add("nounwind")
+        self.eigen_check_stable.attributes.add("readonly")
 
         # eigen_check_improving(eigen*) -> bool
         eigen_check_improving_type = ir.FunctionType(
@@ -229,6 +249,8 @@ class LLVMCodeGenerator:
         self.eigen_check_improving = ir.Function(
             self.module, eigen_check_improving_type, name="eigen_check_improving"
         )
+        self.eigen_check_improving.attributes.add("nounwind")
+        self.eigen_check_improving.attributes.add("readonly")
 
         # List runtime functions
         # eigen_list_create(length) -> EigenList*
@@ -236,6 +258,7 @@ class LLVMCodeGenerator:
         self.eigen_list_create = ir.Function(
             self.module, eigen_list_create_type, name="eigen_list_create"
         )
+        self.eigen_list_create.attributes.add("nounwind")
 
         # eigen_list_get(list*, index) -> double
         eigen_list_get_type = ir.FunctionType(
@@ -244,6 +267,8 @@ class LLVMCodeGenerator:
         self.eigen_list_get = ir.Function(
             self.module, eigen_list_get_type, name="eigen_list_get"
         )
+        self.eigen_list_get.attributes.add("nounwind")
+        self.eigen_list_get.attributes.add("readonly")
 
         # eigen_list_set(list*, index, value) -> void
         eigen_list_set_type = ir.FunctionType(
@@ -252,12 +277,15 @@ class LLVMCodeGenerator:
         self.eigen_list_set = ir.Function(
             self.module, eigen_list_set_type, name="eigen_list_set"
         )
+        self.eigen_list_set.attributes.add("nounwind")
 
         # eigen_list_length(list*) -> i64
         eigen_list_length_type = ir.FunctionType(self.int64_type, [self.eigen_list_ptr])
         self.eigen_list_length = ir.Function(
             self.module, eigen_list_length_type, name="eigen_list_length"
         )
+        self.eigen_list_length.attributes.add("nounwind")
+        self.eigen_list_length.attributes.add("readonly")
 
         # Cleanup functions (memory management)
         # eigen_destroy(eigen*) -> void
@@ -265,12 +293,14 @@ class LLVMCodeGenerator:
         self.eigen_destroy = ir.Function(
             self.module, eigen_destroy_type, name="eigen_destroy"
         )
+        self.eigen_destroy.attributes.add("nounwind")
 
         # eigen_list_destroy(list*) -> void
         eigen_list_destroy_type = ir.FunctionType(self.void_type, [self.eigen_list_ptr])
         self.eigen_list_destroy = ir.Function(
             self.module, eigen_list_destroy_type, name="eigen_list_destroy"
         )
+        self.eigen_list_destroy.attributes.add("nounwind")
 
     def ensure_scalar(self, gen_val: Union[GeneratedValue, ir.Value]) -> ir.Value:
         """Convert a GeneratedValue to a scalar double.
@@ -383,6 +413,7 @@ class LLVMCodeGenerator:
         # Create main function
         main_type = ir.FunctionType(self.int32_type, [])
         main_func = ir.Function(self.module, main_type, name="main")
+        main_func.attributes.add("nounwind")  # No exceptions
         block = main_func.append_basic_block(name="entry")
         self.builder = ir.IRBuilder(block)
         self.current_function = main_func
@@ -893,6 +924,8 @@ class LLVMCodeGenerator:
         )
 
         func = ir.Function(self.module, func_type, name=node.name)
+        # Add function attributes for optimization
+        func.attributes.add("nounwind")  # No exceptions in EigenScript
         self.functions[node.name] = func
 
         # Create entry block
