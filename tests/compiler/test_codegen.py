@@ -12,12 +12,15 @@ try:
     from eigenscript.compiler.codegen.llvm_backend import LLVMCodeGenerator
     from eigenscript.lexer import Tokenizer
     from eigenscript.parser.ast_builder import Parser
+
     COMPILER_AVAILABLE = True
 except ImportError:
     COMPILER_AVAILABLE = False
 
 
-@pytest.mark.skipif(not COMPILER_AVAILABLE, reason="Compiler dependencies not installed")
+@pytest.mark.skipif(
+    not COMPILER_AVAILABLE, reason="Compiler dependencies not installed"
+)
 class TestLLVMCodeGen:
     """Test LLVM code generation from EigenScript AST."""
 
@@ -169,7 +172,9 @@ result3 is x == y"""
         assert self.verify_llvm_ir(llvm_ir)
 
 
-@pytest.mark.skipif(not COMPILER_AVAILABLE, reason="Compiler dependencies not installed")
+@pytest.mark.skipif(
+    not COMPILER_AVAILABLE, reason="Compiler dependencies not installed"
+)
 class TestCompilerCLI:
     """Test the compiler CLI interface."""
 
@@ -178,11 +183,12 @@ class TestCompilerCLI:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create a simple EigenScript file
             eigs_file = os.path.join(tmpdir, "test.eigs")
-            with open(eigs_file, 'w') as f:
+            with open(eigs_file, "w") as f:
                 f.write("x is 42\ny is x + 8")
 
             # Compile it
             from eigenscript.compiler.cli.compile import compile_file
+
             result = compile_file(eigs_file, verify=True)
 
             assert result == 0
@@ -192,16 +198,19 @@ class TestCompilerCLI:
         """Test compilation with verification enabled."""
         with tempfile.TemporaryDirectory() as tmpdir:
             eigs_file = os.path.join(tmpdir, "test.eigs")
-            with open(eigs_file, 'w') as f:
+            with open(eigs_file, "w") as f:
                 f.write("x is 10\nif x > 5:\n    y is 1")
 
             from eigenscript.compiler.cli.compile import compile_file
+
             result = compile_file(eigs_file, verify=True)
 
             assert result == 0
 
 
-@pytest.mark.skipif(not COMPILER_AVAILABLE, reason="Compiler dependencies not installed")
+@pytest.mark.skipif(
+    not COMPILER_AVAILABLE, reason="Compiler dependencies not installed"
+)
 class TestExamples:
     """Test that example programs compile successfully."""
 
@@ -213,7 +222,7 @@ class TestExamples:
         if not os.path.exists(example_file):
             pytest.skip(f"Example file not found: {example_file}")
 
-        with open(example_file, 'r') as f:
+        with open(example_file, "r") as f:
             source = f.read()
 
         tokenizer = Tokenizer(source)
@@ -233,7 +242,7 @@ class TestExamples:
         if not os.path.exists(example_file):
             pytest.skip(f"Example file not found: {example_file}")
 
-        with open(example_file, 'r') as f:
+        with open(example_file, "r") as f:
             source = f.read()
 
         tokenizer = Tokenizer(source)
@@ -253,7 +262,7 @@ class TestExamples:
         if not os.path.exists(example_file):
             pytest.skip(f"Example file not found: {example_file}")
 
-        with open(example_file, 'r') as f:
+        with open(example_file, "r") as f:
             source = f.read()
 
         tokenizer = Tokenizer(source)
