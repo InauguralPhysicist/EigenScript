@@ -39,6 +39,9 @@ dev = [
     "mypy>=1.5.0",
     "typing-extensions>=4.7.0",
 ]
+compiler = [
+    "llvmlite>=0.41.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/InauguralPhysicist/eigenscript"
@@ -48,6 +51,7 @@ Issues = "https://github.com/InauguralPhysicist/eigenscript/issues"
 
 [project.scripts]
 eigenscript = "eigenscript.__main__:main"
+eigenscript-compile = "eigenscript.compiler.cli.compile:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
