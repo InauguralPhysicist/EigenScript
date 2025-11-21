@@ -104,6 +104,9 @@ class LLVMCodeGenerator:
         self.current_function: Optional[ir.Function] = None
         self.builder: Optional[ir.IRBuilder] = None
 
+        # Loop context (for break/continue statements)
+        self.loop_end_stack: list[ir.Block] = []  # Stack of loop end blocks
+
         # Cleanup tracking (for memory management)
         self.allocated_eigenvalues: list[ir.Value] = []
         self.allocated_lists: list[ir.Value] = []
@@ -401,6 +404,8 @@ class LLVMCodeGenerator:
             return self._generate_function_def(node)
         elif isinstance(node, Return):
             return self._generate_return(node)
+        elif isinstance(node, Break):
+            return self._generate_break(node)
         elif isinstance(node, ListLiteral):
             return self._generate_list_literal(node)
         elif isinstance(node, Index):
@@ -755,11 +760,14 @@ class LLVMCodeGenerator:
         self.builder.position_at_end(merge_block)
 
     def _generate_loop(self, node: Loop) -> None:
-        """Generate code for loops."""
+        """Generate code for loops with break support."""
         # Create basic blocks
         loop_cond = self.current_function.append_basic_block(name="loop.cond")
         loop_body = self.current_function.append_basic_block(name="loop.body")
         loop_end = self.current_function.append_basic_block(name="loop.end")
+
+        # Push loop_end onto stack for break statements
+        self.loop_end_stack.append(loop_end)
 
         # Jump to condition check
         self.builder.branch(loop_cond)
@@ -774,11 +782,15 @@ class LLVMCodeGenerator:
         body_terminated = False
         for stmt in node.body:
             self._generate(stmt)
-            if isinstance(stmt, Return):
+            # Check if body is already terminated (return or break)
+            if isinstance(stmt, (Return, Break)):
                 body_terminated = True
                 break
         if not body_terminated:
             self.builder.branch(loop_cond)
+
+        # Pop loop context
+        self.loop_end_stack.pop()
 
         # Continue after loop
         self.builder.position_at_end(loop_end)
@@ -888,6 +900,18 @@ class LLVMCodeGenerator:
             zero = ir.Constant(self.double_type, 0.0)
             self.builder.ret(zero)
             return zero
+
+    def _generate_break(self, node: Break) -> None:
+        """Generate code for break statements.
+
+        Break jumps to the end of the current loop.
+        """
+        if not self.loop_end_stack:
+            raise SyntaxError("'break' statement outside loop")
+
+        # Jump to the end of the current loop
+        loop_end = self.loop_end_stack[-1]
+        self.builder.branch(loop_end)
 
     def _generate_list_literal(self, node: ListLiteral) -> ir.Value:
         """Generate code for list literals."""
