@@ -30,6 +30,26 @@ from eigenscript.parser.ast_builder import (
 )
 
 
+class CompilerError(Exception):
+    """Enhanced compiler error with source location and hints."""
+
+    def __init__(self, message: str, hint: str = None, node: ASTNode = None):
+        self.message = message
+        self.hint = hint
+        self.node = node
+
+        # Build full error message
+        full_msg = f"CompilerError: {message}"
+        if hint:
+            full_msg += f"\n  Hint: {hint}"
+        if node and hasattr(node, "line"):
+            full_msg += f"\n  Location: line {node.line}"
+            if hasattr(node, "column"):
+                full_msg += f", column {node.column}"
+
+        super().__init__(full_msg)
+
+
 class ValueKind(Enum):
     """Tracks the kind of value generated during compilation."""
 
@@ -411,8 +431,11 @@ class LLVMCodeGenerator:
         elif isinstance(node, Index):
             return self._generate_index(node)
         else:
-            raise NotImplementedError(
-                f"Code generation for {type(node).__name__} not implemented"
+            raise CompilerError(
+                f"Code generation for '{type(node).__name__}' not implemented",
+                hint="This language feature may not be supported yet. "
+                "Check the documentation or file an issue.",
+                node=node,
             )
 
     def _generate_literal(self, node: Literal) -> ir.Value:
@@ -470,7 +493,22 @@ class LLVMCodeGenerator:
         elif node.name in self.global_vars:
             var_ptr = self.global_vars[node.name]
         else:
-            raise NameError(f"Undefined variable: {node.name}")
+            # Better error with suggestions
+            available_vars = list(self.local_vars.keys()) + list(
+                self.global_vars.keys()
+            )
+            hint = "No variables defined yet"
+            if available_vars:
+                # Find similar names (simple edit distance)
+                similar = [v for v in available_vars if v[0] == node.name[0]]
+                if similar:
+                    hint = f"Did you mean: {', '.join(similar[:3])}?"
+                else:
+                    hint = f"Available variables: {', '.join(available_vars[:5])}"
+
+            raise CompilerError(
+                f"Undefined variable '{node.name}'", hint=hint, node=node
+            )
 
         # Load the pointer
         loaded_ptr = self.builder.load(var_ptr)
@@ -518,9 +556,15 @@ class LLVMCodeGenerator:
             return self.builder.fcmp_ordered("==", left, right)
         elif node.operator == "!=":
             return self.builder.fcmp_ordered("!=", left, right)
+        elif node.operator == ">=":
+            return self.builder.fcmp_ordered(">=", left, right)
+        elif node.operator == "<=":
+            return self.builder.fcmp_ordered("<=", left, right)
         else:
-            raise NotImplementedError(
-                f"Binary operator {node.operator} not implemented"
+            raise CompilerError(
+                f"Unsupported binary operator '{node.operator}'",
+                hint="Supported operators: +, -, *, /, <, >, <=, >=, ==, !=",
+                node=node,
             )
 
     def _generate_unary_op(self, node: UnaryOp) -> ir.Value:
@@ -907,7 +951,11 @@ class LLVMCodeGenerator:
         Break jumps to the end of the current loop.
         """
         if not self.loop_end_stack:
-            raise SyntaxError("'break' statement outside loop")
+            raise CompilerError(
+                "'break' statement outside loop",
+                hint="'break' can only be used inside a 'loop while' body",
+                node=node,
+            )
 
         # Jump to the end of the current loop
         loop_end = self.loop_end_stack[-1]
