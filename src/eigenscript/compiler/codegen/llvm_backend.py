@@ -869,7 +869,9 @@ class LLVMCodeGenerator:
 
                     # Wrap raw ir.Value in GeneratedValue for consistent handling
                     if isinstance(arg_gen_val, ir.Value):
-                        arg_gen_val = GeneratedValue(value=arg_gen_val, kind=ValueKind.SCALAR)
+                        arg_gen_val = GeneratedValue(
+                            value=arg_gen_val, kind=ValueKind.SCALAR
+                        )
 
                     # OPTIMIZATION: Use stack allocation for temporary function arguments
                     # instead of heap allocation (much faster!)

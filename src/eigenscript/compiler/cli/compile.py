@@ -58,7 +58,9 @@ def compile_file(
         analyzer = ObserverAnalyzer()
         observed_vars = analyzer.analyze(ast.statements)
         if observed_vars:
-            print(f"  ✓ Analysis: {len(observed_vars)} observed variables {observed_vars}")
+            print(
+                f"  ✓ Analysis: {len(observed_vars)} observed variables {observed_vars}"
+            )
         else:
             print(f"  ✓ Analysis: No variables need geometric tracking (pure scalars!)")
 
