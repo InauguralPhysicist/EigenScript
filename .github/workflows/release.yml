@@ -77,12 +77,15 @@ jobs:
       
       - name: Test installation
         run: |
-          python -c "import eigenscript; print(eigenscript.__version__ if hasattr(eigenscript, '__version__') else 'Version not exposed')"
-          eigenscript --help || echo "CLI test (may not be available yet)"
+          python -c "import eigenscript; print(eigenscript.__version__)"
+          # Test CLI exists and is executable
+          which eigenscript
       
-      - name: Test with example
+      - name: Test CLI help
         run: |
-          echo 'print("Hello from EigenScript!");' | eigenscript || echo "Interactive mode test"
+          # Basic CLI functionality test
+          eigenscript --help
+        continue-on-error: true
 
   create-release:
     name: Create GitHub Release

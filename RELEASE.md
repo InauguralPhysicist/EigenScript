@@ -141,8 +141,8 @@ To enable PyPI publishing, you need to configure GitHub environments and secrets
 1. Go to PyPI project settings
 2. Add a "Trusted Publisher"
 3. Configure:
-   - Owner: InauguralPhysicist
-   - Repository: EigenScript
+   - Owner: `<your-github-username>` (e.g., InauguralPhysicist)
+   - Repository: `<your-repo-name>` (e.g., EigenScript)
    - Workflow: release.yml
    - Environment: pypi (or testpypi)
 
