@@ -25,12 +25,13 @@ EigenScript includes both an **interpreter mode** for development and experiment
 
 The tree-walking interpreter provides immediate execution without compilation:
 
-| Benchmark (Sum 1M) | Execution Time |
-| :--- | :--- |
-| **EigenScript Interpreter** | ~100 seconds |
-| **Python Interpreter** | ~100 seconds |
+| Benchmark | EigenScript Interpreter | Python 3.12 |
+| :--- | :--- | :--- |
+| Sum 1 to 1,000,000 | ~100 seconds | ~100 seconds |
 
-*Benchmark: `examples/benchmarks/loop_fast.eigs` (summing 1 to 1,000,000)*
+*Benchmark: `examples/benchmarks/loop_fast.eigs` - iterating 1 million times and summing values. Times are approximate and vary by system.*
+
+Both interpreters show similar performance as they are both tree-walking interpreters with comparable overhead. The EigenScript interpreter prioritizes ease of development and the unique geometric semantics features over raw computational speed in interpreted mode. For performance-critical applications, the LLVM compiler (currently in development) is designed to provide native-speed execution.
 
 ### Compiler Status ⚠️
 
@@ -99,12 +100,7 @@ python3 -m eigenscript program.eigs
 python3 -m eigenscript -i
 ```
 
-**Compiler (Experimental):**
-```bash
-# Note: Compiler is under active development
-eigenscript-compile program.eigs --exec -O0
-./program.exe
-```
+**Note:** The LLVM compiler (`eigenscript-compile`) is under active development and currently has known linking issues. Use the interpreter mode for all execution until compiler issues are resolved. See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for details.
 
 ## 🧠 Examples
 
