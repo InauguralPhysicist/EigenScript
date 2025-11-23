@@ -97,6 +97,7 @@ def compile_module(
     compiled_objects: Set[str],
     target_triple: str = None,
     opt_level: int = 0,
+    is_main: bool = False,
 ) -> Optional[str]:
     """
     Recursively compile a module and its dependencies.
@@ -107,6 +108,7 @@ def compile_module(
         compiled_objects: Set of already-compiled module paths (prevents recompilation)
         target_triple: LLVM target triple
         opt_level: Optimization level (0-3)
+        is_main: True if this is the main entry point (generates main()), False for libraries
 
     Returns:
         Path to the compiled object file, or None on failure
@@ -140,8 +142,14 @@ def compile_module(
         for module_name in imports:
             try:
                 module_path = resolver.resolve(module_name)
+                # Dependencies are always libraries (is_main=False)
                 dep_obj = compile_module(
-                    module_path, resolver, compiled_objects, target_triple, opt_level
+                    module_path,
+                    resolver,
+                    compiled_objects,
+                    target_triple,
+                    opt_level,
+                    is_main=False,
                 )
                 if not dep_obj:
                     print(f"  ✗ Failed to compile dependency: {module_name}")
@@ -161,11 +169,23 @@ def compile_module(
         analyzer = ObserverAnalyzer()
         observed_vars = analyzer.analyze(code_statements)
 
+        # Determine if this is a library module or main program
+        # Extract module name from source path (e.g., "math_utils.eigs" -> "math_utils")
+        # Only pass module_name if this is a library (not the main entry point)
+        # The main file generates main(), libraries generate {module}_init()
+        codegen_module_name = (
+            None if is_main else os.path.splitext(os.path.basename(source_path))[0]
+        )
+
         # Generate LLVM IR
         codegen = LLVMCodeGenerator(
-            observed_variables=observed_vars, target_triple=target_triple
+            observed_variables=observed_vars,
+            target_triple=target_triple,
+            module_name=codegen_module_name,
         )
-        llvm_ir = codegen.compile(code_statements)
+        # Phase 4.4: Pass imported modules so main() can call their init functions
+        imported_modules_for_codegen = imports if is_main else None
+        llvm_ir = codegen.compile(code_statements, imported_modules_for_codegen)
 
         # Parse and verify
         llvm_module = llvm.parse_assembly(llvm_ir)
@@ -259,7 +279,12 @@ def compile_file(
         if link_exec or not emit_llvm:
             # Compile main file and all dependencies
             main_obj = compile_module(
-                input_file, resolver, compiled_objects, target_triple, opt_level
+                input_file,
+                resolver,
+                compiled_objects,
+                target_triple,
+                opt_level,
+                is_main=True,
             )
 
             if not main_obj:
