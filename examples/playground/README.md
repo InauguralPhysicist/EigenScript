@@ -4,6 +4,21 @@
 
 EigenSpace is a split-screen IDE where code on the left creates physics visualizations on the right. This is the "Feedback Loop" - edit, compile, visualize, iterate.
 
+## Why a Local Server?
+
+**The Physical Constraint:** The EigenScript compiler uses `llvmlite.binding` (which links to C++ LLVM libraries) and makes subprocess calls to `clang`. Running these directly in a browser via Pyodide is extremely difficult because:
+- Browsers can't spawn subprocesses
+- Browsers can't load arbitrary native C libraries
+- Pyodide is 20MB+ and doesn't support `llvmlite` out of the box
+
+**The Solution:** We use a **Local Compilation Server**. You run a tiny Python server (`server.py`) on your machine. The browser sends code to it, your machine compiles it using the robust toolchain you built in Phase 3, and sends the `.wasm` binary back to the browser for execution.
+
+This architecture gives us:
+- ✅ Full access to the native LLVM toolchain
+- ✅ Fast compilation with zero browser limitations
+- ✅ Easy debugging (server logs show compilation errors)
+- ✅ No 20MB download for users
+
 ## Architecture
 
 ```

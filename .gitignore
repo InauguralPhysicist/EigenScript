@@ -81,4 +81,5 @@ site/
 *.exe
 *.ll
 *.bc
+*.wasm
 test_compiler.py
