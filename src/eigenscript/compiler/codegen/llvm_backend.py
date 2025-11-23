@@ -101,15 +101,15 @@ class LLVMCodeGenerator:
         # } EigenValue;
         self.eigen_value_type = ir.LiteralStructType(
             [
-                self.double_type,                      # value
-                self.double_type,                      # gradient (why)
-                self.double_type,                      # stability (how)
-                self.int64_type,                       # iteration (when)
-                ir.ArrayType(self.double_type, 100),   # history[100]
-                self.int32_type,                       # history_size
-                self.int32_type,                       # history_index
-                self.double_type,                      # prev_value
-                self.double_type,                      # prev_gradient
+                self.double_type,  # value
+                self.double_type,  # gradient (why)
+                self.double_type,  # stability (how)
+                self.int64_type,  # iteration (when)
+                ir.ArrayType(self.double_type, 100),  # history[100]
+                self.int32_type,  # history_size
+                self.int32_type,  # history_index
+                self.double_type,  # prev_value
+                self.double_type,  # prev_gradient
             ]
         )
 
@@ -171,9 +171,7 @@ class LLVMCodeGenerator:
         eigen_init_type = ir.FunctionType(
             self.void_type, [self.eigen_value_ptr, self.double_type]
         )
-        self.eigen_init = ir.Function(
-            self.module, eigen_init_type, name="eigen_init"
-        )
+        self.eigen_init = ir.Function(self.module, eigen_init_type, name="eigen_init")
         self.eigen_init.attributes.add("nounwind")
 
         # eigen_update(eigen*, new_value) -> void
