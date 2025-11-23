@@ -75,10 +75,21 @@ class GeneratedValue:
 class LLVMCodeGenerator:
     """Generates LLVM IR from EigenScript AST."""
 
-    def __init__(self, observed_variables: Set[str] = None, target_triple: str = None):
+    def __init__(
+        self,
+        observed_variables: Set[str] = None,
+        target_triple: str = None,
+        module_name: str = None,
+    ):
         # Initialize LLVM targets (initialization is now automatic in llvmlite)
         llvm.initialize_native_target()
         llvm.initialize_native_asmprinter()
+
+        # Module vs Program: Determine compilation mode
+        # If module_name is None → Generate main() (it's the entry point)
+        # If module_name is "physics" → Skip main(), create physics_init()
+        self.is_library = module_name is not None
+        self.module_prefix = f"{module_name}_" if self.is_library else ""
 
         # Create module
         self.module = ir.Module(name="eigenscript_module")
@@ -630,14 +641,26 @@ class LLVMCodeGenerator:
         self.allocated_eigenvalues = []
         self.allocated_lists = []
 
-        # Create main function
-        main_type = ir.FunctionType(self.int32_type, [])
-        main_func = ir.Function(self.module, main_type, name="main")
-        main_func.attributes.add("nounwind")  # No exceptions
-        block = main_func.append_basic_block(name="entry")
-        self.builder = ir.IRBuilder(block)
-        self.current_function = main_func
-        self.entry_block = block  # Store entry block for proper alloca placement
+        # Create entry function based on compilation mode
+        if self.is_library:
+            # Library mode: Create module_init function
+            func_name = f"{self.module_prefix}init"
+            func_type = ir.FunctionType(self.void_type, [])
+            entry_func = ir.Function(self.module, func_type, name=func_name)
+            entry_func.attributes.add("nounwind")
+            block = entry_func.append_basic_block(name="entry")
+            self.builder = ir.IRBuilder(block)
+            self.current_function = entry_func
+            self.entry_block = block
+        else:
+            # Program mode: Create main function
+            main_type = ir.FunctionType(self.int32_type, [])
+            main_func = ir.Function(self.module, main_type, name="main")
+            main_func.attributes.add("nounwind")  # No exceptions
+            block = main_func.append_basic_block(name="entry")
+            self.builder = ir.IRBuilder(block)
+            self.current_function = main_func
+            self.entry_block = block  # Store entry block for proper alloca placement
 
         # Generate code for each statement
         for node in ast_nodes:
@@ -646,8 +669,13 @@ class LLVMCodeGenerator:
         # Cleanup: free all allocated memory before return
         self._generate_cleanup()
 
-        # Return 0 from main
-        self.builder.ret(ir.Constant(self.int32_type, 0))
+        # Return based on compilation mode
+        if self.is_library:
+            # Library init functions return void
+            self.builder.ret_void()
+        else:
+            # Main returns 0
+            self.builder.ret(ir.Constant(self.int32_type, 0))
 
         return str(self.module)
 
@@ -1238,16 +1266,23 @@ class LLVMCodeGenerator:
 
     def _generate_function_def(self, node: FunctionDef) -> None:
         """Generate code for function definitions."""
+        # Apply name mangling for library modules to prevent symbol collisions
+        # e.g., "add" in math module becomes "math_add"
+        mangled_name = f"{self.module_prefix}{node.name}"
+
         # Create function signature
         # In EigenScript, functions take one EigenValue* parameter and return double
         func_type = ir.FunctionType(
             self.double_type, [self.eigen_value_ptr]  # Single parameter passed via "of"
         )
 
-        func = ir.Function(self.module, func_type, name=node.name)
+        func = ir.Function(self.module, func_type, name=mangled_name)
         # Add function attributes for optimization
         func.attributes.add("nounwind")  # No exceptions in EigenScript
+        # Store with both original and mangled names for lookups
         self.functions[node.name] = func
+        if self.is_library:
+            self.functions[mangled_name] = func
 
         # Create entry block
         block = func.append_basic_block(name="entry")
