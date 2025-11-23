@@ -1144,7 +1144,7 @@ class LLVMCodeGenerator:
                 raise CompilerError(
                     f"Function '{mangled_name}' not found",
                     hint=f"Make sure module '{module_name}' is imported and compiled first",
-                    node=node
+                    node=node,
                 )
 
             # Generate the argument (same logic as user-defined functions)
@@ -1160,9 +1160,7 @@ class LLVMCodeGenerator:
                 elif gen_arg.kind == ValueKind.EIGEN_PTR:
                     call_arg = gen_arg.value
                 else:
-                    raise TypeError(
-                        "Cannot pass List to function expecting EigenValue"
-                    )
+                    raise TypeError("Cannot pass List to function expecting EigenValue")
             elif isinstance(gen_arg, ir.Value):
                 if gen_arg.type == self.double_type:
                     # JIT Promotion: Scalar -> Stack EigenValue
@@ -1361,7 +1359,7 @@ class LLVMCodeGenerator:
             raise CompilerError(
                 "Member access only supported for module.function pattern",
                 hint="Example: control.apply_damping",
-                node=node
+                node=node,
             )
 
         module_name = node.object.name
