@@ -57,7 +57,13 @@ class CompilerHandler(http.server.SimpleHTTPRequestHandler):
                 result = subprocess.run(cmd, capture_output=True, text=True, cwd=PROJECT_ROOT)
                 
                 if result.returncode != 0:
-                    self._send_json(400, {"error": result.stderr + "\n" + result.stdout})
+                    # Sanitize error message to remove sensitive system paths
+                    error_msg = result.stderr + "\n" + result.stdout
+                    # Replace temp directory paths with generic marker
+                    error_msg = error_msg.replace(tmpdir, "<temp>")
+                    # Replace project root path
+                    error_msg = error_msg.replace(PROJECT_ROOT, "<project>")
+                    self._send_json(400, {"error": error_msg})
                     print(f"❌ Compilation failed")
                 else:
                     if os.path.exists(wasm_file):

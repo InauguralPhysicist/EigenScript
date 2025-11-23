@@ -4,6 +4,14 @@
 
 EigenSpace is a split-screen IDE where code on the left creates physics visualizations on the right. This is the "Feedback Loop" - edit, compile, visualize, iterate.
 
+## How to Run Your Creation
+
+1. **Build Runtime:** `python3 src/eigenscript/compiler/runtime/build_runtime.py --target wasm32`
+2. **Start Server:** `python3 examples/playground/server.py`
+3. **Visit:** `http://localhost:8080`
+
+See [QUICKSTART.md](QUICKSTART.md) for detailed setup instructions.
+
 ## Why a Local Server?
 
 **The Physical Constraint:** The EigenScript compiler uses `llvmlite.binding` (which links to C++ LLVM libraries) and makes subprocess calls to `clang`. Running these directly in a browser via Pyodide is extremely difficult because:

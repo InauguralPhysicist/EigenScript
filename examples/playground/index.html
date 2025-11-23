@@ -164,7 +164,6 @@ loop while x < 20:
                     // The Bridge: WASM calls this to output data
                     eigen_print: (val) => {
                         dataPoints.push(val);
-                        // log(val.toFixed(4)); // Optional: log text too
                     },
                     // Math builtins needed by runtime
                     exp: Math.exp,
@@ -179,10 +178,21 @@ loop while x < 20:
                     floor: Math.floor,
                     ceil: Math.ceil,
                     round: Math.round,
-                    // Memory stubs (WASM has internal allocator usually, but safety first)
-                    malloc: (n) => 0, 
-                    free: (p) => {},
-                    __assert_fail: () => console.error("Assert failed")
+                    // Memory management stubs
+                    // Note: EigenScript uses stack allocation for most operations
+                    // If these are called, it indicates the WASM needs heap memory
+                    malloc: (n) => {
+                        console.warn(`malloc(${n}) called - returning null. WASM may need heap memory.`);
+                        return 0;
+                    }, 
+                    free: (p) => {
+                        if (p !== 0) {
+                            console.warn(`free(${p}) called - no-op. WASM may expect heap deallocation.`);
+                        }
+                    },
+                    __assert_fail: (condition, file, line) => {
+                        console.error(`Assert failed: ${condition} at ${file}:${line}`);
+                    }
                 }
             };
             
