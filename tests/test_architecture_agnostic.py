@@ -5,8 +5,6 @@ Tests cross-platform target compilation capabilities.
 """
 
 import pytest
-import tempfile
-from pathlib import Path
 from eigenscript.lexer import Tokenizer
 from eigenscript.parser.ast_builder import Parser
 from eigenscript.compiler.codegen.llvm_backend import LLVMCodeGenerator
@@ -36,8 +34,7 @@ class TestArchitectureAgnostic:
         llvm_ir = codegen.compile(ast.statements)
         
         # Check target triple and malloc signature
-        assert "target triple = \"x86_64-unknown-linux-gnu\"" in llvm_ir or \
-               "target triple = \"x86_64" in llvm_ir  # Allow variations
+        assert 'target triple = "x86_64-unknown-linux-gnu"' in llvm_ir
         # malloc should use i64 on 64-bit platforms
         assert "declare i8* @\"malloc\"(i64" in llvm_ir
 

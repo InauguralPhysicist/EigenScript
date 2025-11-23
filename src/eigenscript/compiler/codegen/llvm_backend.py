@@ -97,8 +97,11 @@ class LLVMCodeGenerator:
             self.module.data_layout = str(target_data)
         except RuntimeError as e:
             # Fallback for unknown triples (e.g. during cross-compilation setup)
-            print(
-                f"Warning: Could not load target data for '{self.module.triple}': {e}"
+            import warnings
+
+            warnings.warn(
+                f"Could not load target data for '{self.module.triple}': {e}",
+                RuntimeWarning,
             )
             # Default to x86_64 if native lookup fails
             target_data = None
@@ -119,16 +122,23 @@ class LLVMCodeGenerator:
         # WASM32 -> 32-bit, x86_64 -> 64-bit, ARM64 -> 64-bit
         # Check the triple for architecture indicators
         triple_lower = self.module.triple.lower()
-        if "wasm32" in triple_lower or "i386" in triple_lower or "arm-" in triple_lower:
-            # 32-bit architectures
+        # 32-bit architectures
+        if (
+            "wasm32" in triple_lower
+            or "i386" in triple_lower
+            or "i686" in triple_lower
+            or triple_lower.startswith("arm-")
+            or "armv7" in triple_lower
+        ):
             self.size_t_type = ir.IntType(32)
+        # 64-bit architectures
         elif (
             "x86_64" in triple_lower
             or "aarch64" in triple_lower
             or "arm64" in triple_lower
             or "wasm64" in triple_lower
+            or "riscv64" in triple_lower
         ):
-            # 64-bit architectures
             self.size_t_type = ir.IntType(64)
         else:
             # Default fallback to 64-bit for unknown architectures
