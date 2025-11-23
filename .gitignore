@@ -75,3 +75,9 @@ Thumbs.db
 # Local state files
 .local/
 site/
+
+# Compiler build artifacts
+*.o
+*.exe
+*.ll
+test_compiler.py
