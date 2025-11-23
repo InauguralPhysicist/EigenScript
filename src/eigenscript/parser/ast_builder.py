@@ -336,6 +336,40 @@ class Interrogative(ASTNode):
 
 
 @dataclass
+class Import(ASTNode):
+    """
+    Represents an import statement.
+
+    Example:
+        import physics
+        import math as m
+    """
+
+    module_name: str
+    alias: Optional[str] = None
+
+    def __repr__(self) -> str:
+        return f"Import({self.module_name!r}, alias={self.alias!r})"
+
+
+@dataclass
+class MemberAccess(ASTNode):
+    """
+    Represents accessing a member of a module or object.
+
+    Example:
+        physics.gravity
+        module.variable
+    """
+
+    object: ASTNode  # The module/object (Identifier)
+    member: str  # The member name (string)
+
+    def __repr__(self) -> str:
+        return f"MemberAccess({self.object}, {self.member!r})"
+
+
+@dataclass
 class Program(ASTNode):
     """
     Represents a complete EigenScript program.
@@ -464,6 +498,10 @@ class Parser:
             self.advance()
             return None
 
+        # IMPORT - import statement
+        if token.type == TokenType.IMPORT:
+            return self.parse_import()
+
         # DEFINE - function definition
         if token.type == TokenType.DEFINE:
             return self.parse_definition()
@@ -525,6 +563,30 @@ class Parser:
             self.advance()
 
         return Assignment(identifier, expression)
+
+    def parse_import(self) -> Import:
+        """
+        Parse an import statement.
+
+        Grammar: IMPORT identifier (AS identifier)?
+        """
+        self.expect(TokenType.IMPORT)
+
+        module_token = self.expect(TokenType.IDENTIFIER)
+        module_name = module_token.value
+        alias = None
+
+        # Check for optional alias (AS keyword)
+        if self.current_token() and self.current_token().type == TokenType.AS:
+            self.advance()  # consume AS
+            alias_token = self.expect(TokenType.IDENTIFIER)
+            alias = alias_token.value
+
+        # Consume newline if present
+        if self.current_token() and self.current_token().type == TokenType.NEWLINE:
+            self.advance()
+
+        return Import(module_name, alias)
 
     def parse_definition(self) -> FunctionDef:
         """
@@ -905,9 +967,9 @@ class Parser:
 
     def parse_postfix(self) -> ASTNode:
         """
-        Parse postfix operators (indexing and slicing).
+        Parse postfix operators (indexing, slicing, and member access).
 
-        Grammar: unary (LBRACKET (slice | index) RBRACKET)*
+        Grammar: unary ( (LBRACKET (slice | index) RBRACKET) | (DOT identifier) )*
 
         Example:
             my_list[0]       # indexing
@@ -915,52 +977,66 @@ class Parser:
             text[0:5]        # slicing
             text[2:]         # slice from 2 to end
             text[:3]         # slice from start to 3
+            physics.gravity  # member access
         """
         expr = self.parse_unary()
 
-        # Handle indexing and slicing
-        while self.current_token() and self.current_token().type == TokenType.LBRACKET:
-            self.advance()
+        # Handle indexing, slicing, and member access
+        while self.current_token() and self.current_token().type in (
+            TokenType.LBRACKET,
+            TokenType.DOT,
+        ):
+            if self.current_token().type == TokenType.DOT:
+                # Handle Member Access (x.y)
+                self.advance()  # consume DOT
+                member_token = self.expect(TokenType.IDENTIFIER)
+                expr = MemberAccess(expr, member_token.value)
+            else:
+                # Handle Indexing/Slicing (Existing logic)
+                self.advance()
 
-            # Check if this is slicing or indexing
-            # Peek ahead to see if there's a colon
-            start_expr = None
-            end_expr = None
+                # Check if this is slicing or indexing
+                # Peek ahead to see if there's a colon
+                start_expr = None
+                end_expr = None
 
-            # Parse the first expression (if any) before potential colon
-            if (
-                self.current_token()
-                and self.current_token().type != TokenType.COLON
-                and self.current_token().type != TokenType.RBRACKET
-            ):
-                start_expr = self.parse_expression()
-
-            # Check for colon (indicates slicing)
-            if self.current_token() and self.current_token().type == TokenType.COLON:
-                # This is a slice
-                self.advance()  # consume COLON
-
-                # Parse end expression (if any)
+                # Parse the first expression (if any) before potential colon
                 if (
                     self.current_token()
+                    and self.current_token().type != TokenType.COLON
                     and self.current_token().type != TokenType.RBRACKET
                 ):
-                    end_expr = self.parse_expression()
+                    start_expr = self.parse_expression()
 
-                self.expect(TokenType.RBRACKET)
-                expr = Slice(expr, start_expr, end_expr)
-            else:
-                # This is regular indexing
-                if start_expr is None:
-                    token = self.current_token()
-                    if token:
-                        raise SyntaxError(
-                            f"Line {token.line}, Column {token.column}: Expected index expression"
-                        )
-                    else:
-                        raise SyntaxError("Expected index expression")
-                self.expect(TokenType.RBRACKET)
-                expr = Index(expr, start_expr)
+                # Check for colon (indicates slicing)
+                if (
+                    self.current_token()
+                    and self.current_token().type == TokenType.COLON
+                ):
+                    # This is a slice
+                    self.advance()  # consume COLON
+
+                    # Parse end expression (if any)
+                    if (
+                        self.current_token()
+                        and self.current_token().type != TokenType.RBRACKET
+                    ):
+                        end_expr = self.parse_expression()
+
+                    self.expect(TokenType.RBRACKET)
+                    expr = Slice(expr, start_expr, end_expr)
+                else:
+                    # This is regular indexing
+                    if start_expr is None:
+                        token = self.current_token()
+                        if token:
+                            raise SyntaxError(
+                                f"Line {token.line}, Column {token.column}: Expected index expression"
+                            )
+                        else:
+                            raise SyntaxError("Expected index expression")
+                    self.expect(TokenType.RBRACKET)
+                    expr = Index(expr, start_expr)
 
         return expr
 

@@ -29,6 +29,7 @@ class TokenType(Enum):
     OR = "OR"
     FOR = "FOR"
     IN = "IN"
+    IMPORT = "IMPORT"
 
     # Interrogatives (geometric projection operators)
     WHO = "WHO"
@@ -51,6 +52,7 @@ class TokenType(Enum):
     RPAREN = "RPAREN"
     LBRACKET = "LBRACKET"
     RBRACKET = "RBRACKET"
+    DOT = "DOT"
 
     # Arithmetic Operators (equilibrium operations)
     PLUS = "PLUS"
@@ -129,6 +131,7 @@ class Tokenizer:
         "or": TokenType.OR,
         "for": TokenType.FOR,
         "in": TokenType.IN,
+        "import": TokenType.IMPORT,
         # Interrogatives
         "who": TokenType.WHO,
         "what": TokenType.WHAT,
@@ -313,6 +316,11 @@ class Tokenizer:
                     self.tokens.append(
                         Token(TokenType.GREATER_THAN, line=start_line, column=start_col)
                     )
+            elif char == ".":
+                self.advance()
+                self.tokens.append(
+                    Token(TokenType.DOT, line=start_line, column=start_col)
+                )
             else:
                 raise SyntaxError(
                     f"Unexpected character '{char}' at line {self.line}, column {self.column}"
