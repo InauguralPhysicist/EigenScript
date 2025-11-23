@@ -978,6 +978,7 @@ class Parser:
             text[2:]         # slice from 2 to end
             text[:3]         # slice from start to 3
             physics.gravity  # member access
+            a.b.c            # chained member access
         """
         expr = self.parse_unary()
 
