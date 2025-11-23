@@ -190,6 +190,7 @@ class LLVMCodeGenerator:
         # Current function and builder
         self.current_function: Optional[ir.Function] = None
         self.builder: Optional[ir.IRBuilder] = None
+        self.entry_block: Optional[ir.Block] = None  # Entry block for alloca instructions
 
         # Loop context (for break/continue statements)
         self.loop_end_stack: list[ir.Block] = []  # Stack of loop end blocks
@@ -453,6 +454,54 @@ class LLVMCodeGenerator:
 
         raise CompilerError(f"Cannot convert type {val.type} to boolean")
 
+    def _alloca_at_entry(self, ty: ir.Type, name: str = "") -> ir.AllocaInstr:
+        """Allocate a variable in the entry block of the current function.
+
+        This ensures all allocas are in the entry block, which is required for
+        proper LLVM IR and enables optimizations like mem2reg.
+
+        Args:
+            ty: The type to allocate
+            name: Optional name for the variable
+
+        Returns:
+            The alloca instruction
+        """
+        if not self.entry_block:
+            # If no entry block, just do normal alloca (shouldn't happen in practice)
+            return self.builder.alloca(ty, name=name)
+
+        # Save current position
+        current_block = self.builder.block
+
+        # Move to the beginning of the entry block (after any existing allocas)
+        if self.entry_block.instructions:
+            # Find the last alloca instruction in the entry block
+            last_alloca = None
+            for inst in self.entry_block.instructions:
+                if isinstance(inst, ir.AllocaInstr):
+                    last_alloca = inst
+                else:
+                    break  # Stop at first non-alloca
+
+            if last_alloca:
+                # Position after the last alloca
+                self.builder.position_after(last_alloca)
+            else:
+                # No allocas yet, position at start
+                self.builder.position_at_start(self.entry_block)
+        else:
+            # Empty entry block, position at start
+            self.builder.position_at_start(self.entry_block)
+
+        # Do the allocation
+        alloca_inst = self.builder.alloca(ty, name=name)
+
+        # Restore position
+        self.builder.position_at_end(current_block)
+
+        return alloca_inst
+
     def _create_eigen_on_stack(self, initial_value: ir.Value) -> ir.Value:
         """Create an EigenValue on the stack (fast, auto-freed).
 
@@ -573,6 +622,7 @@ class LLVMCodeGenerator:
         block = main_func.append_basic_block(name="entry")
         self.builder = ir.IRBuilder(block)
         self.current_function = main_func
+        self.entry_block = block  # Store entry block for proper alloca placement
 
         # Generate code for each statement
         for node in ast_nodes:
@@ -859,7 +909,7 @@ class LLVMCodeGenerator:
 
         # Handle list assignment
         if gen_value.kind == ValueKind.LIST_PTR:
-            var_ptr = self.builder.alloca(self.eigen_list_ptr, name=node.identifier)
+            var_ptr = self._alloca_at_entry(self.eigen_list_ptr, name=node.identifier)
             self.builder.store(gen_value.value, var_ptr)
             self.local_vars[node.identifier] = var_ptr
             return
@@ -896,7 +946,7 @@ class LLVMCodeGenerator:
                 # This compiles to a simple alloca that LLVM's mem2reg pass
                 # will promote to a CPU register. Zero overhead.
                 scalar_val = self.ensure_scalar(gen_value)
-                var_ptr = self.builder.alloca(self.double_type, name=node.identifier)
+                var_ptr = self._alloca_at_entry(self.double_type, name=node.identifier)
                 self.builder.store(scalar_val, var_ptr)
                 self.local_vars[node.identifier] = var_ptr
                 # NOTE: This is just a double*, not EigenValue*!
@@ -907,7 +957,7 @@ class LLVMCodeGenerator:
                 # They don't need cleanup - automatically freed when function returns
                 scalar_val = self.ensure_scalar(gen_value)
                 eigen_ptr = self._create_eigen_on_stack(scalar_val)
-                var_ptr = self.builder.alloca(
+                var_ptr = self._alloca_at_entry(
                     self.eigen_value_ptr, name=node.identifier
                 )
                 self.builder.store(eigen_ptr, var_ptr)
@@ -917,7 +967,7 @@ class LLVMCodeGenerator:
                 # Observed variable in main scope: Heap allocation
                 # These DO need cleanup via eigen_destroy
                 eigen_ptr = self.ensure_eigen_ptr(gen_value)
-                var_ptr = self.builder.alloca(
+                var_ptr = self._alloca_at_entry(
                     self.eigen_value_ptr, name=node.identifier
                 )
                 self.builder.store(eigen_ptr, var_ptr)
@@ -1144,15 +1194,17 @@ class LLVMCodeGenerator:
         prev_function = self.current_function
         prev_builder = self.builder
         prev_local_vars = self.local_vars
+        prev_entry_block = self.entry_block
 
         # Set up new context for function
         self.current_function = func
         self.builder = ir.IRBuilder(block)
+        self.entry_block = block  # Store entry block for proper alloca placement
         self.local_vars = {}
 
         # The parameter is implicitly named 'n' in EigenScript functions
         # (convention based on examples)
-        param_ptr = self.builder.alloca(self.eigen_value_ptr, name="n")
+        param_ptr = self._alloca_at_entry(self.eigen_value_ptr, name="n")
         self.builder.store(func.args[0], param_ptr)
         self.local_vars["n"] = param_ptr
 
@@ -1174,6 +1226,7 @@ class LLVMCodeGenerator:
         self.current_function = prev_function
         self.builder = prev_builder
         self.local_vars = prev_local_vars
+        self.entry_block = prev_entry_block
 
     def _generate_return(self, node: Return) -> ir.Value:
         """Generate code for return statements."""
