@@ -380,6 +380,55 @@ class LLVMCodeGenerator:
         else:
             raise ValueError(f"Unknown ValueKind: {gen_val.kind}")
 
+    def ensure_bool(self, val: Union[GeneratedValue, ir.Value]) -> ir.Value:
+        """Convert any value to an i1 boolean for branching.
+
+        This fixes the "truthiness" bug where scalar values (doubles) were being
+        passed directly to cbranch, which expects i1 booleans.
+
+        Conversion rules:
+        - i1: returns as-is
+        - double: returns (val != 0.0)
+        - ptr: returns (val != null)
+
+        This enables natural control flow like:
+            loop while count:  # count is a double, converts to (count != 0.0)
+                count is count - 1
+        """
+        # Handle GeneratedValue wrapper
+        if isinstance(val, GeneratedValue):
+            # For scalars, extract the raw value
+            if val.kind == ValueKind.SCALAR:
+                val = val.value
+            # For EigenValue pointers, extract the value first
+            elif val.kind == ValueKind.EIGEN_PTR:
+                val = self.builder.call(self.eigen_get_value, [val.value])
+            else:
+                raise CompilerError(
+                    f"Cannot convert {val.kind} to boolean",
+                    hint="Only scalar values and EigenValue pointers can be used in conditions"
+                )
+
+        # Now val is an ir.Value - convert based on its type
+        if val.type == self.bool_type:
+            # Already a boolean
+            return val
+
+        if val.type == self.double_type:
+            # Compare != 0.0
+            zero = ir.Constant(self.double_type, 0.0)
+            return self.builder.fcmp_ordered('!=', val, zero)
+
+        if isinstance(val.type, ir.PointerType):
+            # Compare != null
+            null = ir.Constant(val.type, None)
+            return self.builder.icmp_unsigned('!=', val, null)
+
+        raise CompilerError(
+            f"Cannot convert type {val.type} to boolean",
+            hint="Only numbers, booleans, and pointers can be used in conditions"
+        )
+
     def _create_eigen_on_stack(self, initial_value: ir.Value) -> ir.Value:
         """Create an EigenValue on the stack (fast, auto-freed).
 
@@ -777,13 +826,21 @@ class LLVMCodeGenerator:
         # Handle EigenValue assignment (scalar or pointer)
         if node.identifier in self.local_vars:
             # Variable exists - update or rebind
-            if gen_value.kind == ValueKind.EIGEN_PTR:
+            var_ptr = self.local_vars[node.identifier]
+
+            # Check what type of variable this is (raw double* or EigenValue**)
+            if isinstance(var_ptr.type.pointee, ir.DoubleType):
+                # FAST PATH: Raw double variable (unobserved)
+                # Just store the new value directly - no function call needed!
+                scalar_val = self.ensure_scalar(gen_value)
+                self.builder.store(scalar_val, var_ptr)
+            elif gen_value.kind == ValueKind.EIGEN_PTR:
                 # Aliasing: rebind to point to the same EigenValue*
                 # This is the key to Option 2: "value is what is x" makes value an alias
-                self.builder.store(gen_value.value, self.local_vars[node.identifier])
+                self.builder.store(gen_value.value, var_ptr)
             else:
-                # Scalar update: update existing variable's value
-                eigen_ptr = self.builder.load(self.local_vars[node.identifier])
+                # Scalar update: update existing EigenValue variable's value
+                eigen_ptr = self.builder.load(var_ptr)
                 scalar_val = self.ensure_scalar(gen_value)
                 self.builder.call(self.eigen_update, [eigen_ptr, scalar_val])
         else:
@@ -894,7 +951,9 @@ class LLVMCodeGenerator:
 
     def _generate_conditional(self, node: Conditional) -> None:
         """Generate code for if-else statements."""
-        cond = self._generate(node.condition)
+        raw_cond = self._generate(node.condition)
+        # FIX: Ensure we have a boolean for the branch (handles scalar truthiness)
+        cond = self.ensure_bool(raw_cond)
 
         # Create basic blocks
         then_block = self.current_function.append_basic_block(name="if.then")
@@ -952,7 +1011,9 @@ class LLVMCodeGenerator:
 
         # Generate condition check
         self.builder.position_at_end(loop_cond)
-        cond = self._generate(node.condition)
+        raw_cond = self._generate(node.condition)
+        # FIX: Ensure we have a boolean for the branch (handles scalar truthiness)
+        cond = self.ensure_bool(raw_cond)
         self.builder.cbranch(cond, loop_body, loop_end)
 
         # Generate loop body
