@@ -7,25 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0-beta] - 2025-11-23
+
+### 🚀 Major Release: Native Performance Compiler
+
+This release represents a fundamental transformation of EigenScript from an interpreted language to a high-performance compiled language with **53x speedup** over Python.
+
 ### Added
+- **LLVM-based compiler** with native code generation
+- **Scalar Fast Path**: Unobserved variables compile to raw CPU registers (PHI nodes in SSA form)
+- **Zero-Cost Abstraction**: Pay only for geometric features you use
+- **Link-Time Optimization (LTO)**: Advanced optimization passes for maximum performance
+- **Observer Effect Compiler**: Automatic promotion from scalar to geometric tracking based on usage
+
+### Performance
+- **53x speedup** on numeric benchmarks (loop_fast: 2ms vs Python's 106ms)
+- Register-only operations for simple loops (no stack/heap access)
+- Static Single Assignment (SSA) form with PHI nodes
+- C-level performance on unobserved computation
+
+### Documentation
+- Reorganized documentation structure
+- Moved planning artifacts to `docs/archive/`
+- Updated README with performance benchmarks and compiler architecture
+- New forward-looking ROADMAP focusing on future phases
 - Comprehensive CI/CD pipeline with multi-Python version testing (3.9-3.12)
 - Code quality checks (black, flake8, mypy) in CI
 - Security scanning (safety, bandit) in CI
 - Coverage reporting with Codecov integration
-- TYPE_CHECKING guard for proper type hint handling
 
 ### Fixed
 - Critical security issue: Replaced bare `except:` clauses with `except Exception:`
 - Python compatibility: Replaced `X | Y` union syntax with `Optional[X]` for broader compatibility
 - F821 flake8 error: Fixed undefined name 'EigenList' in type hints
-- Code formatting: Applied black formatter across entire codebase (29 files)
+- Code formatting: Applied black formatter across entire codebase
 
 ### Changed
+- **Version bumped to v0.2-beta** reflecting production-ready compiler
 - Improved type safety with TYPE_CHECKING imports
 - **Minimum Python version updated from 3.8 to 3.9** to align with numpy>=1.24.0 requirements
-  - Python 3.8 reached end-of-life in October 2024
-  - Updated CI/CD pipeline to test Python 3.9-3.12
-  - Updated all documentation to reflect Python 3.9+ requirement
+- Repository structure cleaned up for professional release
 
 ## [0.1.0-alpha] - 2025-11-19
 
