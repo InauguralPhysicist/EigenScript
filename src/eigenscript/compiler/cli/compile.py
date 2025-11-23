@@ -2,17 +2,20 @@
 """
 EigenScript Compiler CLI
 Compile .eigs files to LLVM IR, native code, or WebAssembly.
+Supports recursive module compilation and dependency management.
 """
 
 import sys
 import os
 import argparse
 import subprocess
+from typing import List, Set, Optional
 
 from eigenscript.lexer import Tokenizer
-from eigenscript.parser.ast_builder import Parser
+from eigenscript.parser.ast_builder import Parser, Import
 from eigenscript.compiler.codegen.llvm_backend import LLVMCodeGenerator
 from eigenscript.compiler.analysis.observer import ObserverAnalyzer
+from eigenscript.compiler.analysis.resolver import ModuleResolver
 from eigenscript.compiler.runtime.targets import infer_target_name
 from llvmlite import binding as llvm
 
@@ -79,6 +82,137 @@ def get_runtime_path(runtime_dir: str, target_triple: str = None) -> tuple[str, 
     return runtime_o, runtime_bc
 
 
+def scan_imports(ast) -> List[str]:
+    """Scan AST for import statements and return list of module names."""
+    imports = []
+    for stmt in ast.statements:
+        if isinstance(stmt, Import):
+            imports.append(stmt.module_name)
+    return imports
+
+
+def compile_module(
+    source_path: str,
+    resolver: ModuleResolver,
+    compiled_objects: Set[str],
+    target_triple: str = None,
+    opt_level: int = 0,
+) -> Optional[str]:
+    """
+    Recursively compile a module and its dependencies.
+
+    Args:
+        source_path: Path to the .eigs file to compile
+        resolver: ModuleResolver for finding imported modules
+        compiled_objects: Set of already-compiled module paths (prevents recompilation)
+        target_triple: LLVM target triple
+        opt_level: Optimization level (0-3)
+
+    Returns:
+        Path to the compiled object file, or None on failure
+    """
+    # Prevent circular dependencies and duplicate compilation
+    abs_path = os.path.abspath(source_path)
+    if abs_path in compiled_objects:
+        # Already compiled, return the object file path
+        return resolver.get_output_path(source_path, target_triple)
+
+    print(f"\n→ Compiling module: {source_path}")
+
+    # Read source
+    try:
+        with open(source_path, "r") as f:
+            source_code = f.read()
+    except FileNotFoundError:
+        print(f"  ✗ Module not found: {source_path}")
+        return None
+
+    # Parse to find imports
+    tokenizer = Tokenizer(source_code)
+    tokens = tokenizer.tokenize()
+    parser = Parser(tokens)
+    ast = parser.parse()
+
+    # Find and recursively compile dependencies first
+    imports = scan_imports(ast)
+    if imports:
+        print(f"  → Found imports: {imports}")
+        for module_name in imports:
+            try:
+                module_path = resolver.resolve(module_name)
+                dep_obj = compile_module(
+                    module_path, resolver, compiled_objects, target_triple, opt_level
+                )
+                if not dep_obj:
+                    print(f"  ✗ Failed to compile dependency: {module_name}")
+                    return None
+            except ImportError as e:
+                print(f"  ✗ {e}")
+                return None
+
+    # Now compile this module
+    try:
+        # Filter out import statements (they're compile-time only)
+        code_statements = [
+            stmt for stmt in ast.statements if not isinstance(stmt, Import)
+        ]
+
+        # Analyze for observer effect
+        analyzer = ObserverAnalyzer()
+        observed_vars = analyzer.analyze(code_statements)
+
+        # Generate LLVM IR
+        codegen = LLVMCodeGenerator(
+            observed_variables=observed_vars, target_triple=target_triple
+        )
+        llvm_ir = codegen.compile(code_statements)
+
+        # Parse and verify
+        llvm_module = llvm.parse_assembly(llvm_ir)
+        llvm_module.verify()
+
+        # Link runtime bitcode
+        llvm_module = codegen.link_runtime_bitcode(llvm_module, target_triple)
+
+        # Apply optimizations if requested
+        if opt_level > 0:
+            pto = llvm.create_pipeline_tuning_options()
+            pto.speed_level = opt_level
+            pto.size_level = 0
+
+            if target_triple:
+                target = llvm.Target.from_triple(target_triple)
+            else:
+                target = llvm.Target.from_default_triple()
+            target_machine = target.create_target_machine()
+
+            pb = llvm.create_pass_builder(target_machine, pto)
+            mpm = llvm.create_module_pass_manager()
+            pb.populate_module_pass_manager(mpm)
+            mpm.run(llvm_module)
+
+        # Emit object file
+        output_path = resolver.get_output_path(source_path, target_triple)
+        if target_triple:
+            target = llvm.Target.from_triple(target_triple)
+        else:
+            target = llvm.Target.from_default_triple()
+        target_machine = target.create_target_machine()
+
+        with open(output_path, "wb") as f:
+            f.write(target_machine.emit_object(llvm_module))
+
+        print(f"  ✓ Compiled to: {output_path}")
+
+        # Mark as compiled
+        compiled_objects.add(abs_path)
+        return output_path
+
+    except Exception as e:
+        print(f"  ✗ Compilation failed: {e}")
+        return None
+
+
 def compile_file(
     input_file: str,
     output_file: str = None,
@@ -116,150 +250,40 @@ def compile_file(
     print(f"Compiling {input_file} -> {output_file}")
 
     try:
-        # Tokenize
-        tokenizer = Tokenizer(source_code)
-        tokens = tokenizer.tokenize()
-        print(f"  ✓ Tokenized: {len(tokens)} tokens")
+        # Initialize module resolver
+        root_dir = os.path.dirname(os.path.abspath(input_file))
+        resolver = ModuleResolver(root_dir=root_dir)
+        compiled_objects: Set[str] = set()
 
-        # Parse
-        parser = Parser(tokens)
-        ast = parser.parse()
-        print(f"  ✓ Parsed: {len(ast.statements)} statements")
-
-        # Analyze: Observer Effect (detect which variables need geometric tracking)
-        analyzer = ObserverAnalyzer()
-        observed_vars = analyzer.analyze(ast.statements)
-        if observed_vars:
-            print(
-                f"  ✓ Analysis: {len(observed_vars)} observed variables {observed_vars}"
+        # If linking, we need to compile modules and collect object files
+        if link_exec or not emit_llvm:
+            # Compile main file and all dependencies
+            main_obj = compile_module(
+                input_file, resolver, compiled_objects, target_triple, opt_level
             )
-        else:
-            print(f"  ✓ Analysis: No variables need geometric tracking (pure scalars!)")
 
-        # Generate LLVM IR with observer information
-        # Pass the target triple to the generator
-        codegen = LLVMCodeGenerator(
-            observed_variables=observed_vars, target_triple=target_triple
-        )
-        llvm_ir = codegen.compile(ast.statements)
-        print(f"  ✓ Generated LLVM IR")
-
-        # Parse and verify LLVM module
-        llvm_module = llvm.parse_assembly(llvm_ir)
-        if verify:
-            try:
-                llvm_module.verify()
-                print(f"  ✓ Verification passed")
-            except Exception as verify_error:
-                print(f"  ✗ Verification failed: {verify_error}")
+            if not main_obj:
+                print(f"❌ Compilation failed")
                 return 1
 
-        # Link runtime bitcode for LTO (Link-Time Optimization)
-        # This enables inlining of C runtime functions
-        llvm_module = codegen.link_runtime_bitcode(llvm_module, target_triple)
-        print(f"  ✓ Linked runtime bitcode (LTO enabled)")
+            # Collect all compiled object files
+            object_files = [
+                resolver.get_output_path(path, target_triple)
+                for path in compiled_objects
+            ]
 
-        # Apply optimizations if requested (using New Pass Manager)
-        if opt_level > 0:
-            # Create pipeline tuning options
-            pto = llvm.create_pipeline_tuning_options()
-            pto.speed_level = opt_level  # 0-3: optimization level
-            pto.size_level = 0  # Optimize for speed, not size
+            # If we just want object file, we're done
+            if not link_exec:
+                if not emit_llvm:
+                    # Move/copy the main object to output location if different
+                    if main_obj != output_file:
+                        import shutil
 
-            # Enable function inlining at all levels
-            # This is crucial for EigenScript since runtime calls are frequent
-            pto.inline_threshold = 225  # Default LLVM inline threshold
+                        shutil.copy(main_obj, output_file)
+                    print(f"\n✅ Compilation successful!")
+                    return 0
 
-            # Tune inlining aggressiveness based on opt level
-            if opt_level == 1:
-                # -O1: Conservative inlining (small functions only)
-                pto.inline_threshold = 75
-            elif opt_level == 2:
-                # -O2: Standard inlining (balanced)
-                pto.inline_threshold = 225
-            elif opt_level == 3:
-                # -O3: Aggressive inlining (may increase code size)
-                pto.inline_threshold = 375
-
-            # Enable vectorization for O2 and above
-            # Trade-off: Better throughput, but larger binaries
-            if opt_level >= 2:
-                pto.loop_vectorization = True  # Vectorize loops
-                pto.slp_vectorization = True  # Vectorize straight-line code
-                pto.loop_interleaving = True  # Unroll and interleave loops
-                pto.loop_unrolling = True  # Unroll small loops
-
-            # Create target machine for context-aware optimization
-            # Use the specified target triple if provided
-            if target_triple:
-                target = llvm.Target.from_triple(target_triple)
-            else:
-                target = llvm.Target.from_default_triple()
-            target_machine = target.create_target_machine()
-
-            # Create pass builder and get optimization pipeline
-            pass_builder = llvm.create_pass_builder(target_machine, pto)
-            mpm = pass_builder.getModulePassManager()
-
-            # Run optimizations (pass_builder needed for context)
-            mpm.run(llvm_module, pass_builder)
-
-            # Print optimization summary
-            opt_features = []
-            if opt_level >= 1:
-                opt_features.append("inlining")
-            if opt_level >= 2:
-                opt_features.append("vectorization")
-            if opt_level >= 3:
-                opt_features.append("aggressive")
-            print(f"  ✓ Optimized (level {opt_level}: {', '.join(opt_features)})")
-
-            # Get optimized IR
-            llvm_ir = str(llvm_module)
-
-        # Emit output
-        if emit_llvm:
-            # Save LLVM IR
-            with open(output_file, "w") as f:
-                f.write(llvm_ir)
-            print(f"  ✓ Written to {output_file}")
-        else:
-            # Compile to object file
-            llvm_module = llvm.parse_assembly(llvm_ir)
-            llvm_module.verify()
-
-            # Use the specified target triple if provided
-            if target_triple:
-                target = llvm.Target.from_triple(target_triple)
-            else:
-                target = llvm.Target.from_default_triple()
-            target_machine = target.create_target_machine()
-
-            with open(output_file, "wb") as f:
-                f.write(target_machine.emit_object(llvm_module))
-            print(f"  ✓ Compiled to {output_file}")
-
-        # Link to executable if requested
-        if link_exec:
-            base = os.path.splitext(input_file)[0]
-            obj_file = f"{base}.o" if emit_llvm else output_file
-            # Use .wasm extension for WASM targets, .exe for native
-            exec_file = f"{base}.wasm" if is_wasm else f"{base}.exe"
-
-            # If we emitted LLVM, first compile to object
-            if emit_llvm:
-                llvm_module = llvm.parse_assembly(llvm_ir)
-                llvm_module.verify()
-                # Use the specified target triple if provided
-                if target_triple:
-                    target = llvm.Target.from_triple(target_triple)
-                else:
-                    target = llvm.Target.from_default_triple()
-                target_machine = target.create_target_machine()
-                with open(obj_file, "wb") as f:
-                    f.write(target_machine.emit_object(llvm_module))
-
-            # Get runtime for target architecture
+            # Link to executable
             runtime_dir = os.path.join(os.path.dirname(__file__), "../runtime")
             runtime_o, _ = get_runtime_path(runtime_dir, target_triple)
 
@@ -270,50 +294,126 @@ def compile_file(
             # Select linker and flags based on target
             if is_wasm:
                 # WebAssembly Linking
-                # Use clang with WASM-specific flags
                 linker = "clang"
-                # Use provided target_triple or fall back to default
                 wasm_target = target_triple if target_triple else DEFAULT_WASM_TARGET
-                link_cmd = [
-                    linker,
-                    f"--target={wasm_target}",
-                    "-nostdlib",  # Don't link system libc (not available in browser)
-                    "-Wl,--no-entry",  # Library mode (no main required by linker)
-                    "-Wl,--export-all",  # Export symbols so JS can call them
-                    "-Wl,--allow-undefined",  # Allow JS imports to be undefined at link time
-                    obj_file,
-                    runtime_o,
-                    "-o",
-                    exec_file,
-                ]
+                link_cmd = (
+                    [
+                        linker,
+                        f"--target={wasm_target}",
+                        "-nostdlib",
+                        "-Wl,--no-entry",
+                        "-Wl,--export-all",
+                        "-Wl,--allow-undefined",
+                    ]
+                    + object_files
+                    + [runtime_o, "-o", output_file]
+                )
             else:
-                # Standard Native Linking (x86/ARM)
+                # Standard Native Linking
                 linker = "gcc"
-                link_cmd = [
-                    linker,
-                    obj_file,
-                    runtime_o,
-                    "-o",
-                    exec_file,
-                    "-lm",  # Link math library
-                ]
+                link_cmd = (
+                    [linker] + object_files + [runtime_o, "-o", output_file, "-lm"]
+                )
 
-            # Execute linker
-            print(f"  → Linking with {linker}...")
-            result = subprocess.run(
-                link_cmd,
-                capture_output=True,
-                text=True,
-            )
+            print(f"\n→ Linking {len(object_files)} module(s) with {linker}...")
+            result = subprocess.run(link_cmd, capture_output=True, text=True)
 
             if result.returncode == 0:
-                print(f"  ✓ Linked to {exec_file}")
-                # Cleanup intermediate object file if we generated it
-                if emit_llvm and os.path.exists(obj_file):
-                    os.remove(obj_file)
+                print(f"  ✓ Linked to {output_file}")
+                print(f"\n✅ Compilation successful!")
+                return 0
             else:
                 print(f"  ✗ Linking failed: {result.stderr}")
                 return 1
+
+        # Original path for LLVM IR emission (no modules yet)
+        # Tokenize
+        tokenizer = Tokenizer(source_code)
+        tokens = tokenizer.tokenize()
+        print(f"  ✓ Tokenized: {len(tokens)} tokens")
+
+        # Parse
+        parser = Parser(tokens)
+        ast = parser.parse()
+        print(f"  ✓ Parsed: {len(ast.statements)} statements")
+
+        # Analyze
+        analyzer = ObserverAnalyzer()
+        observed_vars = analyzer.analyze(ast.statements)
+        if observed_vars:
+            print(
+                f"  ✓ Analysis: {len(observed_vars)} observed variables {observed_vars}"
+            )
+        else:
+            print(f"  ✓ Analysis: No variables need geometric tracking (pure scalars!)")
+
+        # Generate LLVM IR
+        codegen = LLVMCodeGenerator(
+            observed_variables=observed_vars, target_triple=target_triple
+        )
+        llvm_ir = codegen.compile(ast.statements)
+        print(f"  ✓ Generated LLVM IR")
+
+        # Verify
+        llvm_module = llvm.parse_assembly(llvm_ir)
+        if verify:
+            try:
+                llvm_module.verify()
+                print(f"  ✓ Verification passed")
+            except Exception as verify_error:
+                print(f"  ✗ Verification failed: {verify_error}")
+                return 1
+
+        # Link runtime bitcode
+        llvm_module = codegen.link_runtime_bitcode(llvm_module, target_triple)
+        print(f"  ✓ Linked runtime bitcode (LTO enabled)")
+
+        # Apply optimizations
+        if opt_level > 0:
+            pto = llvm.create_pipeline_tuning_options()
+            pto.speed_level = opt_level
+            pto.size_level = 0
+            pto.inline_threshold = 225
+
+            if opt_level == 1:
+                pto.inline_threshold = 75
+            elif opt_level == 2:
+                pto.inline_threshold = 225
+            elif opt_level == 3:
+                pto.inline_threshold = 375
+
+            if opt_level >= 2:
+                pto.loop_vectorization = True
+                pto.slp_vectorization = True
+                pto.loop_interleaving = True
+                pto.loop_unrolling = True
+
+            if target_triple:
+                target = llvm.Target.from_triple(target_triple)
+            else:
+                target = llvm.Target.from_default_triple()
+            target_machine = target.create_target_machine()
+
+            pb = llvm.create_pass_builder(target_machine, pto)
+            mpm = llvm.create_module_pass_manager()
+            pb.populate_module_pass_manager(mpm)
+            mpm.run(llvm_module)
+            print(f"  ✓ Optimizations applied (level {opt_level})")
+
+        # Write output
+        if emit_llvm:
+            with open(output_file, "w") as f:
+                f.write(str(llvm_module))
+            print(f"  ✓ LLVM IR written to {output_file}")
+        else:
+            if target_triple:
+                target = llvm.Target.from_triple(target_triple)
+            else:
+                target = llvm.Target.from_default_triple()
+            target_machine = target.create_target_machine()
+            with open(output_file, "wb") as f:
+                f.write(target_machine.emit_object(llvm_module))
+            print(f"  ✓ Object file written to {output_file}")
 
         print(f"\n✅ Compilation successful!")
         return 0
@@ -353,39 +453,38 @@ Examples:
         "--exec", action="store_true", help="Compile and link to executable"
     )
     parser.add_argument(
-        "--no-verify", action="store_true", help="Skip LLVM module verification"
-    )
-    parser.add_argument(
         "-O",
         "--optimize",
         type=int,
         choices=[0, 1, 2, 3],
         default=0,
-        help="""Optimization level:
-  0 = No optimization (fast compile, slower execution)
-  1 = Basic optimizations (conservative inlining, small code size increase)
-  2 = Standard optimizations (balanced inlining + vectorization, ~2-5x faster) [RECOMMENDED]
-  3 = Aggressive optimizations (heavy inlining, large code size, ~2-10x faster)""",
+        help="Optimization level (0=none, 1=basic, 2=standard, 3=aggressive)",
     )
     parser.add_argument(
         "--target",
-        help="Target LLVM triple (e.g. wasm32-unknown-unknown, aarch64-apple-darwin)",
+        help=f"Target triple (e.g., {DEFAULT_WASM_TARGET} for WebAssembly)",
+    )
+    parser.add_argument(
+        "--no-verify", action="store_true", help="Skip LLVM IR verification"
     )
 
     args = parser.parse_args()
 
-    # Compile
-    exit_code = compile_file(
+    # Determine output mode
+    emit_llvm = not args.obj and not args.exec
+    link_exec = args.exec
+
+    result = compile_file(
         input_file=args.input,
         output_file=args.output,
-        emit_llvm=not args.obj,
+        emit_llvm=emit_llvm,
         verify=not args.no_verify,
-        link_exec=args.exec,
+        link_exec=link_exec,
         opt_level=args.optimize,
         target_triple=args.target,
     )
 
-    sys.exit(exit_code)
+    sys.exit(result)
 
 
 if __name__ == "__main__":
