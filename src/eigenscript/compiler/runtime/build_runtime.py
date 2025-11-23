@@ -10,7 +10,7 @@ Compiles eigenvalue.c for multiple target architectures:
 
 Usage:
     python3 build_runtime.py [--target TARGET] [--all]
-    
+
 Examples:
     python3 build_runtime.py                    # Build for host
     python3 build_runtime.py --target wasm32    # Build for WASM

@@ -17,7 +17,9 @@ class TestRuntimeBuildSystem:
         """Build script should exist in runtime directory."""
         script_path = Path("src/eigenscript/compiler/runtime/build_runtime.py")
         assert script_path.exists(), f"Build script not found at {script_path}"
-        assert os.access(script_path, os.X_OK) or True  # May not be executable on all systems
+        assert (
+            os.access(script_path, os.X_OK) or True
+        )  # May not be executable on all systems
 
     def test_build_script_list_targets(self):
         """Build script should list available targets."""
@@ -125,7 +127,9 @@ class TestRuntimeBuildSystem:
         assert f'target triple = "{target}"' in llvm_ir, "Target triple should be in IR"
 
         # Verify malloc uses correct size
-        assert "declare i8* @\"malloc\"(i64" in llvm_ir, "Should use i64 malloc for x86_64"
+        assert (
+            'declare i8* @"malloc"(i64' in llvm_ir
+        ), "Should use i64 malloc for x86_64"
 
 
 class TestRuntimeBuildSystemIntegration:
@@ -162,7 +166,9 @@ class TestRuntimeBuildSystemIntegration:
         # Remove x86_64 build if it exists
         import shutil
 
-        x86_64_dir = Path("src/eigenscript/compiler/runtime/build/x86_64-unknown-linux-gnu")
+        x86_64_dir = Path(
+            "src/eigenscript/compiler/runtime/build/x86_64-unknown-linux-gnu"
+        )
 
         # Try to compile with explicit target - should auto-build runtime
         result = subprocess.run(
