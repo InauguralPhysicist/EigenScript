@@ -190,7 +190,9 @@ class LLVMCodeGenerator:
         # Current function and builder
         self.current_function: Optional[ir.Function] = None
         self.builder: Optional[ir.IRBuilder] = None
-        self.entry_block: Optional[ir.Block] = None  # Entry block for alloca instructions
+        self.entry_block: Optional[ir.Block] = (
+            None  # Entry block for alloca instructions
+        )
 
         # Loop context (for break/continue statements)
         self.loop_end_stack: list[ir.Block] = []  # Stack of loop end blocks
@@ -451,7 +453,7 @@ class LLVMCodeGenerator:
         # Handle GeneratedValue wrapper
         if isinstance(val, GeneratedValue):
             val = val.value
-        
+
         if val.type == self.bool_type:
             return val
 
@@ -721,7 +723,7 @@ class LLVMCodeGenerator:
             return GeneratedValue(
                 value=ir.Constant(self.bool_type, 0), kind=ValueKind.SCALAR
             )
-        
+
         # Check if this is a predicate
         if node.name in [
             "converged",
@@ -1023,41 +1025,43 @@ class LLVMCodeGenerator:
 
             # Handle user-defined functions
             if func_name in self.functions:
-                # Get the argument and convert to EigenValue*
+                # Get the argument expression
                 arg = node.right
 
-                # If argument is an identifier, get its EigenValue pointer directly
-                if isinstance(arg, Identifier):
-                    if arg.name in self.local_vars or arg.name in self.global_vars:
-                        var_ptr = self.local_vars.get(arg.name) or self.global_vars.get(
-                            arg.name
-                        )
-                        eigen_ptr = self.builder.load(var_ptr)
-                    else:
-                        raise NameError(f"Undefined variable: {arg.name}")
-                else:
-                    # For other expressions (including interrogatives), generate and convert
-                    arg_gen_val = self._generate(arg)
+                # Generate the argument value
+                gen_arg = self._generate(arg)
 
-                    # Wrap raw ir.Value in GeneratedValue for consistent handling
-                    if isinstance(arg_gen_val, ir.Value):
-                        arg_gen_val = GeneratedValue(
-                            value=arg_gen_val, kind=ValueKind.SCALAR
+                # Determine if we have a scalar or a pointer
+                call_arg = None
+
+                # Case 1: Argument is a GeneratedValue wrapper (from interrogative)
+                if isinstance(gen_arg, GeneratedValue):
+                    if gen_arg.kind == ValueKind.SCALAR:
+                        # JIT Promotion: Scalar -> Stack EigenValue
+                        call_arg = self._create_eigen_on_stack(gen_arg.value)
+                    elif gen_arg.kind == ValueKind.EIGEN_PTR:
+                        call_arg = gen_arg.value
+                    else:
+                        raise TypeError(
+                            "Cannot pass List to function expecting EigenValue"
                         )
 
-                    # OPTIMIZATION: Use stack allocation for temporary function arguments
-                    # instead of heap allocation (much faster!)
-                    if arg_gen_val.kind == ValueKind.SCALAR:
-                        # Create temporary EigenValue on stack for this call
-                        scalar_val = self.ensure_scalar(arg_gen_val)
-                        eigen_ptr = self._create_eigen_on_stack(scalar_val)
+                # Case 2: Argument is a raw LLVM Value
+                elif isinstance(gen_arg, ir.Value):
+                    if gen_arg.type == self.double_type:
+                        # JIT Promotion: Scalar -> Stack EigenValue
+                        # This fixes the crash! We create a temp wrapper on the stack.
+                        call_arg = self._create_eigen_on_stack(gen_arg)
+                    elif isinstance(gen_arg.type, ir.PointerType):
+                        # Assume it's an EigenValue pointer
+                        # (In a full implementation we'd check the struct type strictly)
+                        call_arg = gen_arg
                     else:
-                        # Already an EigenValue* or list, use as-is
-                        eigen_ptr = self.ensure_eigen_ptr(arg_gen_val)
+                        raise TypeError(f"Unexpected argument type: {gen_arg.type}")
 
                 # Call the function
                 func = self.functions[func_name]
-                result = self.builder.call(func, [eigen_ptr])
+                result = self.builder.call(func, [call_arg])
                 return result
 
         raise NotImplementedError(
@@ -1172,10 +1176,10 @@ class LLVMCodeGenerator:
             raise NameError(f"Undefined variable: {target_name}")
 
         var_ptr = self.local_vars.get(target_name) or self.global_vars.get(target_name)
-        
+
         # Check if this is a fast-path variable (raw double*) or EigenValue*
         is_fast_path = var_ptr.type.pointee == self.double_type
-        
+
         if is_fast_path:
             # Fast-path variable: just a raw double, not an EigenValue*
             # Interrogatives don't make sense for untracked variables
@@ -1205,7 +1209,7 @@ class LLVMCodeGenerator:
                     raise NotImplementedError(
                         f"Interrogative {node.interrogative} not implemented"
                     )
-        
+
         # EigenValue* variable: full geometric tracking available
         eigen_ptr = self.builder.load(var_ptr)
 
