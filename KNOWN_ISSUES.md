@@ -1,38 +1,84 @@
 # Known Issues - HONEST ASSESSMENT
 
-**Last Updated**: 2025-11-19
+**Last Updated**: 2025-11-23
 **Assessed By**: Independent code review + automated analysis
-**Project Status**: **Alpha 0.1** (Production-Ready Core, Polishing)
-**Test Suite**: 578 passing, 0 failing ✅
-**Code Coverage**: 84% overall ✅
-**Example Success Rate**: 100% (31/31 working) ✅
+**Project Status**: **v0.3.0** (Production-Ready Interpreter, Compiler In Development)
+**Test Suite**: 665 passing, 0 failing ✅
+**Code Coverage**: 78% overall ✅
+**Example Success Rate**: 100% (29+ examples working) ✅
 
 ---
 
 ## Executive Summary
 
-EigenScript has reached a **production-ready core** with 578 passing tests, 84% code coverage, and **100% of examples working correctly**. The critical issues from initial assessment have been resolved. Remaining work focuses on polish, optimization, and ecosystem development.
+EigenScript v0.3.0 has a **production-ready interpreter** with 665 passing tests and 78% code coverage. The interpreter works reliably for all core language features. The LLVM compiler is under active development and currently experiencing linking issues.
 
 ### Reality Check
 
 **What's Actually Working:**
 - ✅ Core interpreter (lexer, parser, evaluator) - fully functional
-- ✅ 578 comprehensive tests all pass (up from 499)
-- ✅ 84% code coverage (up from 82%)
-- ✅ **100% of 31 examples work correctly** (up from 76%)
+- ✅ 665 comprehensive tests all pass
+- ✅ 78% code coverage
+- ✅ **100% of examples work correctly in interpreter mode**
 - ✅ All advanced features functional (meta-circular evaluator, self-reference, etc.)
-- ✅ 48 built-in functions
+- ✅ 48+ built-in functions
 - ✅ Framework Strength tracking
 - ✅ Interrogatives and predicates
-- ✅ CI/CD pipeline with multi-Python testing (3.9-3.12)
-- ✅ Security fixes (bare except clauses resolved)
-- ✅ Code quality (black formatting applied)
+- ✅ Interactive REPL
+- ✅ Interactive Playground (EigenSpace) in `examples/playground/`
+- ✅ CI/CD pipeline with multi-Python testing (3.10-3.12)
 
-**Remaining Work (Not Blockers):**
+**Current Issues:**
+- ❌ **LLVM Compiler has linking errors** (multiple definition errors)
 - ⚠️ Test coverage could be higher (target: 90%+)
-- ⚠️ Type safety improvements (mypy has ~48 errors)
-- ⚠️ Performance optimization needed
-- ⚠️ Documentation consolidation (mostly complete)
+- ⚠️ Type safety improvements needed
+- ⚠️ Interpreter performance optimization needed
+
+---
+
+## Current Critical Issues
+
+### **ISSUE-COMPILER-001: LLVM Compiler Linking Errors** ❌ ACTIVE
+
+- **Severity**: CRITICAL (blocks compiler usage)
+- **Impact**: Cannot compile any EigenScript programs to native executables
+- **Status**: ❌ UNDER INVESTIGATION
+- **Affects**: All compilation attempts with `eigenscript-compile`
+
+**The Problem:**
+
+The LLVM compiler generates valid LLVM IR but fails at the linking stage with "multiple definition" errors for all runtime functions (`eigen_create`, `eigen_init`, `eigen_update`, etc.).
+
+**Error Example:**
+```
+/usr/bin/ld: eigenvalue.o: in function `eigen_create':
+eigenvalue.c:(.text+0x0): multiple definition of `eigen_create'
+program.o:<string>:(.ltext+0x90): first defined here
+```
+
+**Root Cause:**
+
+The runtime functions appear to be defined both in:
+1. The compiled user program object file (`program.o`)
+2. The runtime library object file (`eigenvalue.o`)
+
+This suggests the LLVM code generator is emitting runtime function declarations/definitions that conflict with the separately compiled runtime library.
+
+**Workaround:**
+
+Use the interpreter mode for all execution:
+```bash
+python3 -m eigenscript program.eigs
+```
+
+**Fix Required:**
+
+The LLVM code generator needs to be modified to either:
+- Only emit declarations (not definitions) for runtime functions
+- Use proper external linkage declarations
+- Remove duplicate symbol generation
+
+**Estimated Effort:** 8-16 hours of debugging and refactoring
 
 ---
 
