@@ -83,3 +83,8 @@ site/
 *.bc
 *.wasm
 test_compiler.py
+
+# Compiled binaries in examples (no extension)
+examples/compiler/benchmarks/truthiness_test
+examples/compiler/benchmarks/loop_fast
+examples/compiler/benchmarks/fibonacci
