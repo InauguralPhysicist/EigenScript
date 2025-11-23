@@ -18,6 +18,8 @@ from eigenscript.parser.ast_builder import (
     Literal,
     Identifier,
     Program,
+    Import,
+    MemberAccess,
 )
 
 __all__ = [
@@ -34,4 +36,6 @@ __all__ = [
     "Literal",
     "Identifier",
     "Program",
+    "Import",
+    "MemberAccess",
 ]
