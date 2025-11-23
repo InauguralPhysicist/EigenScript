@@ -85,11 +85,14 @@ This architecture gives us:
    
    **Option A: WASI SDK (Recommended)**
    ```bash
-   # Download WASI SDK
+   # Download WASI SDK (check latest version at releases page)
+   # Example with version 21 (latest as of Nov 2024):
    wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-21/wasi-sdk-21.0-linux.tar.gz
    tar xzf wasi-sdk-21.0-linux.tar.gz
    export CC=$PWD/wasi-sdk-21.0/bin/clang
    ```
+   
+   **Note:** Check [WASI SDK releases](https://github.com/WebAssembly/wasi-sdk/releases) for the latest version.
    
    **Option B: Emscripten**
    ```bash

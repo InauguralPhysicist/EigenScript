@@ -179,11 +179,12 @@ loop while x < 20:
                     ceil: Math.ceil,
                     round: Math.round,
                     // Memory management stubs
-                    // Note: EigenScript uses stack allocation for most operations
-                    // If these are called, it indicates the WASM needs heap memory
+                    // Note: EigenScript uses stack allocation (Phase 3 optimization)
+                    // malloc returns 0 (null) intentionally - code doesn't use heap
+                    // If these are called, it indicates unexpected heap allocation
                     malloc: (n) => {
-                        console.warn(`malloc(${n}) called - returning null. WASM may need heap memory.`);
-                        return 0;
+                        console.warn(`malloc(${n}) called - returning null. EigenScript uses stack allocation.`);
+                        return 0; // Intentional null - stack allocation only
                     }, 
                     free: (p) => {
                         if (p !== 0) {
