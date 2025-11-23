@@ -1279,10 +1279,10 @@ class LLVMCodeGenerator:
         func = ir.Function(self.module, func_type, name=mangled_name)
         # Add function attributes for optimization
         func.attributes.add("nounwind")  # No exceptions in EigenScript
-        # Store with both original and mangled names for lookups
+        # Store function under original name for internal lookups
+        # The LLVM IR will use the mangled name, but within the module
+        # we reference functions by their original names
         self.functions[node.name] = func
-        if self.is_library:
-            self.functions[mangled_name] = func
 
         # Create entry block
         block = func.append_basic_block(name="entry")
