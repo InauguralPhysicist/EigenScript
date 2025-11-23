@@ -269,9 +269,11 @@ def compile_file(
                 # WebAssembly Linking
                 # Use clang with WASM-specific flags
                 linker = "clang"
+                # Use provided target_triple or default to wasm32-unknown-unknown
+                wasm_target = target_triple if target_triple else "wasm32-unknown-unknown"
                 link_cmd = [
                     linker,
-                    f"--target={target_triple}",
+                    f"--target={wasm_target}",
                     "-nostdlib",  # Don't link system libc (not available in browser)
                     "-Wl,--no-entry",  # Library mode (no main required by linker)
                     "-Wl,--export-all",  # Export symbols so JS can call them
