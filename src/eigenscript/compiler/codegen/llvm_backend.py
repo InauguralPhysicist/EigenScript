@@ -190,7 +190,9 @@ class LLVMCodeGenerator:
         # Current function and builder
         self.current_function: Optional[ir.Function] = None
         self.builder: Optional[ir.IRBuilder] = None
-        self.entry_block: Optional[ir.Block] = None  # Entry block for alloca instructions
+        self.entry_block: Optional[ir.Block] = (
+            None  # Entry block for alloca instructions
+        )
 
         # Loop context (for break/continue statements)
         self.loop_end_stack: list[ir.Block] = []  # Stack of loop end blocks
@@ -451,7 +453,7 @@ class LLVMCodeGenerator:
         # Handle GeneratedValue wrapper
         if isinstance(val, GeneratedValue):
             val = val.value
-        
+
         if val.type == self.bool_type:
             return val
 
@@ -721,7 +723,7 @@ class LLVMCodeGenerator:
             return GeneratedValue(
                 value=ir.Constant(self.bool_type, 0), kind=ValueKind.SCALAR
             )
-        
+
         # Check if this is a predicate
         if node.name in [
             "converged",
@@ -1025,13 +1027,13 @@ class LLVMCodeGenerator:
             if func_name in self.functions:
                 # Get the argument expression
                 arg = node.right
-                
+
                 # Generate the argument value
                 gen_arg = self._generate(arg)
-                
+
                 # Determine if we have a scalar or a pointer
                 call_arg = None
-                
+
                 # Case 1: Argument is a GeneratedValue wrapper (from interrogative)
                 if isinstance(gen_arg, GeneratedValue):
                     if gen_arg.kind == ValueKind.SCALAR:
@@ -1040,8 +1042,10 @@ class LLVMCodeGenerator:
                     elif gen_arg.kind == ValueKind.EIGEN_PTR:
                         call_arg = gen_arg.value
                     else:
-                        raise TypeError("Cannot pass List to function expecting EigenValue")
-                
+                        raise TypeError(
+                            "Cannot pass List to function expecting EigenValue"
+                        )
+
                 # Case 2: Argument is a raw LLVM Value
                 elif isinstance(gen_arg, ir.Value):
                     if gen_arg.type == self.double_type:
@@ -1054,7 +1058,7 @@ class LLVMCodeGenerator:
                         call_arg = gen_arg
                     else:
                         raise TypeError(f"Unexpected argument type: {gen_arg.type}")
-                
+
                 # Call the function
                 func = self.functions[func_name]
                 result = self.builder.call(func, [call_arg])
@@ -1172,10 +1176,10 @@ class LLVMCodeGenerator:
             raise NameError(f"Undefined variable: {target_name}")
 
         var_ptr = self.local_vars.get(target_name) or self.global_vars.get(target_name)
-        
+
         # Check if this is a fast-path variable (raw double*) or EigenValue*
         is_fast_path = var_ptr.type.pointee == self.double_type
-        
+
         if is_fast_path:
             # Fast-path variable: just a raw double, not an EigenValue*
             # Interrogatives don't make sense for untracked variables
@@ -1205,7 +1209,7 @@ class LLVMCodeGenerator:
                     raise NotImplementedError(
                         f"Interrogative {node.interrogative} not implemented"
                     )
-        
+
         # EigenValue* variable: full geometric tracking available
         eigen_ptr = self.builder.load(var_ptr)
 
