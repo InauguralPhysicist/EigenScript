@@ -68,6 +68,11 @@ def compile_file(
                 print(f"  ✗ Verification failed: {verify_error}")
                 return 1
 
+        # Link runtime bitcode for LTO (Link-Time Optimization)
+        # This enables inlining of C runtime functions
+        llvm_module = codegen.link_runtime_bitcode(llvm_module)
+        print(f"  ✓ Linked runtime bitcode (LTO enabled)")
+
         # Apply optimizations if requested (using New Pass Manager)
         if opt_level > 0:
             # Create pipeline tuning options

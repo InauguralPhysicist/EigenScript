@@ -41,8 +41,11 @@ EigenValue* eigen_create(double initial_value) {
  * This is the critical O(1) optimization - we do NOT memset the history array.
  * We only set history_size to 1 and write the first element.
  * The rest of the array contains garbage, but history_size guards all access.
+ *
+ * Marked for aggressive inlining since this is on the hot path for recursion.
  */
-void eigen_init(EigenValue* ev, double initial_value) {
+__attribute__((always_inline))
+inline void eigen_init(EigenValue* ev, double initial_value) {
     if (!ev) return;
 
     // Set scalar fields
@@ -96,8 +99,10 @@ void eigen_update(EigenValue* ev, double new_value) {
 
 /**
  * Get current value
+ * Marked for aggressive inlining since this is called in hot loops
  */
-double eigen_get_value(EigenValue* ev) {
+__attribute__((always_inline))
+inline double eigen_get_value(EigenValue* ev) {
     return ev ? ev->value : 0.0;
 }
 

@@ -80,4 +80,5 @@ site/
 *.o
 *.exe
 *.ll
+*.bc
 test_compiler.py

@@ -3,6 +3,7 @@ LLVM Backend for EigenScript Compiler
 Generates LLVM IR from EigenScript AST nodes.
 """
 
+import os
 from llvmlite import ir
 from llvmlite import binding as llvm
 from typing import Dict, Any, Optional, Union
@@ -419,6 +420,49 @@ class LLVMCodeGenerator:
         # Free all tracked EigenList pointers
         for list_ptr in self.allocated_lists:
             self.builder.call(self.eigen_list_destroy, [list_ptr])
+
+    def link_runtime_bitcode(self, llvm_module: llvm.ModuleRef) -> llvm.ModuleRef:
+        """Link runtime bitcode for LTO (Link-Time Optimization).
+
+        This merges the C runtime functions into the generated module,
+        allowing LLVM to inline eigen_get_value, eigen_init, etc.
+
+        Expected performance impact:
+        - Function call overhead eliminated (~2-5 cycles per call)
+        - Direct struct field access instead of function calls
+        - Better register allocation across runtime boundary
+        - Target: <10ms for Fibonacci(25) vs current 209ms
+
+        Args:
+            llvm_module: The parsed LLVM module from our generated IR
+
+        Returns:
+            Linked module with runtime functions inlined
+        """
+        # Find runtime bitcode
+        runtime_dir = os.path.dirname(__file__)
+        runtime_bc = os.path.join(runtime_dir, "../runtime/eigenvalue.bc")
+
+        if not os.path.exists(runtime_bc):
+            print(
+                f"Warning: Runtime bitcode not found at {runtime_bc}. "
+                "Performance will be degraded. Run: clang -emit-llvm -c "
+                "runtime/eigenvalue.c -o runtime/eigenvalue.bc -O3"
+            )
+            return llvm_module
+
+        # Load runtime bitcode
+        with open(runtime_bc, "rb") as f:
+            bc_data = f.read()
+
+        # Parse runtime module
+        runtime_mod = llvm.parse_bitcode(bc_data)
+
+        # Link modules (merges runtime definitions into our module)
+        # This allows LLVM optimizer to see inside runtime functions
+        llvm.link_modules(llvm_module, runtime_mod)
+
+        return llvm_module
 
     def compile(self, ast_nodes: list[ASTNode]) -> str:
         """Compile a list of AST nodes to LLVM IR."""
