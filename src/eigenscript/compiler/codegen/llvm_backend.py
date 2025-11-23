@@ -633,8 +633,15 @@ class LLVMCodeGenerator:
 
         return llvm_module
 
-    def compile(self, ast_nodes: list[ASTNode]) -> str:
-        """Compile a list of AST nodes to LLVM IR."""
+    def compile(
+        self, ast_nodes: list[ASTNode], imported_modules: list[str] = None
+    ) -> str:
+        """Compile a list of AST nodes to LLVM IR.
+
+        Args:
+            ast_nodes: List of AST nodes to compile
+            imported_modules: List of module names that were imported (for init calls)
+        """
 
         # Reset cleanup tracking for this compilation
         # (Important: prevents stale references from previous compilations)
@@ -661,6 +668,21 @@ class LLVMCodeGenerator:
             self.builder = ir.IRBuilder(block)
             self.current_function = main_func
             self.entry_block = block  # Store entry block for proper alloca placement
+
+            # Phase 4.4: Call module initialization functions
+            # Before executing main logic, initialize all imported modules
+            if imported_modules:
+                for module_name in imported_modules:
+                    # Declare the module's init function
+                    init_func_name = f"{module_name}_init"
+                    init_func_type = ir.FunctionType(self.void_type, [])
+                    init_func = ir.Function(
+                        self.module, init_func_type, name=init_func_name
+                    )
+                    init_func.attributes.add("nounwind")
+
+                    # Call the init function
+                    self.builder.call(init_func, [])
 
         # Generate code for each statement
         for node in ast_nodes:

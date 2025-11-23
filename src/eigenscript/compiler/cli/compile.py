@@ -183,7 +183,9 @@ def compile_module(
             target_triple=target_triple,
             module_name=codegen_module_name,
         )
-        llvm_ir = codegen.compile(code_statements)
+        # Phase 4.4: Pass imported modules so main() can call their init functions
+        imported_modules_for_codegen = imports if is_main else None
+        llvm_ir = codegen.compile(code_statements, imported_modules_for_codegen)
 
         # Parse and verify
         llvm_module = llvm.parse_assembly(llvm_ir)
