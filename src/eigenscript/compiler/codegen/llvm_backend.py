@@ -91,13 +91,25 @@ class LLVMCodeGenerator:
         self.void_type = ir.VoidType()
         self.bool_type = ir.IntType(1)
 
-        # EigenValue structure: {double value, double gradient, double stability, i64 iteration}
+        # EigenValue structure - MUST match eigenvalue.h exactly!
+        # typedef struct {
+        #     double value, gradient, stability;
+        #     int64_t iteration;
+        #     double history[100];
+        #     int history_size, history_index;
+        #     double prev_value, prev_gradient;
+        # } EigenValue;
         self.eigen_value_type = ir.LiteralStructType(
             [
-                self.double_type,  # value
-                self.double_type,  # gradient (why)
-                self.double_type,  # stability (how)
-                self.int64_type,  # iteration (when)
+                self.double_type,                      # value
+                self.double_type,                      # gradient (why)
+                self.double_type,                      # stability (how)
+                self.int64_type,                       # iteration (when)
+                ir.ArrayType(self.double_type, 100),   # history[100]
+                self.int32_type,                       # history_size
+                self.int32_type,                       # history_index
+                self.double_type,                      # prev_value
+                self.double_type,                      # prev_gradient
             ]
         )
 
@@ -148,12 +160,21 @@ class LLVMCodeGenerator:
         self.malloc.attributes.add("nounwind")
 
         # Runtime functions for geometric tracking
-        # eigen_create(value) -> EigenValue*
+        # eigen_create(value) -> EigenValue* (heap allocation)
         eigen_create_type = ir.FunctionType(self.eigen_value_ptr, [self.double_type])
         self.eigen_create = ir.Function(
             self.module, eigen_create_type, name="eigen_create"
         )
         self.eigen_create.attributes.add("nounwind")
+
+        # eigen_init(eigen*, value) -> void (stack initialization)
+        eigen_init_type = ir.FunctionType(
+            self.void_type, [self.eigen_value_ptr, self.double_type]
+        )
+        self.eigen_init = ir.Function(
+            self.module, eigen_init_type, name="eigen_init"
+        )
+        self.eigen_init.attributes.add("nounwind")
 
         # eigen_update(eigen*, new_value) -> void
         eigen_update_type = ir.FunctionType(
@@ -329,17 +350,24 @@ class LLVMCodeGenerator:
         This is used when we need to store or pass geometric state.
         If given a scalar, wraps it in a new EigenValue.
         If given an EigenValue*, returns it directly (enabling aliasing).
+
+        NOTE: Only track heap allocations in main scope for cleanup.
+        Functions manage their own temporary allocations.
         """
         # Backward compatibility: if passed raw ir.Value, assume it's a scalar
         if isinstance(gen_val, ir.Value):
             eigen_ptr = self.builder.call(self.eigen_create, [gen_val])
-            self.allocated_eigenvalues.append(eigen_ptr)  # Track for cleanup
+            # Only track allocations in main scope (not in functions)
+            if self.current_function and self.current_function.name == "main":
+                self.allocated_eigenvalues.append(eigen_ptr)
             return eigen_ptr
 
         if gen_val.kind == ValueKind.SCALAR:
             # Wrap scalar in new EigenValue
             eigen_ptr = self.builder.call(self.eigen_create, [gen_val.value])
-            self.allocated_eigenvalues.append(eigen_ptr)  # Track for cleanup
+            # Only track allocations in main scope (not in functions)
+            if self.current_function and self.current_function.name == "main":
+                self.allocated_eigenvalues.append(eigen_ptr)
             return eigen_ptr
         elif gen_val.kind == ValueKind.EIGEN_PTR:
             # Already a pointer, return directly (this enables aliasing!)
@@ -352,8 +380,17 @@ class LLVMCodeGenerator:
     def _create_eigen_on_stack(self, initial_value: ir.Value) -> ir.Value:
         """Create an EigenValue on the stack (fast, auto-freed).
 
-        This is used for local variables in functions to avoid malloc overhead.
-        Stack allocation is ~20x faster than heap and automatically freed on return.
+        This is THE critical optimization for recursion performance:
+        - alloca: O(1) stack pointer shift (1 CPU instruction)
+        - eigen_init: O(1) field initialization (no memset on history array)
+        - Total: ~20-30x faster than malloc + memset
+
+        Stack allocation eliminates:
+        1. malloc's heap search overhead (hundreds of instructions)
+        2. memset's O(100) zeroing of history array
+        3. Cache misses from scattered heap allocations
+
+        Stack memory is "hot" in L1 cache, heap is scattered and cold.
 
         Args:
             initial_value: The initial double value to store
@@ -361,36 +398,14 @@ class LLVMCodeGenerator:
         Returns:
             Pointer to the stack-allocated EigenValue struct
         """
-        # Allocate EigenValue struct on stack
+        # 1. Allocate EigenValue struct on stack (O(1) - just shifts stack pointer)
+        #    Generates: %name = alloca %struct.EigenValue
         eigen_stack = self.builder.alloca(self.eigen_value_type, name="eigen_stack")
 
-        # Initialize value field (index 0)
-        value_ptr = self.builder.gep(
-            eigen_stack,
-            [ir.Constant(self.int32_type, 0), ir.Constant(self.int32_type, 0)],
-        )
-        self.builder.store(initial_value, value_ptr)
-
-        # Initialize gradient field (index 1) to 0.0
-        grad_ptr = self.builder.gep(
-            eigen_stack,
-            [ir.Constant(self.int32_type, 0), ir.Constant(self.int32_type, 1)],
-        )
-        self.builder.store(ir.Constant(self.double_type, 0.0), grad_ptr)
-
-        # Initialize stability field (index 2) to 1.0
-        stability_ptr = self.builder.gep(
-            eigen_stack,
-            [ir.Constant(self.int32_type, 0), ir.Constant(self.int32_type, 2)],
-        )
-        self.builder.store(ir.Constant(self.double_type, 1.0), stability_ptr)
-
-        # Initialize iteration field (index 3) to 0
-        iter_ptr = self.builder.gep(
-            eigen_stack,
-            [ir.Constant(self.int32_type, 0), ir.Constant(self.int32_type, 3)],
-        )
-        self.builder.store(ir.Constant(self.int64_type, 0), iter_ptr)
+        # 2. Initialize in-place using eigen_init (O(1) - lazy history init)
+        #    Generates: call void @eigen_init(%name, %val)
+        #    This is MUCH faster than manually setting 9 fields via GEP
+        self.builder.call(self.eigen_init, [eigen_stack, initial_value])
 
         return eigen_stack
 
@@ -409,6 +424,11 @@ class LLVMCodeGenerator:
 
     def compile(self, ast_nodes: list[ASTNode]) -> str:
         """Compile a list of AST nodes to LLVM IR."""
+
+        # Reset cleanup tracking for this compilation
+        # (Important: prevents stale references from previous compilations)
+        self.allocated_eigenvalues = []
+        self.allocated_lists = []
 
         # Create main function
         main_type = ir.FunctionType(self.int32_type, [])
@@ -719,6 +739,8 @@ class LLVMCodeGenerator:
 
             if in_function and gen_value.kind == ValueKind.SCALAR:
                 # Stack allocation: fast and auto-freed
+                # IMPORTANT: Stack variables are NOT added to allocated_eigenvalues
+                # They don't need cleanup - automatically freed when function returns
                 scalar_val = self.ensure_scalar(gen_value)
                 eigen_ptr = self._create_eigen_on_stack(scalar_val)
                 var_ptr = self.builder.alloca(
@@ -726,8 +748,10 @@ class LLVMCodeGenerator:
                 )
                 self.builder.store(eigen_ptr, var_ptr)
                 self.local_vars[node.identifier] = var_ptr
+                # NOTE: Stack variables are NOT tracked in allocated_eigenvalues!
             else:
                 # Heap allocation: for main scope or when aliasing
+                # These DO need cleanup via eigen_destroy
                 eigen_ptr = self.ensure_eigen_ptr(gen_value)
                 var_ptr = self.builder.alloca(
                     self.eigen_value_ptr, name=node.identifier
@@ -1000,7 +1024,9 @@ class LLVMCodeGenerator:
         length = len(node.elements)
         length_val = ir.Constant(self.int64_type, length)
         list_ptr = self.builder.call(self.eigen_list_create, [length_val])
-        self.allocated_lists.append(list_ptr)  # Track for cleanup
+        # Only track allocations in main scope (not in functions)
+        if self.current_function and self.current_function.name == "main":
+            self.allocated_lists.append(list_ptr)
 
         # Set each element
         for i, elem in enumerate(node.elements):

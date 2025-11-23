@@ -37,8 +37,11 @@ typedef struct {
  * Runtime API Functions
  */
 
-// Create a new EigenValue with initial value
+// Create a new EigenValue with initial value (heap allocation)
 EigenValue* eigen_create(double initial_value);
+
+// Initialize an already-allocated EigenValue (for stack allocation)
+void eigen_init(EigenValue* ev, double initial_value);
 
 // Update an EigenValue with a new value
 void eigen_update(EigenValue* ev, double new_value);

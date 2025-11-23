@@ -36,6 +36,34 @@ EigenValue* eigen_create(double initial_value) {
 }
 
 /**
+ * Initialize an already-allocated EigenValue (for stack allocation)
+ *
+ * This is the critical O(1) optimization - we do NOT memset the history array.
+ * We only set history_size to 1 and write the first element.
+ * The rest of the array contains garbage, but history_size guards all access.
+ */
+void eigen_init(EigenValue* ev, double initial_value) {
+    if (!ev) return;
+
+    // Set scalar fields
+    ev->value = initial_value;
+    ev->gradient = 0.0;
+    ev->stability = 1.0;  // Start stable
+    ev->iteration = 0;
+    ev->prev_value = initial_value;
+    ev->prev_gradient = 0.0;
+
+    // Lazy history initialization - O(1) not O(100)!
+    // We do NOT zero out the entire history[100] array
+    // Just set size to 1 and write the first element
+    // The rest is uninitialized memory (garbage), but history_size guards it
+    ev->history_size = 1;
+    ev->history_index = 0;
+    ev->history[0] = initial_value;
+    // history[1..99] contains garbage, but will never be accessed
+}
+
+/**
  * Update an EigenValue with a new value
  * This automatically calculates gradient and stability
  */
