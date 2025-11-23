@@ -104,7 +104,7 @@ def compile_file(
     # Determine output file
     # Detect WASM target for extension selection
     is_wasm = target_triple and "wasm" in target_triple.lower()
-    
+
     if output_file is None:
         base = os.path.splitext(input_file)[0]
         if link_exec:
@@ -283,7 +283,8 @@ def compile_file(
                     "-Wl,--allow-undefined",  # Allow JS imports to be undefined at link time
                     obj_file,
                     runtime_o,
-                    "-o", exec_file
+                    "-o",
+                    exec_file,
                 ]
             else:
                 # Standard Native Linking (x86/ARM)
@@ -292,8 +293,9 @@ def compile_file(
                     linker,
                     obj_file,
                     runtime_o,
-                    "-o", exec_file,
-                    "-lm"  # Link math library
+                    "-o",
+                    exec_file,
+                    "-lm",  # Link math library
                 ]
 
             # Execute linker
