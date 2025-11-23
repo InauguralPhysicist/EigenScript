@@ -12,7 +12,68 @@ from eigenscript.lexer import Tokenizer
 from eigenscript.parser.ast_builder import Parser
 from eigenscript.compiler.codegen.llvm_backend import LLVMCodeGenerator
 from eigenscript.compiler.analysis.observer import ObserverAnalyzer
+from eigenscript.compiler.runtime.targets import infer_target_name
 from llvmlite import binding as llvm
+import subprocess
+
+
+def get_runtime_path(runtime_dir: str, target_triple: str = None) -> tuple[str, str]:
+    """Get the correct runtime object file and bitcode for the target architecture.
+
+    Args:
+        runtime_dir: Path to the runtime directory
+        target_triple: LLVM target triple (e.g., "wasm32-unknown-unknown")
+
+    Returns:
+        Tuple of (object_file_path, bitcode_file_path)
+    """
+    # Default to host runtime
+    if not target_triple:
+        target_triple = "host"
+
+    # Map triple to build directory
+    build_dir = os.path.join(runtime_dir, "build", target_triple)
+    runtime_o = os.path.join(build_dir, "eigenvalue.o")
+    runtime_bc = os.path.join(build_dir, "eigenvalue.bc")
+
+    # If target-specific runtime doesn't exist, try to build it
+    if not os.path.exists(runtime_o):
+        print(f"  → Runtime for {target_triple} not found, attempting to build...")
+
+        # Use shared target name inference
+        target_name = infer_target_name(target_triple)
+
+        # Run build script
+        build_script = os.path.join(runtime_dir, "build_runtime.py")
+        if os.path.exists(build_script):
+            result = subprocess.run(
+                [sys.executable, build_script, "--target", target_name],
+                capture_output=True,
+                text=True,
+                cwd=runtime_dir,
+                timeout=60,  # Prevent hanging on build issues
+            )
+
+            if result.returncode != 0:
+                print(f"  ⚠️  Runtime build failed for {target_triple}")
+                # Fall back to host runtime if available
+                host_runtime_o = os.path.join(runtime_dir, "eigenvalue.o")
+                host_runtime_bc = os.path.join(runtime_dir, "eigenvalue.bc")
+                if os.path.exists(host_runtime_o):
+                    print(f"  → Falling back to host runtime")
+                    return host_runtime_o, host_runtime_bc
+                return None, None
+
+    # If still doesn't exist after build attempt, fall back
+    if not os.path.exists(runtime_o):
+        # Try host runtime symlink
+        host_runtime_o = os.path.join(runtime_dir, "eigenvalue.o")
+        host_runtime_bc = os.path.join(runtime_dir, "eigenvalue.bc")
+        if os.path.exists(host_runtime_o):
+            return host_runtime_o, host_runtime_bc
+        return None, None
+
+    return runtime_o, runtime_bc
 
 
 def compile_file(
@@ -22,6 +83,7 @@ def compile_file(
     verify: bool = True,
     link_exec: bool = False,
     opt_level: int = 0,
+    target_triple: str = None,
 ):
     """Compile an EigenScript file to LLVM IR, object code, or executable."""
 
@@ -65,7 +127,10 @@ def compile_file(
             print(f"  ✓ Analysis: No variables need geometric tracking (pure scalars!)")
 
         # Generate LLVM IR with observer information
-        codegen = LLVMCodeGenerator(observed_variables=observed_vars)
+        # Pass the target triple to the generator
+        codegen = LLVMCodeGenerator(
+            observed_variables=observed_vars, target_triple=target_triple
+        )
         llvm_ir = codegen.compile(ast.statements)
         print(f"  ✓ Generated LLVM IR")
 
@@ -81,7 +146,7 @@ def compile_file(
 
         # Link runtime bitcode for LTO (Link-Time Optimization)
         # This enables inlining of C runtime functions
-        llvm_module = codegen.link_runtime_bitcode(llvm_module)
+        llvm_module = codegen.link_runtime_bitcode(llvm_module, target_triple)
         print(f"  ✓ Linked runtime bitcode (LTO enabled)")
 
         # Apply optimizations if requested (using New Pass Manager)
@@ -171,27 +236,13 @@ def compile_file(
                 with open(obj_file, "wb") as f:
                     f.write(target_machine.emit_object(llvm_module))
 
-            # Ensure runtime is compiled
-            import subprocess
-
+            # Get runtime for target architecture
             runtime_dir = os.path.join(os.path.dirname(__file__), "../runtime")
-            runtime_c = os.path.join(runtime_dir, "eigenvalue.c")
-            runtime_o = os.path.join(runtime_dir, "eigenvalue.o")
+            runtime_o, _ = get_runtime_path(runtime_dir, target_triple)
 
-            # Compile runtime if needed
-            if not os.path.exists(runtime_o) or os.path.getmtime(
-                runtime_c
-            ) > os.path.getmtime(runtime_o):
-                print(f"  → Compiling runtime library...")
-                result = subprocess.run(
-                    ["gcc", "-c", runtime_c, "-o", runtime_o, "-fPIC"],
-                    capture_output=True,
-                    text=True,
-                    cwd=runtime_dir,
-                )
-                if result.returncode != 0:
-                    print(f"  ✗ Runtime compilation failed: {result.stderr}")
-                    return 1
+            if not runtime_o:
+                print(f"  ✗ Runtime library not available for target")
+                return 1
 
             # Link with runtime (NO shell=True to prevent command injection)
             result = subprocess.run(
@@ -257,6 +308,10 @@ Examples:
   2 = Standard optimizations (balanced inlining + vectorization, ~2-5x faster) [RECOMMENDED]
   3 = Aggressive optimizations (heavy inlining, large code size, ~2-10x faster)""",
     )
+    parser.add_argument(
+        "--target",
+        help="Target LLVM triple (e.g. wasm32-unknown-unknown, aarch64-apple-darwin)",
+    )
 
     args = parser.parse_args()
 
@@ -268,6 +323,7 @@ Examples:
         verify=not args.no_verify,
         link_exec=args.exec,
         opt_level=args.optimize,
+        target_triple=args.target,
     )
 
     sys.exit(exit_code)

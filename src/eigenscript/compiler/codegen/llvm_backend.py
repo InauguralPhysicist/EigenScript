@@ -75,28 +75,77 @@ class GeneratedValue:
 class LLVMCodeGenerator:
     """Generates LLVM IR from EigenScript AST."""
 
-    def __init__(self, observed_variables: Set[str] = None):
+    def __init__(self, observed_variables: Set[str] = None, target_triple: str = None):
         # Initialize LLVM targets (initialization is now automatic in llvmlite)
         llvm.initialize_native_target()
         llvm.initialize_native_asmprinter()
 
-        # Create module and builder
+        # Create module
         self.module = ir.Module(name="eigenscript_module")
-        self.module.triple = llvm.get_default_triple()
+
+        # 1. Configure Target Architecture
+        if target_triple:
+            self.module.triple = target_triple
+        else:
+            self.module.triple = llvm.get_default_triple()
+
+        # Get Target Data Layout (Crucial for pointer sizes)
+        try:
+            target = llvm.Target.from_triple(self.module.triple)
+            target_machine = target.create_target_machine()
+            target_data = target_machine.target_data
+            self.module.data_layout = str(target_data)
+        except RuntimeError as e:
+            # Fallback for unknown triples (e.g. during cross-compilation setup)
+            import warnings
+
+            warnings.warn(
+                f"Could not load target data for '{self.module.triple}': {e}",
+                RuntimeWarning,
+            )
+            # Default to x86_64 if native lookup fails
+            target_data = None
 
         # Observer Effect: Track which variables need geometric tracking
         # Unobserved variables compile to raw doubles for C-level performance
         self.observed_variables = observed_variables or set()
 
-        # Type definitions
+        # 2. Dynamic Type Definitions
         self.double_type = ir.DoubleType()
-        self.int64_type = ir.IntType(64)
+        self.int64_type = ir.IntType(64)  # Fixed size for data (iterations, etc)
         self.int32_type = ir.IntType(32)
         self.int8_type = ir.IntType(8)
         self.void_type = ir.VoidType()
         self.bool_type = ir.IntType(1)
 
-        # EigenValue structure - MUST match eigenvalue.h exactly!
+        # Determine size_t (pointer integer type) by analyzing the triple
+        # WASM32 -> 32-bit, x86_64 -> 64-bit, ARM64 -> 64-bit
+        # Check the triple for architecture indicators
+        triple_lower = self.module.triple.lower()
+        # 32-bit architectures
+        if (
+            "wasm32" in triple_lower
+            or "i386" in triple_lower
+            or "i686" in triple_lower
+            or triple_lower.startswith("arm-")
+            or "armv7" in triple_lower
+        ):
+            self.size_t_type = ir.IntType(32)
+        # 64-bit architectures
+        elif (
+            "x86_64" in triple_lower
+            or "aarch64" in triple_lower
+            or "arm64" in triple_lower
+            or "wasm64" in triple_lower
+            or "riscv64" in triple_lower
+        ):
+            self.size_t_type = ir.IntType(64)
+        else:
+            # Default fallback to 64-bit for unknown architectures
+            self.size_t_type = ir.IntType(64)
+
+        # EigenValue structure - Architecture Independent (Fixed width types)
+        # MUST match eigenvalue.h exactly!
         # typedef struct {
         #     double value, gradient, stability;
         #     int64_t iteration;
@@ -109,7 +158,7 @@ class LLVMCodeGenerator:
                 self.double_type,  # value
                 self.double_type,  # gradient (why)
                 self.double_type,  # stability (how)
-                self.int64_type,  # iteration (when)
+                self.int64_type,  # iteration (when) - always 64-bit in C runtime
                 ir.ArrayType(self.double_type, 100),  # history[100]
                 self.int32_type,  # history_size
                 self.int32_type,  # history_index
@@ -119,11 +168,12 @@ class LLVMCodeGenerator:
         )
 
         # EigenList structure: {double* data, i64 length, i64 capacity}
+        # matches C: {double* data, int64_t length, int64_t capacity}
         self.eigen_list_type = ir.LiteralStructType(
             [
-                self.double_type.as_pointer(),  # data
-                self.int64_type,  # length
-                self.int64_type,  # capacity
+                self.double_type.as_pointer(),  # data ptr (size varies by arch)
+                self.int64_type,  # length (always 64-bit)
+                self.int64_type,  # capacity (always 64-bit)
             ]
         )
 
@@ -140,6 +190,7 @@ class LLVMCodeGenerator:
         # Current function and builder
         self.current_function: Optional[ir.Function] = None
         self.builder: Optional[ir.IRBuilder] = None
+        self.entry_block: Optional[ir.Block] = None  # Entry block for alloca instructions
 
         # Loop context (for break/continue statements)
         self.loop_end_stack: list[ir.Block] = []  # Stack of loop end blocks
@@ -152,15 +203,16 @@ class LLVMCodeGenerator:
         self._declare_runtime_functions()
 
     def _declare_runtime_functions(self):
-        """Declare external runtime functions for geometric state tracking."""
+        """Declare runtime functions with architecture-correct types."""
 
         # printf for debugging
         printf_type = ir.FunctionType(self.int32_type, [self.string_type], var_arg=True)
         self.printf = ir.Function(self.module, printf_type, name="printf")
         self.printf.attributes.add("nounwind")
 
-        # malloc for dynamic allocation
-        malloc_type = ir.FunctionType(self.string_type, [self.int64_type])
+        # malloc - CRITICAL FIX: Use size_t_type, NOT int64_type
+        # On WASM32, malloc takes i32. On x64, it takes i64.
+        malloc_type = ir.FunctionType(self.string_type, [self.size_t_type])
         self.malloc = ir.Function(self.module, malloc_type, name="malloc")
         self.malloc.attributes.add("nounwind")
 
@@ -380,13 +432,17 @@ class LLVMCodeGenerator:
         else:
             raise ValueError(f"Unknown ValueKind: {gen_val.kind}")
 
-    def ensure_bool(self, val: ir.Value) -> ir.Value:
+    def ensure_bool(self, val: Union[GeneratedValue, ir.Value]) -> ir.Value:
         """
         Convert any value to an i1 boolean for branching.
         - i1: returns as-is
         - double: returns (val != 0.0)
         - ptr: returns (val != null)
         """
+        # Handle GeneratedValue wrapper
+        if isinstance(val, GeneratedValue):
+            val = val.value
+        
         if val.type == self.bool_type:
             return val
 
@@ -401,6 +457,54 @@ class LLVMCodeGenerator:
             return self.builder.icmp_unsigned("!=", val, ir.Constant(val.type, None))
 
         raise CompilerError(f"Cannot convert type {val.type} to boolean")
+
+    def _alloca_at_entry(self, ty: ir.Type, name: str = "") -> ir.AllocaInstr:
+        """Allocate a variable in the entry block of the current function.
+
+        This ensures all allocas are in the entry block, which is required for
+        proper LLVM IR and enables optimizations like mem2reg.
+
+        Args:
+            ty: The type to allocate
+            name: Optional name for the variable
+
+        Returns:
+            The alloca instruction
+        """
+        if not self.entry_block:
+            # If no entry block, just do normal alloca (shouldn't happen in practice)
+            return self.builder.alloca(ty, name=name)
+
+        # Save current position
+        current_block = self.builder.block
+
+        # Move to the beginning of the entry block (after any existing allocas)
+        if self.entry_block.instructions:
+            # Find the last alloca instruction in the entry block
+            last_alloca = None
+            for inst in self.entry_block.instructions:
+                if isinstance(inst, ir.AllocaInstr):
+                    last_alloca = inst
+                else:
+                    break  # Stop at first non-alloca
+
+            if last_alloca:
+                # Position after the last alloca
+                self.builder.position_after(last_alloca)
+            else:
+                # No allocas yet, position at start
+                self.builder.position_at_start(self.entry_block)
+        else:
+            # Empty entry block, position at start
+            self.builder.position_at_start(self.entry_block)
+
+        # Do the allocation
+        alloca_inst = self.builder.alloca(ty, name=name)
+
+        # Restore position
+        self.builder.position_at_end(current_block)
+
+        return alloca_inst
 
     def _create_eigen_on_stack(self, initial_value: ir.Value) -> ir.Value:
         """Create an EigenValue on the stack (fast, auto-freed).
@@ -447,7 +551,9 @@ class LLVMCodeGenerator:
         for list_ptr in self.allocated_lists:
             self.builder.call(self.eigen_list_destroy, [list_ptr])
 
-    def link_runtime_bitcode(self, llvm_module: llvm.ModuleRef) -> llvm.ModuleRef:
+    def link_runtime_bitcode(
+        self, llvm_module: llvm.ModuleRef, target_triple: str = None
+    ) -> llvm.ModuleRef:
         """Link runtime bitcode for LTO (Link-Time Optimization).
 
         This merges the C runtime functions into the generated module,
@@ -461,19 +567,34 @@ class LLVMCodeGenerator:
 
         Args:
             llvm_module: The parsed LLVM module from our generated IR
+            target_triple: Optional target triple for cross-compilation
 
         Returns:
             Linked module with runtime functions inlined
         """
         # Find runtime bitcode
         runtime_dir = os.path.dirname(__file__)
-        runtime_bc = os.path.join(runtime_dir, "../runtime/eigenvalue.bc")
+
+        # Try target-specific bitcode first
+        if target_triple:
+            target_bc = os.path.join(
+                runtime_dir, f"../runtime/build/{target_triple}/eigenvalue.bc"
+            )
+            if os.path.exists(target_bc):
+                runtime_bc = target_bc
+            else:
+                # Fall back to default
+                runtime_bc = os.path.join(runtime_dir, "../runtime/eigenvalue.bc")
+        else:
+            runtime_bc = os.path.join(runtime_dir, "../runtime/eigenvalue.bc")
 
         if not os.path.exists(runtime_bc):
-            print(
-                f"Warning: Runtime bitcode not found at {runtime_bc}. "
-                "Performance will be degraded. Run: clang -emit-llvm -c "
-                "runtime/eigenvalue.c -o runtime/eigenvalue.bc -O3"
+            import warnings
+
+            warnings.warn(
+                f"Runtime bitcode not found at {runtime_bc}. "
+                "Performance will be degraded. Run: python3 runtime/build_runtime.py",
+                RuntimeWarning,
             )
             return llvm_module
 
@@ -505,6 +626,7 @@ class LLVMCodeGenerator:
         block = main_func.append_basic_block(name="entry")
         self.builder = ir.IRBuilder(block)
         self.current_function = main_func
+        self.entry_block = block  # Store entry block for proper alloca placement
 
         # Generate code for each statement
         for node in ast_nodes:
@@ -581,6 +703,16 @@ class LLVMCodeGenerator:
 
     def _generate_identifier(self, node: Identifier) -> ir.Value:
         """Generate code for variable access."""
+        # Check if this is a boolean constant
+        if node.name == "True":
+            return GeneratedValue(
+                value=ir.Constant(self.bool_type, 1), kind=ValueKind.SCALAR
+            )
+        elif node.name == "False":
+            return GeneratedValue(
+                value=ir.Constant(self.bool_type, 0), kind=ValueKind.SCALAR
+            )
+        
         # Check if this is a predicate
         if node.name in [
             "converged",
@@ -791,7 +923,7 @@ class LLVMCodeGenerator:
 
         # Handle list assignment
         if gen_value.kind == ValueKind.LIST_PTR:
-            var_ptr = self.builder.alloca(self.eigen_list_ptr, name=node.identifier)
+            var_ptr = self._alloca_at_entry(self.eigen_list_ptr, name=node.identifier)
             self.builder.store(gen_value.value, var_ptr)
             self.local_vars[node.identifier] = var_ptr
             return
@@ -828,7 +960,7 @@ class LLVMCodeGenerator:
                 # This compiles to a simple alloca that LLVM's mem2reg pass
                 # will promote to a CPU register. Zero overhead.
                 scalar_val = self.ensure_scalar(gen_value)
-                var_ptr = self.builder.alloca(self.double_type, name=node.identifier)
+                var_ptr = self._alloca_at_entry(self.double_type, name=node.identifier)
                 self.builder.store(scalar_val, var_ptr)
                 self.local_vars[node.identifier] = var_ptr
                 # NOTE: This is just a double*, not EigenValue*!
@@ -839,7 +971,7 @@ class LLVMCodeGenerator:
                 # They don't need cleanup - automatically freed when function returns
                 scalar_val = self.ensure_scalar(gen_value)
                 eigen_ptr = self._create_eigen_on_stack(scalar_val)
-                var_ptr = self.builder.alloca(
+                var_ptr = self._alloca_at_entry(
                     self.eigen_value_ptr, name=node.identifier
                 )
                 self.builder.store(eigen_ptr, var_ptr)
@@ -849,7 +981,7 @@ class LLVMCodeGenerator:
                 # Observed variable in main scope: Heap allocation
                 # These DO need cleanup via eigen_destroy
                 eigen_ptr = self.ensure_eigen_ptr(gen_value)
-                var_ptr = self.builder.alloca(
+                var_ptr = self._alloca_at_entry(
                     self.eigen_value_ptr, name=node.identifier
                 )
                 self.builder.store(eigen_ptr, var_ptr)
@@ -1031,6 +1163,41 @@ class LLVMCodeGenerator:
             raise NameError(f"Undefined variable: {target_name}")
 
         var_ptr = self.local_vars.get(target_name) or self.global_vars.get(target_name)
+        
+        # Check if this is a fast-path variable (raw double*) or EigenValue*
+        is_fast_path = var_ptr.type.pointee == self.double_type
+        
+        if is_fast_path:
+            # Fast-path variable: just a raw double, not an EigenValue*
+            # Interrogatives don't make sense for untracked variables
+            # For "what is", just return the scalar value
+            if node.interrogative == "what":
+                scalar_val = self.builder.load(var_ptr)
+                return GeneratedValue(value=scalar_val, kind=ValueKind.SCALAR)
+            else:
+                # Other interrogatives (why/how/when) don't make sense for scalars
+                # Return default values
+                if node.interrogative == "why":
+                    # No gradient tracking, return 0.0
+                    return GeneratedValue(
+                        value=ir.Constant(self.double_type, 0.0), kind=ValueKind.SCALAR
+                    )
+                elif node.interrogative == "how":
+                    # No stability tracking, return 1.0 (perfectly stable)
+                    return GeneratedValue(
+                        value=ir.Constant(self.double_type, 1.0), kind=ValueKind.SCALAR
+                    )
+                elif node.interrogative == "when":
+                    # No iteration tracking, return 0.0
+                    return GeneratedValue(
+                        value=ir.Constant(self.double_type, 0.0), kind=ValueKind.SCALAR
+                    )
+                else:
+                    raise NotImplementedError(
+                        f"Interrogative {node.interrogative} not implemented"
+                    )
+        
+        # EigenValue* variable: full geometric tracking available
         eigen_ptr = self.builder.load(var_ptr)
 
         # Special case: 'what is' returns the pointer for aliasing
@@ -1076,15 +1243,17 @@ class LLVMCodeGenerator:
         prev_function = self.current_function
         prev_builder = self.builder
         prev_local_vars = self.local_vars
+        prev_entry_block = self.entry_block
 
         # Set up new context for function
         self.current_function = func
         self.builder = ir.IRBuilder(block)
+        self.entry_block = block  # Store entry block for proper alloca placement
         self.local_vars = {}
 
         # The parameter is implicitly named 'n' in EigenScript functions
         # (convention based on examples)
-        param_ptr = self.builder.alloca(self.eigen_value_ptr, name="n")
+        param_ptr = self._alloca_at_entry(self.eigen_value_ptr, name="n")
         self.builder.store(func.args[0], param_ptr)
         self.local_vars["n"] = param_ptr
 
@@ -1106,6 +1275,7 @@ class LLVMCodeGenerator:
         self.current_function = prev_function
         self.builder = prev_builder
         self.local_vars = prev_local_vars
+        self.entry_block = prev_entry_block
 
     def _generate_return(self, node: Return) -> ir.Value:
         """Generate code for return statements."""

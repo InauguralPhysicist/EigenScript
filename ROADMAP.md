@@ -1,125 +1,121 @@
-# EigenScript Roadmap
+# EigenScript Roadmap 🗺️
 
-**Version**: v0.2-beta  
-**Last Updated**: 2025-11-23
-
----
+**Version:** v0.2-beta  
+**Last Updated:** 2025-11-23
 
 ## Overview
 
-EigenScript v0.2 has achieved **native performance** with the Scalar Fast Path compiler. The roadmap ahead focuses on ecosystem growth, advanced features, and production hardening.
+EigenScript v0.2 has achieved native performance with the Scalar Fast Path compiler. The roadmap ahead focuses on ecosystem growth, advanced features, and production hardening.
 
 ---
 
-## Phase 3: Compiler Optimizations (Q1 2026)
-
-**Goal**: Push performance boundaries and expand compiler capabilities
+## 🛠️ Phase 3: Compiler Optimizations (Q1 2026)
+**Goal:** Push performance boundaries and expand compiler capabilities.
 
 ### Planned Features
-- [ ] Advanced LLVM optimization passes
-- [ ] Profile-guided optimization (PGO)
-- [ ] Auto-vectorization for SIMD operations
-- [ ] Cross-platform compilation targets (ARM, WASM)
-- [ ] Compiler plugin system
+* **Advanced LLVM Optimization:** Custom pass pipelines beyond standard `-O3`.
+* **PGO (Profile-Guided Optimization):** Recompiling based on runtime execution data.
+* **Auto-vectorization:** Explicit memory layouts to maximize SIMD throughput.
+* **Cross-Platform Targets:**
+    * **ARM64:** Native support for Apple Silicon and Raspberry Pi.
+    * **WASM (WebAssembly):** Running EigenScript in the browser (crucial for Phase 5).
+* **Compiler Plugins:** Hooks for custom geometric analysis passes.
 
 ### Performance Targets
-- Sub-millisecond startup time
-- 10x improvement on geometric operations
-- Zero-overhead abstractions verified across all platforms
+* Sub-millisecond startup time.
+* 10x improvement on geometric operations (improving the "Slow Path").
+* Zero-overhead abstractions verified across all architectures.
 
 ---
 
-## Phase 4: Language Features (Q2 2026)
-
-**Goal**: Expand language expressiveness while maintaining performance
+## 📦 Phase 4: Language Features (Q2 2026)
+**Goal:** Expand language expressiveness while maintaining performance.
 
 ### Core Features
-- [ ] Module system with namespaces
-- [ ] Type annotations (optional static typing)
-- [ ] Pattern matching
-- [ ] Async/await for I/O operations
-- [ ] Operator overloading for custom types
+* **Module System:** Namespaces, imports, and exports (`import geometry`).
+* **Type Annotations:** Optional static typing for stricter safety (`x: vector`).
+* **Pattern Matching:** Destructuring geometric states.
+* **Async/Await:** Non-blocking I/O operations.
+* **Operator Overloading:** Custom behavior for `+`, `-`, `of`.
 
 ### Standard Library
-- [ ] HTTP client/server
-- [ ] Regular expressions
-- [ ] Database connectors
-- [ ] Advanced data structures (sets, maps, queues)
-- [ ] Testing framework
+* **HTTP:** Built-in client/server for web services.
+* **Regex:** Pattern matching for strings.
+* **Database:** Connectors for SQL/NoSQL.
+* **Collections:** Sets, Maps, Queues, and Tensors.
+* **Test Framework:** Native unit testing (`define test_my_feature`).
 
 ---
 
-## Phase 5: Developer Tools (Q3 2026)
-
-**Goal**: Professional developer experience
+## 💻 Phase 5: Developer Tools (Q3 2026)
+**Goal:** Professional developer experience.
 
 ### Tooling
-- [ ] Language Server Protocol (LSP) implementation
-- [ ] VSCode extension with IntelliSense
-- [ ] Debugger with geometric state inspection
-- [ ] Package manager (`eigs-pkg`)
-- [ ] Build system and project templates
+* **LSP (Language Server Protocol):** The backend for IDE support.
+* **VSCode Extension:** Syntax highlighting, IntelliSense, and "Hover to see Geometry".
+* **Debugger:** Step-through debugging with geometric state inspection.
+* **Package Manager (`eigs-pkg`):** Dependency management.
+* **Scaffolding:** `eigen new project`.
 
 ### Documentation
-- [ ] Interactive playground (web-based REPL)
-- [ ] Video tutorial series
-- [ ] Cookbook with common patterns
-- [ ] API documentation generator
+* **Interactive Playground:** Web-based REPL (powered by WASM from Phase 3).
+* **Video Tutorials:** "EigenScript in 10 Minutes."
+* **Cookbook:** Common patterns and algorithms.
+* **Auto-Docs:** Generating API references from code comments.
 
 ---
 
-## Phase 6: Production Hardening (Q4 2026)
-
-**Goal**: Enterprise-ready stability and tooling
+## 🛡️ Phase 6: Production Hardening (Q4 2026)
+**Goal:** Enterprise-ready stability and tooling.
 
 ### Infrastructure
-- [ ] Formal memory safety proofs
-- [ ] Security audit and hardening
-- [ ] Performance regression testing
-- [ ] Production deployment guides
-- [ ] Docker containers and cloud templates
+* **Formal Verification:** Mathematical proofs of memory safety.
+* **Security Audit:** Third-party review of the runtime and compiler.
+* **Regression Testing:** Automated performance tracking on every commit.
+* **Deployment:** Docker containers and Kubernetes operators.
 
 ### Quality
-- [ ] 95%+ test coverage
-- [ ] Formal specification document
-- [ ] Benchmark suite with CI integration
-- [ ] Error message quality improvements
+* **95%+ Test Coverage:** Strict enforcement.
+* **Formal Spec:** A mathematical definition of the language syntax and semantics.
+* **Error Messages:** "Rust-style" helpful error diagnostics.
 
 ---
 
-## Phase 7: Ecosystem (2027+)
+## 🌐 Phase 7: Ecosystem (2027+)
+**Goal:** Community growth and third-party integrations.
 
-**Goal**: Community growth and third-party integrations
-
-### Community
-- [ ] Package registry and repository
-- [ ] Plugin ecosystem
-- [ ] Integration with popular tools (CI/CD, IDEs)
-- [ ] Teaching materials and workshops
-- [ ] Academic research collaborations
-
-### Advanced Research
-- [ ] JIT compilation with runtime optimization
-- [ ] Distributed computing primitives
-- [ ] Quantum computing integration
-- [ ] Neural architecture search capabilities
-- [ ] Formal verification tools
+* **Registry:** A central hub for EigenScript packages.
+* **Plugin Ecosystem:** Community-driven compiler extensions.
+* **Academic Research:** Using EigenScript for control theory and physics simulations.
+* **Advanced Research:**
+    * **JIT:** Runtime optimization for dynamic workloads.
+    * **Distributed Computing:** Geometric consensus algorithms.
+    * **Quantum Integration:** Mapping vectors to qubits.
 
 ---
 
-## Success Metrics
+## 📊 Success Metrics
 
 ### Technical
-- **Performance**: Competitive with C/Rust on numeric code
-- **Stability**: Zero critical bugs in production
-- **Coverage**: 95%+ test coverage
-- **Documentation**: Complete API reference and tutorials
+* **Performance:** Competitive with C/Rust on numeric code.
+* **Stability:** Zero critical bugs in production releases.
+* **Coverage:** 95%+ test coverage.
 
 ### Community
-- **Adoption**: 1,000+ GitHub stars
-- **Contributors**: 50+ community contributors
-- **Packages**: 100+ third-party packages
-- **Usage**: Active production deployments
+* **Adoption:** 1,000+ GitHub stars.
+* **Contributors:** 50+ community contributors.
+* **Packages:** 100+ third-party packages.
+
+---
+
+## Strategic Insight
+
+Your roadmap reveals a very smart dependency:
+**Phase 3 (WASM) → Phase 5 (Interactive Playground).**
+
+If you can compile EigenScript to WebAssembly early in 2026, you can host a "Try it now" console on your documentation site. This is historically the single biggest driver of adoption for new languages (see: Rust, Go, TypeScript).
+
+**Recommendation:** When you start Phase 3, prioritize the WASM target. It unlocks the visual storytelling potential of your geometric language.
 
 ---
 
