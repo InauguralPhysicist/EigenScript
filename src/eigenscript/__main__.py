@@ -7,6 +7,7 @@ Run as: python -m eigenscript [file.eigs]
 import sys
 import argparse
 from pathlib import Path
+from eigenscript import __version__
 from eigenscript.lexer import Tokenizer
 from eigenscript.parser import Parser
 from eigenscript.evaluator import Interpreter
@@ -139,7 +140,7 @@ def run_repl(verbose: bool = False) -> int:
     Returns:
         Exit code (0 for success)
     """
-    print("EigenScript 0.1.0-alpha")
+    print(f"EigenScript {__version__}")
     print("Type 'exit' or press Ctrl+D to quit")
     print("Use blank line to complete multi-line blocks")
     print("=" * 60)
@@ -233,7 +234,7 @@ def main():
         "file", nargs="?", help="EigenScript source file (.eigs) to execute"
     )
     parser.add_argument(
-        "--version", action="version", version="EigenScript 0.1.0-alpha"
+        "--version", action="version", version=f"EigenScript {__version__}"
     )
     parser.add_argument(
         "-i", "--interactive", action="store_true", help="Start interactive REPL"

@@ -5,7 +5,7 @@
 EigenScript is a high-performance programming language where code is treated as a trajectory through semantic spacetime. It combines the **zero-cost abstractions** of a system language with the **geometric introspection** of a symbolic AI.
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Version](https://img.shields.io/badge/version-v0.2--beta-blue)
+![Version](https://img.shields.io/badge/version-v0.3.0-blue)
 ![Performance](https://img.shields.io/badge/speed-native-orange)
 
 ## 🚀 Key Features
@@ -327,18 +327,23 @@ The math comes from a simple idea: measure the "distance" between where computat
 
 ### 🗺️ Roadmap
 
-**Current Status:** Phase 3 (Compiler Optimizations) ✅ Complete
+**Current Status:** Phase 5 (Interactive Playground) ✅ Complete
 
-Phase 3 achievements:
-- Architecture-agnostic compilation (WASM, ARM64, x86-64)
-- 53x performance improvement with Scalar Fast Path
-- 100% test pass rate (611/611 tests)
+Phase 5 achievements:
+- Web-based Interactive Playground (EigenSpace)
+- Real-time compilation and visualization
+- Split-screen IDE with animated canvas
+- 100% test pass rate (665/665 tests)
 
-**Next Up:** Phase 5 (Interactive Playground) - [See detailed roadmap](docs/PHASE5_INDEX.md)
-- Browser-based code editor with WebAssembly
-- Real-time execution without installation
-- Visual geometric state visualization
-- 10-week implementation timeline
+Previous achievements:
+- **Phase 3:** Architecture-agnostic compilation (WASM, ARM64, x86-64)
+- **Phase 3:** 53x performance improvement with Scalar Fast Path
+
+**Next Up:** Phase 6 (Language Features) - [See detailed roadmap](ROADMAP.md)
+- Module system with imports/exports
+- Type annotations for stricter safety
+- Pattern matching and async/await
+- Enhanced standard library
 
 [View complete roadmap →](ROADMAP.md)
 
