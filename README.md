@@ -10,40 +10,55 @@ EigenScript is a high-performance programming language where code is treated as 
 
 ## 🚀 Key Features
 
-* **Native Performance:** Compiles to LLVM IR and optimized machine code.
-    * **Scalar Fast Path:** Unobserved variables compile to raw CPU registers (C-speed).
-    * **Geometric Slow Path:** Observed variables automatically upgrade to full physics objects.
 * **Geometric Semantics:** First-class support for vector embeddings, gradients (`why`), and stability metrics (`how`).
-* **Zero-Cost Abstraction:** You only pay for the geometry you use. A simple loop runs in **2ms**.
+* **Self-Interrogation:** Code can ask questions about its own execution state (`what`, `who`, `when`, `where`, `why`, `how`).
+* **Automatic Convergence Detection:** Built-in predicates for `converged`, `stable`, `diverging`, `improving`, `oscillating`, and `equilibrium`.
+* **Dual Execution Modes:** 
+    * **Interpreter:** Immediate execution for development and experimentation
+    * **Compiler (In Development):** LLVM-based compilation with planned native performance optimizations
 
 ## ⚡ Performance
 
-EigenScript v0.2 introduces the **Scalar Fast Path** and **Link-Time Optimization (LTO)**, delivering massive speedups over the Python interpreter.
+EigenScript includes both an **interpreter mode** for development and experimentation, and a **compiler mode** (currently in active development) that targets LLVM for native code generation.
 
-| Benchmark (Sum 1M) | Execution Time | Speedup |
-| :--- | :--- | :--- |
-| **Python Interpreter** | ~106.00 ms | 1x |
-| **EigenScript (v0.1)** | ~223.00 ms | 0.5x |
-| **EigenScript (v0.2)** | **2.00 ms** | **53x** ⚡ |
+### Interpreter Performance
 
-*Benchmark run on `examples/benchmarks/loop_fast.eigs` using `-O2` optimization.*
+The tree-walking interpreter provides immediate execution without compilation:
 
-## 🌌 The "Observer Effect" Compiler
+| Benchmark (Sum 1M) | Execution Time |
+| :--- | :--- |
+| **EigenScript Interpreter** | ~100 seconds |
+| **Python Interpreter** | ~100 seconds |
 
-EigenScript uses a unique compiler architecture that behaves like a quantum observer:
+*Benchmark: `examples/benchmarks/loop_fast.eigs` (summing 1 to 1,000,000)*
 
-1.  **Unobserved Code:** If you write standard logic (`x = x + 1`), the compiler generates raw `double` instructions using `alloca` and `mem2reg`. It is indistinguishable from optimized C.
-2.  **Observed Code:** If you ask a geometric question (`gradient is why is x`), the compiler *promotes* the variable to a heap-allocated `EigenValue` struct with history tracking and gradient descent capabilities.
+### Compiler Status ⚠️
+
+The LLVM-based compiler with **Scalar Fast Path** optimization is under active development. The compiler architecture is designed to:
+- Compile unobserved variables to raw CPU registers for C-speed performance
+- Automatically promote observed variables to geometric tracking when needed
+- Support multiple architectures (x86-64, ARM64, WASM)
+
+**Note:** The compiler is currently experiencing linking issues that are being addressed. See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for details.
+
+## 🌌 The "Observer Effect" Design
+
+EigenScript's design philosophy treats computation like a quantum observer:
+
+1.  **Unobserved Code:** Simple variables and operations execute efficiently without geometric tracking overhead.
+2.  **Observed Code:** When you ask geometric questions (`gradient is why is x`), the system *promotes* the variable to track history and enable gradient descent capabilities.
 
 ```eigenscript
-# FAST PATH (Compiles to raw assembly, <10ns)
+# SIMPLE EXECUTION (Standard computation)
 x is 10
 y is x + 5
 
-# SLOW PATH (Compiles to runtime calls, enables physics)
-# The compiler detects 'why' and promotes 'y' to a tracked object
+# GEOMETRIC TRACKING (Enables introspection)
+# The system detects 'why' and enables tracking for 'y'
 g is why is y
 ```
+
+This design ensures you only pay the cost of geometric semantics when you actually use them.
 
 ## Overview
 
@@ -64,20 +79,31 @@ Instead of blind execution, your programs can:
 ```bash
 git clone https://github.com/InauguralPhysicist/EigenScript.git
 cd EigenScript
-pip install -e .[compiler]
+pip install -e .
+```
+
+For development with compiler support (experimental):
+```bash
+pip install -e .[dev,compiler]
 ```
 
 ## 💻 Usage
 
-**Compile and Run:**
+**Run a program:**
 ```bash
-eigenscript-compile program.eigs --exec -O2
-./program.exe
+python3 -m eigenscript program.eigs
 ```
 
 **Interactive REPL:**
 ```bash
 python3 -m eigenscript -i
+```
+
+**Compiler (Experimental):**
+```bash
+# Note: Compiler is under active development
+eigenscript-compile program.eigs --exec -O0
+./program.exe
 ```
 
 ## 🧠 Examples
@@ -327,22 +353,20 @@ The math comes from a simple idea: measure the "distance" between where computat
 
 ### 🗺️ Roadmap
 
-**Current Status:** Phase 5 (Interactive Playground) ✅ Complete
+**Current Status:** v0.3.0 - Core Language Complete
 
-Phase 5 achievements:
-- Web-based Interactive Playground (EigenSpace)
-- Real-time compilation and visualization
-- Split-screen IDE with animated canvas
-- 100% test pass rate (665/665 tests)
+Current achievements:
+- ✅ Full interpreter with geometric semantics
+- ✅ 665/665 tests passing (100% pass rate)
+- ✅ 48+ built-in functions and comprehensive standard library
+- ✅ Interactive REPL and CLI interface
+- ✅ Web-based Interactive Playground (EigenSpace) - see `examples/playground/`
+- 🚧 LLVM compiler (in active development - resolving linking issues)
 
-Previous achievements:
-- **Phase 3:** Architecture-agnostic compilation (WASM, ARM64, x86-64)
-- **Phase 3:** 53x performance improvement with Scalar Fast Path
-
-**Next Up:** Phase 6 (Language Features) - [See detailed roadmap](ROADMAP.md)
+**Next Focus Areas:**
+- Stabilize LLVM compiler with native code generation
 - Module system with imports/exports
 - Type annotations for stricter safety
-- Pattern matching and async/await
 - Enhanced standard library
 
 [View complete roadmap →](ROADMAP.md)
