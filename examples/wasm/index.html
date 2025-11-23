@@ -189,12 +189,13 @@
                         fmin: Math.min,
                         
                         // Memory allocation stubs (WASM has its own allocator)
+                        // Note: If your WASM code actually calls malloc/free, 
+                        // you need to compile with a WASM allocator or handle it differently
                         malloc: (size) => {
-                            console.warn('WASM called malloc - this should be handled internally');
-                            return 0;
+                            throw new Error('malloc called from WASM - the runtime should use internal memory management');
                         },
                         free: (ptr) => {
-                            console.warn('WASM called free - this should be handled internally');
+                            throw new Error('free called from WASM - the runtime should use internal memory management');
                         },
                         
                         // Error reporting
@@ -289,7 +290,8 @@
                 const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
                 const minTime = Math.min(...times);
                 const maxTime = Math.max(...times);
-                const medianTime = times.sort((a, b) => a - b)[Math.floor(times.length / 2)];
+                // Use slice() to avoid mutating the original times array
+                const medianTime = times.slice().sort((a, b) => a - b)[Math.floor(times.length / 2)];
                 
                 // Display results
                 updateStatus('success', `✅ Benchmark completed!`);

@@ -16,6 +16,9 @@ from eigenscript.compiler.analysis.observer import ObserverAnalyzer
 from eigenscript.compiler.runtime.targets import infer_target_name
 from llvmlite import binding as llvm
 
+# Default WASM target triple
+DEFAULT_WASM_TARGET = "wasm32-unknown-unknown"
+
 
 def get_runtime_path(runtime_dir: str, target_triple: str = None) -> tuple[str, str]:
     """Get the correct runtime object file and bitcode for the target architecture.
@@ -269,8 +272,8 @@ def compile_file(
                 # WebAssembly Linking
                 # Use clang with WASM-specific flags
                 linker = "clang"
-                # Use provided target_triple or default to wasm32-unknown-unknown
-                wasm_target = target_triple if target_triple else "wasm32-unknown-unknown"
+                # Use provided target_triple or fall back to default
+                wasm_target = target_triple if target_triple else DEFAULT_WASM_TARGET
                 link_cmd = [
                     linker,
                     f"--target={wasm_target}",
@@ -325,14 +328,14 @@ def main():
     parser = argparse.ArgumentParser(
         description="EigenScript Compiler - Compile .eigs files to LLVM IR, native code, or WASM",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
+        epilog=f"""
 Examples:
   %(prog)s program.eigs                              # Compile to LLVM IR (program.ll)
   %(prog)s program.eigs -o out.ll                    # Specify output file
   %(prog)s program.eigs --obj                        # Compile to object file (program.o)
   %(prog)s program.eigs --exec                       # Compile and link to executable (program.exe)
   %(prog)s program.eigs -O2 --exec                   # Compile with -O2 optimizations
-  %(prog)s program.eigs --target wasm32-unknown-unknown --exec  # Compile to WebAssembly (program.wasm)
+  %(prog)s program.eigs --target {DEFAULT_WASM_TARGET} --exec  # Compile to WebAssembly (program.wasm)
   %(prog)s program.eigs --no-verify                  # Skip verification
         """,
     )
