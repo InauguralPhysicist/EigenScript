@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
 EigenScript Compiler CLI
-Compile .eigs files to LLVM IR or native code
+Compile .eigs files to LLVM IR, native code, or WebAssembly.
 """
 
 import sys
 import os
 import argparse
+import subprocess
 
 from eigenscript.lexer import Tokenizer
 from eigenscript.parser.ast_builder import Parser
@@ -14,7 +15,6 @@ from eigenscript.compiler.codegen.llvm_backend import LLVMCodeGenerator
 from eigenscript.compiler.analysis.observer import ObserverAnalyzer
 from eigenscript.compiler.runtime.targets import infer_target_name
 from llvmlite import binding as llvm
-import subprocess
 
 
 def get_runtime_path(runtime_dir: str, target_triple: str = None) -> tuple[str, str]:
@@ -99,9 +99,16 @@ def compile_file(
         return 1
 
     # Determine output file
+    # Detect WASM target for extension selection
+    is_wasm = target_triple and "wasm" in target_triple.lower()
+    
     if output_file is None:
         base = os.path.splitext(input_file)[0]
-        output_file = f"{base}.ll" if emit_llvm else f"{base}.o"
+        if link_exec:
+            # For executables, use .wasm for WASM targets, .exe for native
+            output_file = f"{base}.wasm" if is_wasm else f"{base}.exe"
+        else:
+            output_file = f"{base}.ll" if emit_llvm else f"{base}.o"
 
     print(f"Compiling {input_file} -> {output_file}")
 
@@ -180,7 +187,11 @@ def compile_file(
                 pto.loop_unrolling = True  # Unroll small loops
 
             # Create target machine for context-aware optimization
-            target = llvm.Target.from_default_triple()
+            # Use the specified target triple if provided
+            if target_triple:
+                target = llvm.Target.from_triple(target_triple)
+            else:
+                target = llvm.Target.from_default_triple()
             target_machine = target.create_target_machine()
 
             # Create pass builder and get optimization pipeline
@@ -214,7 +225,11 @@ def compile_file(
             llvm_module = llvm.parse_assembly(llvm_ir)
             llvm_module.verify()
 
-            target = llvm.Target.from_default_triple()
+            # Use the specified target triple if provided
+            if target_triple:
+                target = llvm.Target.from_triple(target_triple)
+            else:
+                target = llvm.Target.from_default_triple()
             target_machine = target.create_target_machine()
 
             with open(output_file, "wb") as f:
@@ -225,13 +240,18 @@ def compile_file(
         if link_exec:
             base = os.path.splitext(input_file)[0]
             obj_file = f"{base}.o" if emit_llvm else output_file
-            exec_file = f"{base}.exe"
+            # Use .wasm extension for WASM targets, .exe for native
+            exec_file = f"{base}.wasm" if is_wasm else f"{base}.exe"
 
             # If we emitted LLVM, first compile to object
             if emit_llvm:
                 llvm_module = llvm.parse_assembly(llvm_ir)
                 llvm_module.verify()
-                target = llvm.Target.from_default_triple()
+                # Use the specified target triple if provided
+                if target_triple:
+                    target = llvm.Target.from_triple(target_triple)
+                else:
+                    target = llvm.Target.from_default_triple()
                 target_machine = target.create_target_machine()
                 with open(obj_file, "wb") as f:
                     f.write(target_machine.emit_object(llvm_module))
@@ -244,15 +264,46 @@ def compile_file(
                 print(f"  ✗ Runtime library not available for target")
                 return 1
 
-            # Link with runtime (NO shell=True to prevent command injection)
+            # Select linker and flags based on target
+            if is_wasm:
+                # WebAssembly Linking
+                # Use clang with WASM-specific flags
+                linker = "clang"
+                link_cmd = [
+                    linker,
+                    f"--target={target_triple}",
+                    "-nostdlib",  # Don't link system libc (not available in browser)
+                    "-Wl,--no-entry",  # Library mode (no main required by linker)
+                    "-Wl,--export-all",  # Export symbols so JS can call them
+                    "-Wl,--allow-undefined",  # Allow JS imports to be undefined at link time
+                    obj_file,
+                    runtime_o,
+                    "-o", exec_file
+                ]
+            else:
+                # Standard Native Linking (x86/ARM)
+                linker = "gcc"
+                link_cmd = [
+                    linker,
+                    obj_file,
+                    runtime_o,
+                    "-o", exec_file,
+                    "-lm"  # Link math library
+                ]
+
+            # Execute linker
+            print(f"  → Linking with {linker}...")
             result = subprocess.run(
-                ["gcc", obj_file, runtime_o, "-o", exec_file, "-lm"],
+                link_cmd,
                 capture_output=True,
                 text=True,
             )
 
             if result.returncode == 0:
                 print(f"  ✓ Linked to {exec_file}")
+                # Cleanup intermediate object file if we generated it
+                if emit_llvm and os.path.exists(obj_file):
+                    os.remove(obj_file)
             else:
                 print(f"  ✗ Linking failed: {result.stderr}")
                 return 1
@@ -270,16 +321,17 @@ def compile_file(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="EigenScript Compiler - Compile .eigs files to LLVM IR or native code",
+        description="EigenScript Compiler - Compile .eigs files to LLVM IR, native code, or WASM",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s program.eigs              # Compile to LLVM IR (program.ll)
-  %(prog)s program.eigs -o out.ll    # Specify output file
-  %(prog)s program.eigs --obj        # Compile to object file (program.o)
-  %(prog)s program.eigs --exec       # Compile and link to executable (program.exe)
-  %(prog)s program.eigs -O2 --exec   # Compile with -O2 optimizations
-  %(prog)s program.eigs --no-verify  # Skip verification
+  %(prog)s program.eigs                              # Compile to LLVM IR (program.ll)
+  %(prog)s program.eigs -o out.ll                    # Specify output file
+  %(prog)s program.eigs --obj                        # Compile to object file (program.o)
+  %(prog)s program.eigs --exec                       # Compile and link to executable (program.exe)
+  %(prog)s program.eigs -O2 --exec                   # Compile with -O2 optimizations
+  %(prog)s program.eigs --target wasm32-unknown-unknown --exec  # Compile to WebAssembly (program.wasm)
+  %(prog)s program.eigs --no-verify                  # Skip verification
         """,
     )
 
