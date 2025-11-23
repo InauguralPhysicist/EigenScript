@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "eigenscript"
-version = "0.1.0-alpha"
-description = "A geometric programming language modeling computation as flow in semantic spacetime"
+version = "0.2.0-beta"
+description = "A high-performance geometric programming language with native compilation"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
@@ -14,7 +14,7 @@ authors = [
 ]
 keywords = ["programming-language", "geometric", "lrvm", "consciousness", "ai"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
@@ -22,6 +22,8 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Compilers",
     "Topic :: Software Development :: Interpreters",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
