@@ -12,6 +12,7 @@ from eigenscript.lexer import Tokenizer
 from eigenscript.parser.ast_builder import Parser
 from eigenscript.compiler.codegen.llvm_backend import LLVMCodeGenerator
 from eigenscript.compiler.analysis.observer import ObserverAnalyzer
+from eigenscript.compiler.runtime.targets import infer_target_name
 from llvmlite import binding as llvm
 import subprocess
 
@@ -39,29 +40,8 @@ def get_runtime_path(runtime_dir: str, target_triple: str = None) -> tuple[str, 
     if not os.path.exists(runtime_o):
         print(f"  → Runtime for {target_triple} not found, attempting to build...")
 
-        # Map full triple to short target name for build script
-        target_name_map = {
-            "host": "host",
-            "wasm32-unknown-unknown": "wasm32",
-            "aarch64-apple-darwin": "aarch64",
-            "arm-linux-gnueabihf": "arm",
-            "x86_64-unknown-linux-gnu": "x86_64",
-        }
-
-        # Try to extract target name from triple
-        target_name = target_name_map.get(target_triple)
-        if not target_name:
-            # Try to infer from triple
-            if "wasm32" in target_triple:
-                target_name = "wasm32"
-            elif "aarch64" in target_triple or "arm64" in target_triple:
-                target_name = "aarch64"
-            elif "arm-" in target_triple or target_triple.startswith("arm"):
-                target_name = "arm"
-            elif "x86_64" in target_triple:
-                target_name = "x86_64"
-            else:
-                target_name = "host"
+        # Use shared target name inference
+        target_name = infer_target_name(target_triple)
 
         # Run build script
         build_script = os.path.join(runtime_dir, "build_runtime.py")
@@ -71,6 +51,7 @@ def get_runtime_path(runtime_dir: str, target_triple: str = None) -> tuple[str, 
                 capture_output=True,
                 text=True,
                 cwd=runtime_dir,
+                timeout=60,  # Prevent hanging on build issues
             )
 
             if result.returncode != 0:

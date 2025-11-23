@@ -97,7 +97,8 @@ def build_target(target_name, config, runtime_dir, verbose=False):
     print(f"{'='*60}")
 
     # Create build directory for this target
-    target_triple = config.get("triple") or "host"
+    # Use 'host' as directory name for default target to maintain consistency
+    target_triple = config.get("triple") if config.get("triple") else "host"
     build_dir = runtime_dir / "build" / target_triple
     build_dir.mkdir(parents=True, exist_ok=True)
 
@@ -169,14 +170,17 @@ def build_target(target_name, config, runtime_dir, verbose=False):
                 if link.exists() or link.is_symlink():
                     link.unlink()
 
-            # Create new symlinks
+            # Create new symlinks using relative paths
             try:
-                obj_link.symlink_to(obj_file.relative_to(runtime_dir))
-                print(f"✅ Created symlink: {obj_link} -> {obj_file.name}")
+                # Use relative path from runtime_dir to the build output
+                relative_obj = os.path.relpath(obj_file, runtime_dir)
+                obj_link.symlink_to(relative_obj)
+                print(f"✅ Created symlink: {obj_link} -> {relative_obj}")
 
                 if bc_file.exists():
-                    bc_link.symlink_to(bc_file.relative_to(runtime_dir))
-                    print(f"✅ Created symlink: {bc_link} -> {bc_file.name}")
+                    relative_bc = os.path.relpath(bc_file, runtime_dir)
+                    bc_link.symlink_to(relative_bc)
+                    print(f"✅ Created symlink: {bc_link} -> {relative_bc}")
             except OSError as e:
                 if verbose:
                     print(f"⚠️  Could not create symlinks: {e}")

@@ -88,7 +88,7 @@ class TestRuntimeBuildSystem:
         # Test host runtime
         runtime_o, runtime_bc = get_runtime_path(runtime_dir, None)
         assert runtime_o is not None, "Should return host runtime path"
-        assert os.path.exists(runtime_o) or runtime_o is not None, "Runtime object should exist or be retrievable"
+        assert os.path.exists(runtime_o), "Runtime object file should exist"
 
         # Test explicit host
         runtime_o, runtime_bc = get_runtime_path(runtime_dir, "host")
