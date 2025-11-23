@@ -28,6 +28,8 @@ from eigenscript.parser.ast_builder import (
     Index,
     Slice,
     Program,
+    Import,
+    MemberAccess,
 )
 
 
@@ -732,6 +734,12 @@ class LLVMCodeGenerator:
             return self._generate_list_literal(node)
         elif isinstance(node, Index):
             return self._generate_index(node)
+        elif isinstance(node, Import):
+            # Import statements are no-ops in code generation
+            # Module linking is handled by compile.py during recursive compilation
+            return None
+        elif isinstance(node, MemberAccess):
+            return self._generate_member_access(node)
         else:
             raise CompilerError(
                 f"Code generation for '{type(node).__name__}' not implemented",
@@ -786,6 +794,17 @@ class LLVMCodeGenerator:
             if self.local_vars:
                 last_var_name = list(self.local_vars.keys())[-1]
                 var_ptr = self.local_vars[last_var_name]
+
+                # Check if this variable is a raw double (Scalar Fast Path) or EigenValue
+                if isinstance(var_ptr.type.pointee, ir.DoubleType):
+                    # FAST PATH variable: No geometric tracking available
+                    # Predicates always return False for unobserved variables
+                    # This is semantically correct: unobserved = not tracked = assume stable
+                    return GeneratedValue(
+                        value=ir.Constant(self.bool_type, 0), kind=ValueKind.SCALAR
+                    )
+
+                # EigenValue variable: Load and check predicate
                 eigen_ptr = self.builder.load(var_ptr)
 
                 # Call the appropriate predicate function
@@ -1114,6 +1133,51 @@ class LLVMCodeGenerator:
                 result = self.builder.call(func, [call_arg])
                 return result
 
+        elif isinstance(node.left, MemberAccess):
+            # Handle module.function calls (cross-module function calls)
+            # Extract module and member names
+            module_name = node.left.object.name
+            member_name = node.left.member
+            mangled_name = f"{module_name}_{member_name}"
+
+            if mangled_name not in self.functions:
+                raise CompilerError(
+                    f"Function '{mangled_name}' not found",
+                    hint=f"Make sure module '{module_name}' is imported and compiled first",
+                    node=node
+                )
+
+            # Generate the argument (same logic as user-defined functions)
+            gen_arg = self._generate(node.right)
+
+            # Determine call argument based on type
+            call_arg = None
+
+            if isinstance(gen_arg, GeneratedValue):
+                if gen_arg.kind == ValueKind.SCALAR:
+                    # JIT Promotion: Scalar -> Stack EigenValue
+                    call_arg = self._create_eigen_on_stack(gen_arg.value)
+                elif gen_arg.kind == ValueKind.EIGEN_PTR:
+                    call_arg = gen_arg.value
+                else:
+                    raise TypeError(
+                        "Cannot pass List to function expecting EigenValue"
+                    )
+            elif isinstance(gen_arg, ir.Value):
+                if gen_arg.type == self.double_type:
+                    # JIT Promotion: Scalar -> Stack EigenValue
+                    call_arg = self._create_eigen_on_stack(gen_arg)
+                elif isinstance(gen_arg.type, ir.PointerType):
+                    # Assume it's an EigenValue pointer
+                    call_arg = gen_arg
+                else:
+                    raise TypeError(f"Unexpected argument type: {gen_arg.type}")
+
+            # Call the function
+            func = self.functions[mangled_name]
+            result = self.builder.call(func, [call_arg])
+            return result
+
         raise NotImplementedError(
             f"Relation {node.left} of {node.right} not implemented"
         )
@@ -1285,6 +1349,31 @@ class LLVMCodeGenerator:
             raise NotImplementedError(
                 f"Interrogative {node.interrogative} not implemented"
             )
+
+    def _generate_member_access(self, node: MemberAccess) -> GeneratedValue:
+        """Generate code for member access (module.function).
+
+        Converts module.function_name to mangled name module_function_name
+        for cross-module function calls.
+        """
+        # For now, member access is only supported for module.function pattern
+        if not isinstance(node.object, Identifier):
+            raise CompilerError(
+                "Member access only supported for module.function pattern",
+                hint="Example: control.apply_damping",
+                node=node
+            )
+
+        module_name = node.object.name
+        member_name = node.member
+
+        # Create mangled name: module_function
+        mangled_name = f"{module_name}_{member_name}"
+
+        # Return as an identifier that can be used in function calls
+        # Create a synthetic Identifier node
+        synthetic_id = Identifier(name=mangled_name)
+        return self._generate_identifier(synthetic_id)
 
     def _generate_function_def(self, node: FunctionDef) -> None:
         """Generate code for function definitions."""
