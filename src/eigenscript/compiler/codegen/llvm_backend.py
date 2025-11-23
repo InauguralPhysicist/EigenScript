@@ -389,15 +389,17 @@ class LLVMCodeGenerator:
         """
         if val.type == self.bool_type:
             return val
-        
+
         if val.type == self.double_type:
             # Compare != 0.0
-            return self.builder.fcmp_ordered('!=', val, ir.Constant(self.double_type, 0.0))
-            
+            return self.builder.fcmp_ordered(
+                "!=", val, ir.Constant(self.double_type, 0.0)
+            )
+
         if isinstance(val.type, ir.PointerType):
             # Compare != null
-            return self.builder.icmp_unsigned('!=', val, ir.Constant(val.type, None))
-            
+            return self.builder.icmp_unsigned("!=", val, ir.Constant(val.type, None))
+
         raise CompilerError(f"Cannot convert type {val.type} to boolean")
 
     def _create_eigen_on_stack(self, initial_value: ir.Value) -> ir.Value:
@@ -798,7 +800,7 @@ class LLVMCodeGenerator:
         if node.identifier in self.local_vars:
             # Variable exists - update or rebind
             var_ptr = self.local_vars[node.identifier]
-            
+
             if gen_value.kind == ValueKind.EIGEN_PTR:
                 # Aliasing: rebind to point to the same EigenValue*
                 # This is the key to Option 2: "value is what is x" makes value an alias
@@ -806,7 +808,7 @@ class LLVMCodeGenerator:
             else:
                 # Scalar update: check if it's a raw double* or EigenValue*
                 scalar_val = self.ensure_scalar(gen_value)
-                
+
                 # Check the type of the variable pointer
                 if var_ptr.type.pointee == self.double_type:
                     # Fast path: raw double*, just store the new value
@@ -924,7 +926,7 @@ class LLVMCodeGenerator:
     def _generate_conditional(self, node: Conditional) -> None:
         """Generate code for if-else statements."""
         raw_cond = self._generate(node.condition)
-        
+
         # FIX: Ensure we have a boolean for the branch
         cond = self.ensure_bool(raw_cond)
 
@@ -985,10 +987,10 @@ class LLVMCodeGenerator:
         # Generate condition check
         self.builder.position_at_end(loop_cond)
         raw_cond = self._generate(node.condition)
-        
+
         # FIX: Ensure we have a boolean for the branch
         cond = self.ensure_bool(raw_cond)
-        
+
         self.builder.cbranch(cond, loop_body, loop_end)
 
         # Generate loop body
