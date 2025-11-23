@@ -5,7 +5,7 @@
 
 ## Overview
 
-EigenScript v0.2 has achieved native performance with the Scalar Fast Path compiler. The roadmap ahead focuses on ecosystem growth, advanced features, and production hardening.
+EigenScript v0.3.0 has achieved native performance with the Scalar Fast Path compiler and now includes the EigenSpace Interactive Playground for web-based development. The roadmap ahead focuses on ecosystem growth, advanced features, and production hardening.
 
 ---
 
