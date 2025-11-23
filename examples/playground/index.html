@@ -2,507 +2,206 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EigenSpace - Interactive Playground 🌀</title>
+    <title>EigenSpace Visualizer 🌀</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        :root { --bg: #1e1e1e; --panel: #252526; --accent: #007acc; --text: #d4d4d4; }
+        body { margin: 0; display: flex; height: 100vh; background: var(--bg); color: var(--text); font-family: 'Segoe UI', monospace; overflow: hidden; }
         
-        body {
-            display: flex;
-            height: 100vh;
-            background: #1e1e1e;
-            color: #fff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
-        }
+        /* Layout */
+        #editor-pane { width: 50%; display: flex; flex-direction: column; border-right: 1px solid #333; }
+        #vis-pane { width: 50%; display: flex; flex-direction: column; background: #000; }
         
-        /* Left Panel - Editor */
-        #editor-panel {
-            width: 50%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid #333;
-        }
+        textarea { flex: 1; background: var(--panel); color: #9cdcfe; border: none; padding: 20px; font-family: 'Consolas', monospace; font-size: 14px; resize: none; outline: none; }
         
-        #editor-header {
-            background: #252526;
-            padding: 15px 20px;
-            border-bottom: 1px solid #333;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        #toolbar { padding: 10px; background: var(--panel); display: flex; gap: 10px; border-bottom: 1px solid #333; }
+        button { padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #555; cursor: wait; }
         
-        #editor-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #fff;
-        }
+        #canvas-container { flex: 2; position: relative; }
+        canvas { width: 100%; height: 100%; display: block; }
         
-        #editor {
-            flex: 1;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            font-family: 'Courier New', Consolas, monospace;
-            font-size: 14px;
-            padding: 20px;
-            overflow: auto;
-            resize: none;
-            border: none;
-            outline: none;
-            line-height: 1.6;
-            tab-size: 4;
-        }
-        
-        #editor::-webkit-scrollbar {
-            width: 12px;
-        }
-        
-        #editor::-webkit-scrollbar-track {
-            background: #1e1e1e;
-        }
-        
-        #editor::-webkit-scrollbar-thumb {
-            background: #424242;
-            border-radius: 6px;
-        }
-        
-        #editor::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-        
-        /* Right Panel - Preview */
-        #preview-panel {
-            width: 50%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            background: #252526;
-        }
-        
-        #preview-header {
-            background: #2d2d30;
-            padding: 15px 20px;
-            border-bottom: 1px solid #333;
-        }
-        
-        #controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        
-        button {
-            background: #007acc;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        button:hover {
-            background: #005a9e;
-            transform: translateY(-1px);
-        }
-        
-        button:active {
-            transform: translateY(0);
-        }
-        
-        button:disabled {
-            background: #555;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        #status {
-            padding: 10px 15px;
-            border-radius: 4px;
-            font-size: 13px;
-            background: #3c3c3c;
-            border-left: 3px solid #666;
-        }
-        
-        #status.loading {
-            background: #3c3008;
-            border-left-color: #ffc107;
-            color: #ffc107;
-        }
-        
-        #status.success {
-            background: #0f3c0f;
-            border-left-color: #4caf50;
-            color: #4caf50;
-        }
-        
-        #status.error {
-            background: #3c0f0f;
-            border-left-color: #f44336;
-            color: #f44336;
-        }
-        
-        /* Visualization Area */
-        #visualization {
-            flex: 1;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        #canvas {
-            background: #000;
-            border: 2px solid #333;
-            border-radius: 4px;
-            width: 100%;
-            height: 400px;
-            margin-bottom: 15px;
-        }
-        
-        #console {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 15px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            flex: 1;
-            overflow: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            border: 1px solid #333;
-        }
-        
-        #console::-webkit-scrollbar {
-            width: 10px;
-        }
-        
-        #console::-webkit-scrollbar-track {
-            background: #1e1e1e;
-        }
-        
-        #console::-webkit-scrollbar-thumb {
-            background: #424242;
-            border-radius: 5px;
-        }
-        
-        .console-line {
-            margin-bottom: 2px;
-        }
-        
-        .console-output {
-            color: #4ec9b0;
-        }
-        
-        .console-error {
-            color: #f48771;
-        }
-        
-        .console-info {
-            color: #808080;
-        }
-        
-        /* Grid lines on canvas */
-        .plot-label {
-            position: absolute;
-            color: #666;
-            font-size: 11px;
-            font-family: monospace;
-        }
+        #console { flex: 1; background: #111; border-top: 1px solid #333; padding: 10px; font-family: monospace; overflow-y: auto; font-size: 12px; max-height: 30%; }
+        .log-info { color: #ccc; }
+        .log-err { color: #f44; }
+        .log-sys { color: #aa5; font-style: italic; }
     </style>
 </head>
 <body>
-    <!-- Left Panel: Editor -->
-    <div id="editor-panel">
-        <div id="editor-header">
-            <div id="editor-title">📝 EigenScript Editor</div>
-        </div>
-        <textarea id="editor" spellcheck="false"># EigenScript Orbit Simulation
-# Simple Harmonic Motion Example
 
-x is 10
-v is 0
-dt is 0.1
+<div id="editor-pane">
+    <div id="toolbar">
+        <button id="runBtn" onclick="compileAndRun()">▶ RUN SIMULATION</button>
+        <span>EigenScript v0.2-beta (WASM)</span>
+    </div>
+    <textarea id="code" spellcheck="false">
+# The "Inaugural Algorithm"
+# Visualizing Convergence
 
-loop while x > -10:
-    # Simple Harmonic Motion
-    accel is 0 - x
-    v is v + (accel * dt)
-    x is x + (v * dt)
+x is 0
+target is 10
+velocity is 0
+
+# Physics Loop
+loop while x < 20:
+    # Calculate Error (Distance)
+    error is target - x
+    
+    # Proportional Control
+    velocity is velocity + (error * 0.1)
+    
+    # Damping (Friction)
+    velocity is velocity * 0.9
+    
+    # Update State
+    x is x + velocity
     
     # Output for Visualizer
+    # The playground plots every print call
     print of x
 </textarea>
+</div>
+
+<div id="vis-pane">
+    <div id="canvas-container">
+        <canvas id="simCanvas"></canvas>
     </div>
+    <div id="console"></div>
+</div>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    const consoleDiv = document.getElementById('console');
+    const runBtn = document.getElementById('runBtn');
     
-    <!-- Right Panel: Preview -->
-    <div id="preview-panel">
-        <div id="preview-header">
-            <div id="controls">
-                <button id="runBtn" onclick="compileAndRun()">
-                    <span>▶</span> Run Simulation
-                </button>
-                <button id="clearBtn" onclick="clearOutput()">
-                    <span>🗑</span> Clear
-                </button>
-            </div>
-            <div id="status" class="loading">Ready to compile...</div>
-        </div>
-        
-        <div id="visualization">
-            <canvas id="canvas"></canvas>
-            <div id="console"># Console output will appear here...
-# Click "Run Simulation" to compile and execute your code.</div>
-        </div>
-    </div>
+    let dataPoints = [];
+    
+    // Resize canvas handling
+    function resize() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.onresize = resize;
+    resize();
 
-    <script>
-        // Get DOM elements
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const consoleOut = document.getElementById('console');
-        const statusEl = document.getElementById('status');
-        const runBtn = document.getElementById('runBtn');
-        
-        // Set canvas dimensions
-        function resizeCanvas() {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+    function log(msg, type='info') {
+        const div = document.createElement('div');
+        div.textContent = `> ${msg}`;
+        div.className = `log-${type}`;
+        consoleDiv.appendChild(div);
+        consoleDiv.scrollTop = consoleDiv.scrollHeight;
+    }
 
-        // State
-        let history = [];
-        let isRunning = false;
+    function draw() {
+        // Clear screen
+        ctx.fillStyle = 'rgba(0,0,0,0.1)'; // Fade effect
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Logging functions
-        function log(text, type = 'output') {
-            const line = document.createElement('div');
-            line.className = `console-line console-${type}`;
-            line.textContent = text;
-            consoleOut.appendChild(line);
-            consoleOut.scrollTop = consoleOut.scrollHeight;
-        }
+        if (dataPoints.length < 2) return;
+
+        ctx.beginPath();
+        ctx.strokeStyle = '#00ff00';
+        ctx.lineWidth = 2;
         
-        function clearConsole() {
-            consoleOut.innerHTML = '# Console output will appear here...\n# Click "Run Simulation" to compile and execute your code.';
-        }
+        // Auto-scale
+        const maxVal = Math.max(...dataPoints, 10);
+        const minVal = Math.min(...dataPoints, -10);
+        const range = maxVal - minVal || 1;
         
-        function updateStatus(type, message) {
-            statusEl.className = `status ${type}`;
-            statusEl.textContent = message;
-        }
+        const stepX = canvas.width / 100; // Show last 100 points
         
-        function clearOutput() {
-            clearConsole();
-            history = [];
-            drawCanvas();
-        }
+        // Draw the line
+        const startIndex = Math.max(0, dataPoints.length - 100);
         
-        // Canvas drawing
-        function drawCanvas() {
-            // Clear canvas
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (let i = startIndex; i < dataPoints.length; i++) {
+            const val = dataPoints[i];
             
-            if (history.length === 0) {
-                // Draw placeholder text
-                ctx.fillStyle = '#444';
-                ctx.font = '16px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText('Phase Space Plot', canvas.width / 2, canvas.height / 2 - 10);
-                ctx.fillStyle = '#333';
-                ctx.font = '12px monospace';
-                ctx.fillText('Run code to see visualization', canvas.width / 2, canvas.height / 2 + 15);
-                return;
+            // Map X: Time
+            const x = (i - startIndex) * stepX;
+            
+            // Map Y: Value (Normalized to screen)
+            const normalizedY = (val - minVal) / range;
+            const y = canvas.height - (normalizedY * canvas.height * 0.8) - (canvas.height * 0.1);
+            
+            if (i === startIndex) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        
+        requestAnimationFrame(draw);
+    }
+    
+    // Start animation loop
+    requestAnimationFrame(draw);
+
+    async function compileAndRun() {
+        runBtn.disabled = true;
+        consoleDiv.innerHTML = '';
+        dataPoints = [];
+        log("Compiling...", "sys");
+        
+        const source = document.getElementById('code').value;
+        
+        try {
+            // 1. Send to Compiler Server
+            const response = await fetch('/compile', {
+                method: 'POST',
+                body: JSON.stringify({ code: source })
+            });
+            
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error);
             }
             
-            // Draw grid
-            ctx.strokeStyle = '#1a1a1a';
-            ctx.lineWidth = 1;
+            const wasmBytes = await response.arrayBuffer();
+            log("Compilation successful. Launching WASM...", "sys");
             
-            // Horizontal lines
-            for (let y = 0; y < canvas.height; y += 40) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(canvas.width, y);
-                ctx.stroke();
-            }
-            
-            // Vertical lines
-            for (let x = 0; x < canvas.width; x += 40) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, canvas.height);
-                ctx.stroke();
-            }
-            
-            // Draw center line
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(0, canvas.height / 2);
-            ctx.lineTo(canvas.width, canvas.height / 2);
-            ctx.stroke();
-            
-            // Plot data
-            if (history.length > 0) {
-                // Find min/max for scaling
-                const maxVal = Math.max(...history.map(Math.abs));
-                const scale = maxVal > 0 ? (canvas.height * 0.4) / maxVal : 1;
-                
-                ctx.beginPath();
-                ctx.strokeStyle = '#00ff00';
-                ctx.lineWidth = 2;
-                
-                const step = canvas.width / Math.max(history.length - 1, 1);
-                
-                for (let i = 0; i < history.length; i++) {
-                    const x = i * step;
-                    const y = (canvas.height / 2) - (history[i] * scale);
-                    
-                    if (i === 0) {
-                        ctx.moveTo(x, y);
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                }
-                ctx.stroke();
-                
-                // Draw data points
-                ctx.fillStyle = '#00ff00';
-                for (let i = 0; i < history.length; i += Math.max(1, Math.floor(history.length / 100))) {
-                    const x = i * step;
-                    const y = (canvas.height / 2) - (history[i] * scale);
-                    ctx.beginPath();
-                    ctx.arc(x, y, 2, 0, 2 * Math.PI);
-                    ctx.fill();
-                }
-            }
-        }
-        
-        // The Plotter - called by WASM eigen_print
-        function plot(value) {
-            history.push(parseFloat(value));
-            drawCanvas();
-        }
-        
-        // Main compilation and execution function
-        async function compileAndRun() {
-            if (isRunning) return;
-            
-            isRunning = true;
-            runBtn.disabled = true;
-            
-            try {
-                clearConsole();
-                history = [];
-                drawCanvas();
-                
-                const code = document.getElementById('editor').value;
-                
-                log('# Compiling EigenScript...', 'info');
-                updateStatus('loading', '⏳ Compiling...');
-                
-                // 1. Send to Python Server
-                const response = await fetch('http://localhost:8080/compile', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
+            // 2. Setup Environment
+            const importObject = {
+                env: {
+                    // The Bridge: WASM calls this to output data
+                    eigen_print: (val) => {
+                        dataPoints.push(val);
+                        // log(val.toFixed(4)); // Optional: log text too
                     },
-                    body: JSON.stringify({ code: code })
-                });
-                
-                if (!response.ok) {
-                    const err = await response.json();
-                    log('❌ Compilation Error:', 'error');
-                    log(err.error, 'error');
-                    updateStatus('error', '❌ Compilation failed');
-                    return;
+                    // Math builtins needed by runtime
+                    exp: Math.exp,
+                    fabs: Math.abs,
+                    fmin: Math.min,
+                    pow: Math.pow,
+                    sqrt: Math.sqrt,
+                    log: Math.log,
+                    sin: Math.sin,
+                    cos: Math.cos,
+                    tan: Math.tan,
+                    floor: Math.floor,
+                    ceil: Math.ceil,
+                    round: Math.round,
+                    // Memory stubs (WASM has internal allocator usually, but safety first)
+                    malloc: (n) => 0, 
+                    free: (p) => {},
+                    __assert_fail: () => console.error("Assert failed")
                 }
-                
-                // 2. Get WASM binary
-                const wasmBytes = await response.arrayBuffer();
-                log(`✅ Compiled successfully! (${wasmBytes.byteLength} bytes)`, 'info');
-                log('# Running program...', 'info');
-                updateStatus('loading', '⏳ Running...');
-                
-                // 3. Create import object
-                const importObject = {
-                    env: {
-                        // Redirect 'print' to our Plotter
-                        eigen_print: (val) => {
-                            plot(val);
-                            log(val.toFixed(6), 'output');
-                        },
-                        
-                        // Math functions
-                        exp: Math.exp,
-                        fabs: Math.abs,
-                        fmin: Math.min,
-                        fmax: Math.max,
-                        sqrt: Math.sqrt,
-                        sin: Math.sin,
-                        cos: Math.cos,
-                        tan: Math.tan,
-                        pow: Math.pow,
-                        
-                        // Memory stubs (WASM uses internal memory)
-                        malloc: () => 0,
-                        free: () => {},
-                        
-                        // Error handling
-                        fprintf: (stream, ...args) => {
-                            console.error('WASM fprintf:', args);
-                        }
-                    }
-                };
-                
-                // 4. Instantiate & Run
-                const { instance } = await WebAssembly.instantiate(wasmBytes, importObject);
-                
-                const startTime = performance.now();
-                instance.exports.main();
-                const endTime = performance.now();
-                
-                const executionTime = (endTime - startTime).toFixed(3);
-                log(`\n✅ Execution completed in ${executionTime}ms`, 'info');
-                log(`📊 Generated ${history.length} data points`, 'info');
-                updateStatus('success', `✅ Success! (${executionTime}ms, ${history.length} points)`);
-                
-            } catch (e) {
-                log(`❌ Runtime Error: ${e.message}`, 'error');
-                console.error('Runtime Error:', e);
-                updateStatus('error', '❌ Runtime error');
-            } finally {
-                isRunning = false;
-                runBtn.disabled = false;
-            }
+            };
+            
+            // 3. Execute
+            const { instance } = await WebAssembly.instantiate(wasmBytes, importObject);
+            
+            const start = performance.now();
+            instance.exports.main();
+            const end = performance.now();
+            
+            log(`Execution finished in ${(end-start).toFixed(2)}ms`, "sys");
+            
+        } catch (e) {
+            log(e.message, "err");
+        } finally {
+            runBtn.disabled = false;
         }
-        
-        // Keyboard shortcut: Ctrl+Enter or Cmd+Enter to run
-        document.getElementById('editor').addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
-                compileAndRun();
-            }
-        });
-        
-        // Initial render
-        drawCanvas();
-    </script>
+    }
+</script>
+
 </body>
 </html>

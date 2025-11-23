@@ -56,13 +56,36 @@ EigenSpace is a split-screen IDE where code on the left creates physics visualiz
    pip install -e ".[dev,compiler]"
    ```
 
-2. **Build the WASM runtime:**
+2. **Install WASM toolchain (REQUIRED):**
+   
+   The runtime uses standard C library functions, so you need WASI SDK or Emscripten:
+   
+   **Option A: WASI SDK (Recommended)**
+   ```bash
+   # Download WASI SDK
+   wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-21/wasi-sdk-21.0-linux.tar.gz
+   tar xzf wasi-sdk-21.0-linux.tar.gz
+   export CC=$PWD/wasi-sdk-21.0/bin/clang
+   ```
+   
+   **Option B: Emscripten**
+   ```bash
+   git clone https://github.com/emscripten-core/emsdk.git
+   cd emsdk
+   ./emsdk install latest
+   ./emsdk activate latest
+   source ./emsdk_env.sh
+   ```
+   
+   See [examples/wasm/README.md](../wasm/README.md) for detailed setup instructions.
+
+3. **Build the WASM runtime:**
    ```bash
    cd ../../src/eigenscript/compiler/runtime
    python3 build_runtime.py --target wasm32
    ```
-
-   You need either WASI SDK or Emscripten for WASM compilation. See [examples/wasm/README.md](../wasm/README.md) for setup instructions.
+   
+   This compiles `eigenvalue.c` to WebAssembly.
 
 ### Running EigenSpace
 
