@@ -75,28 +75,67 @@ class GeneratedValue:
 class LLVMCodeGenerator:
     """Generates LLVM IR from EigenScript AST."""
 
-    def __init__(self, observed_variables: Set[str] = None):
+    def __init__(self, observed_variables: Set[str] = None, target_triple: str = None):
         # Initialize LLVM targets (initialization is now automatic in llvmlite)
         llvm.initialize_native_target()
         llvm.initialize_native_asmprinter()
 
-        # Create module and builder
+        # Create module
         self.module = ir.Module(name="eigenscript_module")
-        self.module.triple = llvm.get_default_triple()
+
+        # 1. Configure Target Architecture
+        if target_triple:
+            self.module.triple = target_triple
+        else:
+            self.module.triple = llvm.get_default_triple()
+
+        # Get Target Data Layout (Crucial for pointer sizes)
+        try:
+            target = llvm.Target.from_triple(self.module.triple)
+            target_machine = target.create_target_machine()
+            target_data = target_machine.target_data
+            self.module.data_layout = str(target_data)
+        except RuntimeError as e:
+            # Fallback for unknown triples (e.g. during cross-compilation setup)
+            print(
+                f"Warning: Could not load target data for '{self.module.triple}': {e}"
+            )
+            # Default to x86_64 if native lookup fails
+            target_data = None
 
         # Observer Effect: Track which variables need geometric tracking
         # Unobserved variables compile to raw doubles for C-level performance
         self.observed_variables = observed_variables or set()
 
-        # Type definitions
+        # 2. Dynamic Type Definitions
         self.double_type = ir.DoubleType()
-        self.int64_type = ir.IntType(64)
+        self.int64_type = ir.IntType(64)  # Fixed size for data (iterations, etc)
         self.int32_type = ir.IntType(32)
         self.int8_type = ir.IntType(8)
         self.void_type = ir.VoidType()
         self.bool_type = ir.IntType(1)
 
-        # EigenValue structure - MUST match eigenvalue.h exactly!
+        # Determine size_t (pointer integer type) by analyzing the triple
+        # WASM32 -> 32-bit, x86_64 -> 64-bit, ARM64 -> 64-bit
+        # Check the triple for architecture indicators
+        triple_lower = self.module.triple.lower()
+        if "wasm32" in triple_lower or "i386" in triple_lower or "arm-" in triple_lower:
+            # 32-bit architectures
+            self.size_t_type = ir.IntType(32)
+        elif (
+            "x86_64" in triple_lower
+            or "aarch64" in triple_lower
+            or "arm64" in triple_lower
+            or "wasm64" in triple_lower
+        ):
+            # 64-bit architectures
+            self.size_t_type = ir.IntType(64)
+        else:
+            # Default fallback to 64-bit for unknown architectures
+            self.size_t_type = ir.IntType(64)
+
+        # EigenValue structure - Architecture Independent (Fixed width types)
+        # MUST match eigenvalue.h exactly!
         # typedef struct {
         #     double value, gradient, stability;
         #     int64_t iteration;
@@ -109,7 +148,7 @@ class LLVMCodeGenerator:
                 self.double_type,  # value
                 self.double_type,  # gradient (why)
                 self.double_type,  # stability (how)
-                self.int64_type,  # iteration (when)
+                self.int64_type,  # iteration (when) - always 64-bit in C runtime
                 ir.ArrayType(self.double_type, 100),  # history[100]
                 self.int32_type,  # history_size
                 self.int32_type,  # history_index
@@ -119,11 +158,12 @@ class LLVMCodeGenerator:
         )
 
         # EigenList structure: {double* data, i64 length, i64 capacity}
+        # matches C: {double* data, int64_t length, int64_t capacity}
         self.eigen_list_type = ir.LiteralStructType(
             [
-                self.double_type.as_pointer(),  # data
-                self.int64_type,  # length
-                self.int64_type,  # capacity
+                self.double_type.as_pointer(),  # data ptr (size varies by arch)
+                self.int64_type,  # length (always 64-bit)
+                self.int64_type,  # capacity (always 64-bit)
             ]
         )
 
@@ -152,15 +192,16 @@ class LLVMCodeGenerator:
         self._declare_runtime_functions()
 
     def _declare_runtime_functions(self):
-        """Declare external runtime functions for geometric state tracking."""
+        """Declare runtime functions with architecture-correct types."""
 
         # printf for debugging
         printf_type = ir.FunctionType(self.int32_type, [self.string_type], var_arg=True)
         self.printf = ir.Function(self.module, printf_type, name="printf")
         self.printf.attributes.add("nounwind")
 
-        # malloc for dynamic allocation
-        malloc_type = ir.FunctionType(self.string_type, [self.int64_type])
+        # malloc - CRITICAL FIX: Use size_t_type, NOT int64_type
+        # On WASM32, malloc takes i32. On x64, it takes i64.
+        malloc_type = ir.FunctionType(self.string_type, [self.size_t_type])
         self.malloc = ir.Function(self.module, malloc_type, name="malloc")
         self.malloc.attributes.add("nounwind")
 

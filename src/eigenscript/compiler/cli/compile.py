@@ -22,6 +22,7 @@ def compile_file(
     verify: bool = True,
     link_exec: bool = False,
     opt_level: int = 0,
+    target_triple: str = None,
 ):
     """Compile an EigenScript file to LLVM IR, object code, or executable."""
 
@@ -65,7 +66,10 @@ def compile_file(
             print(f"  ✓ Analysis: No variables need geometric tracking (pure scalars!)")
 
         # Generate LLVM IR with observer information
-        codegen = LLVMCodeGenerator(observed_variables=observed_vars)
+        # Pass the target triple to the generator
+        codegen = LLVMCodeGenerator(
+            observed_variables=observed_vars, target_triple=target_triple
+        )
         llvm_ir = codegen.compile(ast.statements)
         print(f"  ✓ Generated LLVM IR")
 
@@ -257,6 +261,10 @@ Examples:
   2 = Standard optimizations (balanced inlining + vectorization, ~2-5x faster) [RECOMMENDED]
   3 = Aggressive optimizations (heavy inlining, large code size, ~2-10x faster)""",
     )
+    parser.add_argument(
+        "--target",
+        help="Target LLVM triple (e.g. wasm32-unknown-unknown, aarch64-apple-darwin)",
+    )
 
     args = parser.parse_args()
 
@@ -268,6 +276,7 @@ Examples:
         verify=not args.no_verify,
         link_exec=args.exec,
         opt_level=args.optimize,
+        target_triple=args.target,
     )
 
     sys.exit(exit_code)
