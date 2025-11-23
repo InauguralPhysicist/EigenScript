@@ -13,6 +13,86 @@ from eigenscript.parser.ast_builder import Parser
 from eigenscript.compiler.codegen.llvm_backend import LLVMCodeGenerator
 from eigenscript.compiler.analysis.observer import ObserverAnalyzer
 from llvmlite import binding as llvm
+import subprocess
+
+
+def get_runtime_path(runtime_dir: str, target_triple: str = None) -> tuple[str, str]:
+    """Get the correct runtime object file and bitcode for the target architecture.
+
+    Args:
+        runtime_dir: Path to the runtime directory
+        target_triple: LLVM target triple (e.g., "wasm32-unknown-unknown")
+
+    Returns:
+        Tuple of (object_file_path, bitcode_file_path)
+    """
+    # Default to host runtime
+    if not target_triple:
+        target_triple = "host"
+
+    # Map triple to build directory
+    build_dir = os.path.join(runtime_dir, "build", target_triple)
+    runtime_o = os.path.join(build_dir, "eigenvalue.o")
+    runtime_bc = os.path.join(build_dir, "eigenvalue.bc")
+
+    # If target-specific runtime doesn't exist, try to build it
+    if not os.path.exists(runtime_o):
+        print(f"  → Runtime for {target_triple} not found, attempting to build...")
+
+        # Map full triple to short target name for build script
+        target_name_map = {
+            "host": "host",
+            "wasm32-unknown-unknown": "wasm32",
+            "aarch64-apple-darwin": "aarch64",
+            "arm-linux-gnueabihf": "arm",
+            "x86_64-unknown-linux-gnu": "x86_64",
+        }
+
+        # Try to extract target name from triple
+        target_name = target_name_map.get(target_triple)
+        if not target_name:
+            # Try to infer from triple
+            if "wasm32" in target_triple:
+                target_name = "wasm32"
+            elif "aarch64" in target_triple or "arm64" in target_triple:
+                target_name = "aarch64"
+            elif "arm-" in target_triple or target_triple.startswith("arm"):
+                target_name = "arm"
+            elif "x86_64" in target_triple:
+                target_name = "x86_64"
+            else:
+                target_name = "host"
+
+        # Run build script
+        build_script = os.path.join(runtime_dir, "build_runtime.py")
+        if os.path.exists(build_script):
+            result = subprocess.run(
+                [sys.executable, build_script, "--target", target_name],
+                capture_output=True,
+                text=True,
+                cwd=runtime_dir,
+            )
+
+            if result.returncode != 0:
+                print(f"  ⚠️  Runtime build failed for {target_triple}")
+                # Fall back to host runtime if available
+                host_runtime_o = os.path.join(runtime_dir, "eigenvalue.o")
+                host_runtime_bc = os.path.join(runtime_dir, "eigenvalue.bc")
+                if os.path.exists(host_runtime_o):
+                    print(f"  → Falling back to host runtime")
+                    return host_runtime_o, host_runtime_bc
+                return None, None
+
+    # If still doesn't exist after build attempt, fall back
+    if not os.path.exists(runtime_o):
+        # Try host runtime symlink
+        host_runtime_o = os.path.join(runtime_dir, "eigenvalue.o")
+        host_runtime_bc = os.path.join(runtime_dir, "eigenvalue.bc")
+        if os.path.exists(host_runtime_o):
+            return host_runtime_o, host_runtime_bc
+        return None, None
+
+    return runtime_o, runtime_bc
 
 
 def compile_file(
@@ -85,7 +165,7 @@ def compile_file(
 
         # Link runtime bitcode for LTO (Link-Time Optimization)
         # This enables inlining of C runtime functions
-        llvm_module = codegen.link_runtime_bitcode(llvm_module)
+        llvm_module = codegen.link_runtime_bitcode(llvm_module, target_triple)
         print(f"  ✓ Linked runtime bitcode (LTO enabled)")
 
         # Apply optimizations if requested (using New Pass Manager)
@@ -175,27 +255,13 @@ def compile_file(
                 with open(obj_file, "wb") as f:
                     f.write(target_machine.emit_object(llvm_module))
 
-            # Ensure runtime is compiled
-            import subprocess
-
+            # Get runtime for target architecture
             runtime_dir = os.path.join(os.path.dirname(__file__), "../runtime")
-            runtime_c = os.path.join(runtime_dir, "eigenvalue.c")
-            runtime_o = os.path.join(runtime_dir, "eigenvalue.o")
+            runtime_o, _ = get_runtime_path(runtime_dir, target_triple)
 
-            # Compile runtime if needed
-            if not os.path.exists(runtime_o) or os.path.getmtime(
-                runtime_c
-            ) > os.path.getmtime(runtime_o):
-                print(f"  → Compiling runtime library...")
-                result = subprocess.run(
-                    ["gcc", "-c", runtime_c, "-o", runtime_o, "-fPIC"],
-                    capture_output=True,
-                    text=True,
-                    cwd=runtime_dir,
-                )
-                if result.returncode != 0:
-                    print(f"  ✗ Runtime compilation failed: {result.stderr}")
-                    return 1
+            if not runtime_o:
+                print(f"  ✗ Runtime library not available for target")
+                return 1
 
             # Link with runtime (NO shell=True to prevent command injection)
             result = subprocess.run(

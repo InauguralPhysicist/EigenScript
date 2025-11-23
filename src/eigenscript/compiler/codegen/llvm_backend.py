@@ -498,7 +498,9 @@ class LLVMCodeGenerator:
         for list_ptr in self.allocated_lists:
             self.builder.call(self.eigen_list_destroy, [list_ptr])
 
-    def link_runtime_bitcode(self, llvm_module: llvm.ModuleRef) -> llvm.ModuleRef:
+    def link_runtime_bitcode(
+        self, llvm_module: llvm.ModuleRef, target_triple: str = None
+    ) -> llvm.ModuleRef:
         """Link runtime bitcode for LTO (Link-Time Optimization).
 
         This merges the C runtime functions into the generated module,
@@ -512,19 +514,34 @@ class LLVMCodeGenerator:
 
         Args:
             llvm_module: The parsed LLVM module from our generated IR
+            target_triple: Optional target triple for cross-compilation
 
         Returns:
             Linked module with runtime functions inlined
         """
         # Find runtime bitcode
         runtime_dir = os.path.dirname(__file__)
-        runtime_bc = os.path.join(runtime_dir, "../runtime/eigenvalue.bc")
+
+        # Try target-specific bitcode first
+        if target_triple:
+            target_bc = os.path.join(
+                runtime_dir, f"../runtime/build/{target_triple}/eigenvalue.bc"
+            )
+            if os.path.exists(target_bc):
+                runtime_bc = target_bc
+            else:
+                # Fall back to default
+                runtime_bc = os.path.join(runtime_dir, "../runtime/eigenvalue.bc")
+        else:
+            runtime_bc = os.path.join(runtime_dir, "../runtime/eigenvalue.bc")
 
         if not os.path.exists(runtime_bc):
-            print(
-                f"Warning: Runtime bitcode not found at {runtime_bc}. "
-                "Performance will be degraded. Run: clang -emit-llvm -c "
-                "runtime/eigenvalue.c -o runtime/eigenvalue.bc -O3"
+            import warnings
+
+            warnings.warn(
+                f"Runtime bitcode not found at {runtime_bc}. "
+                "Performance will be degraded. Run: python3 runtime/build_runtime.py",
+                RuntimeWarning,
             )
             return llvm_module
 
