@@ -50,9 +50,11 @@ print of x"""
             source, module_name=None, imported_modules=None
         )
 
-        # Should have main but no init calls
+        # Should have main but no module init calls
         assert "@main" in llvm_ir or '@"main"' in llvm_ir
-        assert "_init" not in llvm_ir or "call void @" not in llvm_ir
+        # Check there are no module init calls (not eigen_init which is runtime)
+        assert "call void @math" not in llvm_ir
+        assert "call void @physics" not in llvm_ir
 
     def test_single_import_generates_init_call(self):
         """Program with one import should call that module's init function."""
