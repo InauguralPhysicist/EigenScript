@@ -384,13 +384,22 @@ class LLVMCodeGenerator:
         This is used when arithmetic, comparisons, or printing need raw values.
         If given an EigenValue* pointer, extracts the value field.
         If given a raw ir.Value, assumes it's already a scalar and returns it.
+        Handles conversion of boolean (i1) to double (1.0 or 0.0).
         """
         # Backward compatibility: if passed raw ir.Value, assume it's a scalar
         if isinstance(gen_val, ir.Value):
+            # Check if it's a boolean that needs conversion to double
+            if isinstance(gen_val.type, ir.IntType) and gen_val.type.width == 1:
+                # Convert i1 to double: 0 -> 0.0, 1 -> 1.0
+                return self.builder.uitofp(gen_val, self.double_type)
             return gen_val
 
         if gen_val.kind == ValueKind.SCALAR:
-            return gen_val.value
+            scalar_val = gen_val.value
+            # Check if it's a boolean that needs conversion to double
+            if isinstance(scalar_val.type, ir.IntType) and scalar_val.type.width == 1:
+                return self.builder.uitofp(scalar_val, self.double_type)
+            return scalar_val
         elif gen_val.kind == ValueKind.EIGEN_PTR:
             # Dereference the EigenValue* to get the value
             return self.builder.call(self.eigen_get_value, [gen_val.value])
@@ -812,7 +821,7 @@ class LLVMCodeGenerator:
             return self.builder.fcmp_ordered(">", left, right)
         elif node.operator == "<":
             return self.builder.fcmp_ordered("<", left, right)
-        elif node.operator == "==":
+        elif node.operator == "=":
             return self.builder.fcmp_ordered("==", left, right)
         elif node.operator == "!=":
             return self.builder.fcmp_ordered("!=", left, right)
@@ -823,7 +832,7 @@ class LLVMCodeGenerator:
         else:
             raise CompilerError(
                 f"Unsupported binary operator '{node.operator}'",
-                hint="Supported operators: +, -, *, /, <, >, <=, >=, ==, !=",
+                hint="Supported operators: +, -, *, /, <, >, <=, >=, =, !=",
                 node=node,
             )
 

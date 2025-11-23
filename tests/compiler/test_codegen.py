@@ -178,7 +178,7 @@ quality is how is x"""
 y is 20
 result1 is x < y
 result2 is x > y
-result3 is x == y"""
+result3 is x = y"""
         llvm_ir = self.compile_source(source)
 
         assert llvm_ir is not None
