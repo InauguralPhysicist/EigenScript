@@ -48,10 +48,10 @@ def test_server_imports():
     server_file = PLAYGROUND_DIR / "server.py"
     with open(server_file) as f:
         code = f.read()
-    
+
     # Try to compile the code to check syntax
     try:
-        compile(code, str(server_file), 'exec')
+        compile(code, str(server_file), "exec")
     except SyntaxError as e:
         pytest.fail(f"server.py has syntax errors: {e}")
 
@@ -61,7 +61,7 @@ def test_server_constants():
     server_file = PLAYGROUND_DIR / "server.py"
     with open(server_file) as f:
         content = f.read()
-    
+
     assert "PORT = 8080" in content, "Server should define PORT = 8080"
     assert "PROJECT_ROOT" in content, "Server should define PROJECT_ROOT"
     assert "COMPILER_MODULE" in content, "Server should define COMPILER_MODULE"
@@ -72,7 +72,7 @@ def test_index_html_structure():
     index_file = PLAYGROUND_DIR / "index.html"
     with open(index_file) as f:
         content = f.read()
-    
+
     # Check for key elements
     assert "<!DOCTYPE html>" in content, "Should have DOCTYPE"
     assert "EigenSpace" in content, "Should mention EigenSpace"
@@ -87,7 +87,7 @@ def test_readme_has_quickstart():
     readme_file = PLAYGROUND_DIR / "README.md"
     with open(readme_file) as f:
         content = f.read()
-    
+
     assert "Quick Start" in content, "README should have Quick Start section"
     assert "build_runtime.py" in content, "README should mention building runtime"
     assert "server.py" in content, "README should mention starting server"
@@ -99,11 +99,14 @@ def test_quickstart_three_steps():
     quickstart_file = PLAYGROUND_DIR / "QUICKSTART.md"
     with open(quickstart_file) as f:
         content = f.read()
-    
+
     assert "Step 1" in content or "Build Runtime" in content, "Should have build step"
     assert "Step 2" in content or "Start Server" in content, "Should have server step"
     assert "Step 3" in content or "Visit" in content, "Should have visit step"
-    assert "python3 src/eigenscript/compiler/runtime/build_runtime.py --target wasm32" in content
+    assert (
+        "python3 src/eigenscript/compiler/runtime/build_runtime.py --target wasm32"
+        in content
+    )
     assert "python3 examples/playground/server.py" in content
     assert "http://localhost:8080" in content
 
@@ -113,10 +116,11 @@ def test_example_code_in_html():
     index_file = PLAYGROUND_DIR / "index.html"
     with open(index_file) as f:
         content = f.read()
-    
+
     # Should have the "Inaugural Algorithm" example
-    assert "Inaugural Algorithm" in content or "loop while" in content, \
-        "Should contain example EigenScript code"
+    assert (
+        "Inaugural Algorithm" in content or "loop while" in content
+    ), "Should contain example EigenScript code"
     assert "print of" in content, "Example should use print statement"
 
 
