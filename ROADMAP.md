@@ -58,6 +58,8 @@ EigenScript v0.2 has achieved native performance with the Scalar Fast Path compi
 ## 💻 Phase 5: Developer Tools (Q3 2026)
 **Goal:** Professional developer experience.
 
+**📋 Detailed Planning:** See [Phase 5 Documentation Index](docs/PHASE5_INDEX.md) for complete roadmap, implementation guide, and progress tracking.
+
 ### Tooling
 * **LSP (Language Server Protocol):** The backend for IDE support.
 * **VSCode Extension:** Syntax highlighting, IntelliSense, and "Hover to see Geometry".
@@ -67,6 +69,10 @@ EigenScript v0.2 has achieved native performance with the Scalar Fast Path compi
 
 ### Documentation
 * **Interactive Playground:** Web-based REPL (powered by WASM from Phase 3).
+  * ✅ Phase 3 WASM infrastructure complete
+  * 📋 [Implementation roadmap ready](docs/PHASE5_INTERACTIVE_PLAYGROUND_ROADMAP.md)
+  * 🎯 10-week MVP timeline with Pyodide
+  * 🚀 Expected 10x increase in adoption
 * **Video Tutorials:** "EigenScript in 10 Minutes."
 * **Cookbook:** Common patterns and algorithms.
 * **Auto-Docs:** Generating API references from code comments.

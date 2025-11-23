@@ -325,6 +325,23 @@ The math comes from a simple idea: measure the "distance" between where computat
 - Example Gallery (29+ programs)
 - Tutorials & Guides
 
+### 🗺️ Roadmap
+
+**Current Status:** Phase 3 (Compiler Optimizations) ✅ Complete
+
+Phase 3 achievements:
+- Architecture-agnostic compilation (WASM, ARM64, x86-64)
+- 53x performance improvement with Scalar Fast Path
+- 100% test pass rate (611/611 tests)
+
+**Next Up:** Phase 5 (Interactive Playground) - [See detailed roadmap](docs/PHASE5_INDEX.md)
+- Browser-based code editor with WebAssembly
+- Real-time execution without installation
+- Visual geometric state visualization
+- 10-week implementation timeline
+
+[View complete roadmap →](ROADMAP.md)
+
 
 
 ## Why EigenScript?
