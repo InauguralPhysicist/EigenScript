@@ -432,13 +432,17 @@ class LLVMCodeGenerator:
         else:
             raise ValueError(f"Unknown ValueKind: {gen_val.kind}")
 
-    def ensure_bool(self, val: ir.Value) -> ir.Value:
+    def ensure_bool(self, val: Union[GeneratedValue, ir.Value]) -> ir.Value:
         """
         Convert any value to an i1 boolean for branching.
         - i1: returns as-is
         - double: returns (val != 0.0)
         - ptr: returns (val != null)
         """
+        # Handle GeneratedValue wrapper
+        if isinstance(val, GeneratedValue):
+            val = val.value
+        
         if val.type == self.bool_type:
             return val
 
@@ -699,6 +703,16 @@ class LLVMCodeGenerator:
 
     def _generate_identifier(self, node: Identifier) -> ir.Value:
         """Generate code for variable access."""
+        # Check if this is a boolean constant
+        if node.name == "True":
+            return GeneratedValue(
+                value=ir.Constant(self.bool_type, 1), kind=ValueKind.SCALAR
+            )
+        elif node.name == "False":
+            return GeneratedValue(
+                value=ir.Constant(self.bool_type, 0), kind=ValueKind.SCALAR
+            )
+        
         # Check if this is a predicate
         if node.name in [
             "converged",
@@ -1149,6 +1163,41 @@ class LLVMCodeGenerator:
             raise NameError(f"Undefined variable: {target_name}")
 
         var_ptr = self.local_vars.get(target_name) or self.global_vars.get(target_name)
+        
+        # Check if this is a fast-path variable (raw double*) or EigenValue*
+        is_fast_path = var_ptr.type.pointee == self.double_type
+        
+        if is_fast_path:
+            # Fast-path variable: just a raw double, not an EigenValue*
+            # Interrogatives don't make sense for untracked variables
+            # For "what is", just return the scalar value
+            if node.interrogative == "what":
+                scalar_val = self.builder.load(var_ptr)
+                return GeneratedValue(value=scalar_val, kind=ValueKind.SCALAR)
+            else:
+                # Other interrogatives (why/how/when) don't make sense for scalars
+                # Return default values
+                if node.interrogative == "why":
+                    # No gradient tracking, return 0.0
+                    return GeneratedValue(
+                        value=ir.Constant(self.double_type, 0.0), kind=ValueKind.SCALAR
+                    )
+                elif node.interrogative == "how":
+                    # No stability tracking, return 1.0 (perfectly stable)
+                    return GeneratedValue(
+                        value=ir.Constant(self.double_type, 1.0), kind=ValueKind.SCALAR
+                    )
+                elif node.interrogative == "when":
+                    # No iteration tracking, return 0.0
+                    return GeneratedValue(
+                        value=ir.Constant(self.double_type, 0.0), kind=ValueKind.SCALAR
+                    )
+                else:
+                    raise NotImplementedError(
+                        f"Interrogative {node.interrogative} not implemented"
+                    )
+        
+        # EigenValue* variable: full geometric tracking available
         eigen_ptr = self.builder.load(var_ptr)
 
         # Special case: 'what is' returns the pointer for aliasing
