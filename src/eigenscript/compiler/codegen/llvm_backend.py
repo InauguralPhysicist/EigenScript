@@ -3,9 +3,10 @@ LLVM Backend for EigenScript Compiler
 Generates LLVM IR from EigenScript AST nodes.
 """
 
+import os
 from llvmlite import ir
 from llvmlite import binding as llvm
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, Set
 from enum import Enum
 from dataclasses import dataclass
 
@@ -74,7 +75,7 @@ class GeneratedValue:
 class LLVMCodeGenerator:
     """Generates LLVM IR from EigenScript AST."""
 
-    def __init__(self):
+    def __init__(self, observed_variables: Set[str] = None):
         # Initialize LLVM targets (initialization is now automatic in llvmlite)
         llvm.initialize_native_target()
         llvm.initialize_native_asmprinter()
@@ -82,6 +83,10 @@ class LLVMCodeGenerator:
         # Create module and builder
         self.module = ir.Module(name="eigenscript_module")
         self.module.triple = llvm.get_default_triple()
+
+        # Observer Effect: Track which variables need geometric tracking
+        # Unobserved variables compile to raw doubles for C-level performance
+        self.observed_variables = observed_variables or set()
 
         # Type definitions
         self.double_type = ir.DoubleType()
@@ -420,6 +425,49 @@ class LLVMCodeGenerator:
         for list_ptr in self.allocated_lists:
             self.builder.call(self.eigen_list_destroy, [list_ptr])
 
+    def link_runtime_bitcode(self, llvm_module: llvm.ModuleRef) -> llvm.ModuleRef:
+        """Link runtime bitcode for LTO (Link-Time Optimization).
+
+        This merges the C runtime functions into the generated module,
+        allowing LLVM to inline eigen_get_value, eigen_init, etc.
+
+        Expected performance impact:
+        - Function call overhead eliminated (~2-5 cycles per call)
+        - Direct struct field access instead of function calls
+        - Better register allocation across runtime boundary
+        - Target: <10ms for Fibonacci(25) vs current 209ms
+
+        Args:
+            llvm_module: The parsed LLVM module from our generated IR
+
+        Returns:
+            Linked module with runtime functions inlined
+        """
+        # Find runtime bitcode
+        runtime_dir = os.path.dirname(__file__)
+        runtime_bc = os.path.join(runtime_dir, "../runtime/eigenvalue.bc")
+
+        if not os.path.exists(runtime_bc):
+            print(
+                f"Warning: Runtime bitcode not found at {runtime_bc}. "
+                "Performance will be degraded. Run: clang -emit-llvm -c "
+                "runtime/eigenvalue.c -o runtime/eigenvalue.bc -O3"
+            )
+            return llvm_module
+
+        # Load runtime bitcode
+        with open(runtime_bc, "rb") as f:
+            bc_data = f.read()
+
+        # Parse runtime module
+        runtime_mod = llvm.parse_bitcode(bc_data)
+
+        # Link modules (merges runtime definitions into our module)
+        # This allows LLVM optimizer to see inside runtime functions
+        llvm.link_modules(llvm_module, runtime_mod)
+
+        return llvm_module
+
     def compile(self, ast_nodes: list[ASTNode]) -> str:
         """Compile a list of AST nodes to LLVM IR."""
 
@@ -559,7 +607,16 @@ class LLVMCodeGenerator:
                 f"Undefined variable '{node.name}'", hint=hint, node=node
             )
 
-        # Load the pointer
+        # OBSERVER EFFECT: Check what type of variable this is
+        # Fast path variables are raw double*, slow path are EigenValue*
+
+        # Check the pointee type to determine variable kind
+        if isinstance(var_ptr.type.pointee, ir.DoubleType):
+            # FAST PATH: Raw double variable (unobserved)
+            # Just load the value directly - no function call overhead!
+            return self.builder.load(var_ptr)
+
+        # Otherwise, load the pointer and check what it points to
         loaded_ptr = self.builder.load(var_ptr)
 
         # Check if it's a list
@@ -731,12 +788,22 @@ class LLVMCodeGenerator:
                 self.builder.call(self.eigen_update, [eigen_ptr, scalar_val])
         else:
             # Create new variable
-            # Use stack allocation for local variables in functions (not main)
-            # This avoids malloc overhead and is ~20x faster
+            # OBSERVER EFFECT: Check if variable needs geometric tracking
+            is_observed = node.identifier in self.observed_variables
             in_function = self.current_function and self.current_function.name != "main"
 
-            if in_function and gen_value.kind == ValueKind.SCALAR:
-                # Stack allocation: fast and auto-freed
+            if not is_observed and gen_value.kind == ValueKind.SCALAR:
+                # FAST PATH: Unobserved scalar → raw double (C-level performance!)
+                # This compiles to a simple alloca that LLVM's mem2reg pass
+                # will promote to a CPU register. Zero overhead.
+                scalar_val = self.ensure_scalar(gen_value)
+                var_ptr = self.builder.alloca(self.double_type, name=node.identifier)
+                self.builder.store(scalar_val, var_ptr)
+                self.local_vars[node.identifier] = var_ptr
+                # NOTE: This is just a double*, not EigenValue*!
+
+            elif in_function and gen_value.kind == ValueKind.SCALAR:
+                # Observed variable in function: Stack-allocated EigenValue
                 # IMPORTANT: Stack variables are NOT added to allocated_eigenvalues
                 # They don't need cleanup - automatically freed when function returns
                 scalar_val = self.ensure_scalar(gen_value)
@@ -748,7 +815,7 @@ class LLVMCodeGenerator:
                 self.local_vars[node.identifier] = var_ptr
                 # NOTE: Stack variables are NOT tracked in allocated_eigenvalues!
             else:
-                # Heap allocation: for main scope or when aliasing
+                # Observed variable in main scope: Heap allocation
                 # These DO need cleanup via eigen_destroy
                 eigen_ptr = self.ensure_eigen_ptr(gen_value)
                 var_ptr = self.builder.alloca(
@@ -799,8 +866,22 @@ class LLVMCodeGenerator:
                 else:
                     # For other expressions (including interrogatives), generate and convert
                     arg_gen_val = self._generate(arg)
-                    # Use helper to convert to EigenValue* (handles both scalars and pointers)
-                    eigen_ptr = self.ensure_eigen_ptr(arg_gen_val)
+
+                    # Wrap raw ir.Value in GeneratedValue for consistent handling
+                    if isinstance(arg_gen_val, ir.Value):
+                        arg_gen_val = GeneratedValue(
+                            value=arg_gen_val, kind=ValueKind.SCALAR
+                        )
+
+                    # OPTIMIZATION: Use stack allocation for temporary function arguments
+                    # instead of heap allocation (much faster!)
+                    if arg_gen_val.kind == ValueKind.SCALAR:
+                        # Create temporary EigenValue on stack for this call
+                        scalar_val = self.ensure_scalar(arg_gen_val)
+                        eigen_ptr = self._create_eigen_on_stack(scalar_val)
+                    else:
+                        # Already an EigenValue* or list, use as-is
+                        eigen_ptr = self.ensure_eigen_ptr(arg_gen_val)
 
                 # Call the function
                 func = self.functions[func_name]

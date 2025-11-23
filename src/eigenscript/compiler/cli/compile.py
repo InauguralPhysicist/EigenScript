@@ -11,6 +11,7 @@ import argparse
 from eigenscript.lexer import Tokenizer
 from eigenscript.parser.ast_builder import Parser
 from eigenscript.compiler.codegen.llvm_backend import LLVMCodeGenerator
+from eigenscript.compiler.analysis.observer import ObserverAnalyzer
 from llvmlite import binding as llvm
 
 
@@ -53,8 +54,18 @@ def compile_file(
         ast = parser.parse()
         print(f"  ✓ Parsed: {len(ast.statements)} statements")
 
-        # Generate LLVM IR
-        codegen = LLVMCodeGenerator()
+        # Analyze: Observer Effect (detect which variables need geometric tracking)
+        analyzer = ObserverAnalyzer()
+        observed_vars = analyzer.analyze(ast.statements)
+        if observed_vars:
+            print(
+                f"  ✓ Analysis: {len(observed_vars)} observed variables {observed_vars}"
+            )
+        else:
+            print(f"  ✓ Analysis: No variables need geometric tracking (pure scalars!)")
+
+        # Generate LLVM IR with observer information
+        codegen = LLVMCodeGenerator(observed_variables=observed_vars)
         llvm_ir = codegen.compile(ast.statements)
         print(f"  ✓ Generated LLVM IR")
 
@@ -67,6 +78,11 @@ def compile_file(
             except Exception as verify_error:
                 print(f"  ✗ Verification failed: {verify_error}")
                 return 1
+
+        # Link runtime bitcode for LTO (Link-Time Optimization)
+        # This enables inlining of C runtime functions
+        llvm_module = codegen.link_runtime_bitcode(llvm_module)
+        print(f"  ✓ Linked runtime bitcode (LTO enabled)")
 
         # Apply optimizations if requested (using New Pass Manager)
         if opt_level > 0:
