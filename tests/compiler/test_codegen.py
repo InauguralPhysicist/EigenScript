@@ -112,6 +112,52 @@ first is numbers[0]"""
         assert "eigen_list_get" in llvm_ir
         assert self.verify_llvm_ir(llvm_ir)
 
+    def test_loop_with_comparison(self):
+        """Test compilation of loop with comparison condition."""
+        source = """i is 0
+limit is 10
+loop while i < limit:
+    i is i + 1"""
+        llvm_ir = self.compile_source(source)
+
+        assert llvm_ir is not None
+        assert "br" in llvm_ir  # Branch instruction
+        assert "loop.cond" in llvm_ir
+        assert "loop.body" in llvm_ir
+        assert "loop.end" in llvm_ir
+        assert "fcmp" in llvm_ir  # Comparison instruction
+        assert self.verify_llvm_ir(llvm_ir)
+
+    def test_loop_with_scalar_condition(self):
+        """Test compilation of loop with scalar variable as condition (truthiness)."""
+        source = """count is 5
+loop while count:
+    count is count - 1"""
+        llvm_ir = self.compile_source(source)
+
+        assert llvm_ir is not None
+        assert "br" in llvm_ir  # Branch instruction
+        assert "loop.cond" in llvm_ir
+        assert "loop.body" in llvm_ir
+        assert "loop.end" in llvm_ir
+        # Should have fcmp != 0.0 for truthiness check
+        assert "fcmp" in llvm_ir
+        assert self.verify_llvm_ir(llvm_ir)
+
+    def test_conditional_with_scalar(self):
+        """Test compilation of if with scalar variable as condition."""
+        source = """x is 5
+if x:
+    y is 1"""
+        llvm_ir = self.compile_source(source)
+
+        assert llvm_ir is not None
+        assert "br" in llvm_ir
+        assert "if.then" in llvm_ir
+        # Should have fcmp != 0.0 for truthiness check
+        assert "fcmp" in llvm_ir
+        assert self.verify_llvm_ir(llvm_ir)
+
     def test_interrogatives(self):
         """Test compilation of interrogatives (what/why/how)."""
         source = """x is 100

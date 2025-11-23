@@ -380,6 +380,26 @@ class LLVMCodeGenerator:
         else:
             raise ValueError(f"Unknown ValueKind: {gen_val.kind}")
 
+    def ensure_bool(self, val: ir.Value) -> ir.Value:
+        """
+        Convert any value to an i1 boolean for branching.
+        - i1: returns as-is
+        - double: returns (val != 0.0)
+        - ptr: returns (val != null)
+        """
+        if val.type == self.bool_type:
+            return val
+        
+        if val.type == self.double_type:
+            # Compare != 0.0
+            return self.builder.fcmp_ordered('!=', val, ir.Constant(self.double_type, 0.0))
+            
+        if isinstance(val.type, ir.PointerType):
+            # Compare != null
+            return self.builder.icmp_unsigned('!=', val, ir.Constant(val.type, None))
+            
+        raise CompilerError(f"Cannot convert type {val.type} to boolean")
+
     def _create_eigen_on_stack(self, initial_value: ir.Value) -> ir.Value:
         """Create an EigenValue on the stack (fast, auto-freed).
 
@@ -777,15 +797,24 @@ class LLVMCodeGenerator:
         # Handle EigenValue assignment (scalar or pointer)
         if node.identifier in self.local_vars:
             # Variable exists - update or rebind
+            var_ptr = self.local_vars[node.identifier]
+            
             if gen_value.kind == ValueKind.EIGEN_PTR:
                 # Aliasing: rebind to point to the same EigenValue*
                 # This is the key to Option 2: "value is what is x" makes value an alias
-                self.builder.store(gen_value.value, self.local_vars[node.identifier])
+                self.builder.store(gen_value.value, var_ptr)
             else:
-                # Scalar update: update existing variable's value
-                eigen_ptr = self.builder.load(self.local_vars[node.identifier])
+                # Scalar update: check if it's a raw double* or EigenValue*
                 scalar_val = self.ensure_scalar(gen_value)
-                self.builder.call(self.eigen_update, [eigen_ptr, scalar_val])
+                
+                # Check the type of the variable pointer
+                if var_ptr.type.pointee == self.double_type:
+                    # Fast path: raw double*, just store the new value
+                    self.builder.store(scalar_val, var_ptr)
+                else:
+                    # Geometric tracked: EigenValue*, call eigen_update
+                    eigen_ptr = self.builder.load(var_ptr)
+                    self.builder.call(self.eigen_update, [eigen_ptr, scalar_val])
         else:
             # Create new variable
             # OBSERVER EFFECT: Check if variable needs geometric tracking
@@ -894,7 +923,10 @@ class LLVMCodeGenerator:
 
     def _generate_conditional(self, node: Conditional) -> None:
         """Generate code for if-else statements."""
-        cond = self._generate(node.condition)
+        raw_cond = self._generate(node.condition)
+        
+        # FIX: Ensure we have a boolean for the branch
+        cond = self.ensure_bool(raw_cond)
 
         # Create basic blocks
         then_block = self.current_function.append_basic_block(name="if.then")
@@ -952,7 +984,11 @@ class LLVMCodeGenerator:
 
         # Generate condition check
         self.builder.position_at_end(loop_cond)
-        cond = self._generate(node.condition)
+        raw_cond = self._generate(node.condition)
+        
+        # FIX: Ensure we have a boolean for the branch
+        cond = self.ensure_bool(raw_cond)
+        
         self.builder.cbranch(cond, loop_body, loop_end)
 
         # Generate loop body
