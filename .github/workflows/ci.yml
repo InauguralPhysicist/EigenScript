@@ -28,7 +28,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-cov black flake8 mypy
-          pip install -e .
+          pip install -e ".[compiler]"
       
       - name: Run black formatter check
         run: |
@@ -75,7 +75,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install mypy types-setuptools
-          pip install -e .
+          pip install -e ".[compiler]"
       
       - name: Run mypy
         run: |
