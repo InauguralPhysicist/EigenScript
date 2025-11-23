@@ -33,11 +33,19 @@ class ModuleResolver:
         else:
             self.search_paths.append(os.getcwd())
 
-        # 2. Add Standard Library Path (Future Phase 4.3)
-        # We will eventually set EIGEN_PATH env var or use a fixed install location
+        # 2. Add Standard Library Path
+        # Check environment variable first, then fall back to package stdlib
         stdlib_path = os.environ.get("EIGEN_PATH")
-        if stdlib_path:
+        if stdlib_path and os.path.exists(stdlib_path):
             self.search_paths.append(stdlib_path)
+        else:
+            # Auto-detect stdlib path relative to this file
+            # resolver.py is in src/eigenscript/compiler/analysis/
+            # stdlib is in src/eigenscript/stdlib/
+            this_file = Path(__file__).resolve()
+            stdlib_dir = this_file.parent.parent.parent / "stdlib"
+            if stdlib_dir.exists():
+                self.search_paths.append(str(stdlib_dir))
 
     def resolve(self, module_name: str) -> str:
         """
