@@ -1,0 +1,57 @@
+[flake8]
+# Match black's line length
+max-line-length = 88
+
+# Only ignore issues that conflict with black or are stylistic preferences
+ignore =
+    # E203: whitespace before ':' (conflicts with black)
+    E203,
+    # W503: line break before binary operator (conflicts with black)
+    W503,
+
+# Per-file ignores for existing issues
+# TODO: These should be fixed incrementally to improve code quality
+per-file-ignores =
+    # Test files can have unused imports, variables, long lines, etc
+    tests/*.py:F401,F841,E501,W293,F541,F403,F405,E741
+    # Source files with existing issues that need refactoring
+    src/eigenscript/evaluator/interpreter.py:F403,F405,C901,E501,F541,F401,F841
+    src/eigenscript/compiler/cli/compile.py:C901,E501,F541,F401
+    src/eigenscript/builtins.py:E501,F541,F401
+    src/eigenscript/parser/ast_builder.py:C901,E501,F841
+    src/eigenscript/compiler/codegen/llvm_backend.py:E501,F541,F401,C901
+    src/eigenscript/__main__.py:C901,E501,F541,F401,F841
+    src/eigenscript/compiler/runtime/build_runtime.py:E501,F541,E226,C901
+    src/eigenscript/lexer/tokenizer.py:E501,C901,F841
+    src/eigenscript/compiler/analysis/observer.py:E226,F541,C901,E501
+    src/eigenscript/semantic/operations.py:E501,F401
+    src/eigenscript/semantic/lrvm.py:E501
+    src/eigenscript/compiler/analysis/resolver.py:F401,F841
+    src/eigenscript/semantic/metric.py:E501
+    src/eigenscript/runtime/eigencontrol.py:E741
+
+# Exclude common directories
+exclude =
+    .git,
+    __pycache__,
+    .pytest_cache,
+    .mypy_cache,
+    build,
+    dist,
+    *.egg-info,
+    .venv,
+    venv,
+    .tox,
+    docs/_build,
+
+# Set complexity threshold
+max-complexity = 15
+
+# Show source code for each error
+show-source = True
+
+# Count the number of occurrences of each error/warning code
+count = True
+
+# Print total number of errors
+statistics = True
