@@ -1,6 +1,10 @@
-# EigenScript 🌀
+<div align="center">
+  <img src="logo.png" alt="EigenScript Logo" width="300"/>
 
-**The Geometric Systems Language**
+  # EigenScript 🌀
+
+  **The Geometric Systems Language**
+</div>
 
 EigenScript is a high-performance programming language where code is treated as a trajectory through semantic spacetime. It combines the **zero-cost abstractions** of a system language with the **geometric introspection** of a symbolic AI.
 
