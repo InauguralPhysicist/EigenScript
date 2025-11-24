@@ -1,3 +1,5 @@
+![EigenScript Logo](logo.png)
+
 # EigenScript 🌀
 
 **The Geometric Systems Language**
